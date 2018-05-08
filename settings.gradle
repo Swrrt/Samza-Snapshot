@@ -1,0 +1,67 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+include \
+  'samza-api',
+  'samza-elasticsearch',
+  'samza-log4j',
+  'samza-rest',
+  'samza-shell',
+  'samza-azure',
+  'samza-sql',
+  'samza-aws',
+  'samza-tools'
+
+def scalaModules = [
+        'samza-core',
+        'samza-kafka',
+        'samza-kv',
+        'samza-kv-inmemory',
+        'samza-kv-rocksdb',
+        'samza-hdfs',
+        'samza-yarn',
+        'samza-test',
+        'samza-autoscaling'
+] as HashSet
+
+scalaModules.each {
+  include it
+}
+
+rootProject.children.each {
+  if (scalaModules.contains(it.name)) {
+    it.name = it.name + "_" + scalaVersion
+  }
+}
+
+/**
+ * To skip integration tests in samza-test: './gradlew clean build -PskipIntegrationTests'
+ */
+gradle.taskGraph.whenReady { taskGraph ->
+  taskGraph.getAllTasks().each { task ->
+    def project = task.getProject()
+    task.onlyIf {
+      /**
+       * Behaves as pass through filter for all tasks when `skipIntegrationTests` property is turned off.
+       * Filters 'test' task of 'samza-test' project otherwise.
+       */
+      !project.hasProperty("skipIntegrationTests") || !(project.getName().contains("samza-test") && task.getName() == "test")
+    }
+  }
+}

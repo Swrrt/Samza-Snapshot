@@ -1,0 +1,792 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+
+  apply from: file('gradle/buildscript.gradle'), to: buildscript
+}
+
+allprojects {
+  repositories {
+    mavenCentral()
+    mavenLocal()
+  }
+}
+
+apply from: file("gradle/dependency-versions.gradle")
+apply from: file("gradle/dependency-versions-scala-" + scalaVersion + ".gradle")
+apply from: file("gradle/release.gradle")
+apply from: file("gradle/rat.gradle")
+apply from: file('gradle/customize.gradle')
+
+
+rat {
+  excludes = [
+    '*.patch',
+    '**/*.eot',
+    '**/*.graffle',
+    '**/*.iml',
+    '**/*.ipr',
+    '**/*.iws',
+    '**/*.json',
+    '**/*.otf',
+    '**/*.svg',
+    '**/*.ttf',
+    '**/*.woff',
+    '**/hs_err_pid*.log',
+    '**/.classpath',
+    '**/.cache/**',
+    '**/.git/**',
+    '**/.gitignore',
+    '**/.gradle/**',
+    '**/.idea/**',
+    '**/.project',
+    '**/.settings/**',
+    '**/.DS_Store/**',
+    '**/bootstrap.css.map',
+    '**/bootstrap.min.css',
+    '**/bootstrap.min.js',
+    '**/build/**',
+    '**/font-awesome.min.css',
+    '**/jquery-1.11.1.min.js',
+    '**/jquery.tablesorter.min.js',
+    '**/non-responsive.less',
+    '**/ropa-sans.css',
+    '**/syntax.css',
+    '**/d3.v3.min.js',
+    '**/dagre-d3.min.js',
+    '.idea/**',
+    '.reviewboardrc',
+    'docs/_site/**',
+    'docs/sitemap.xml',
+    'docs/learn/documentation/*/api/javadocs/**',
+    'docs/Gemfile.lock',
+    'gradle/wrapper/**',
+    'gradlew',
+    'gradlew.bat',
+    'samza-test/state/**',
+    'README.md',
+    'RELEASE.md',
+    'samza-test/src/main/resources/**',
+    'samza-hdfs/src/main/resources/**',
+    'samza-hdfs/src/test/resources/**',
+    'out/**',
+    'state/**'
+  ]
+}
+
+allprojects {
+  apply plugin: 'idea'
+
+  // For all scala compilation, add extra compiler options, taken from version-specific
+  // dependency-versions-scala file applied above.
+  tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = [ scalaOptions ]
+  }
+}
+
+idea {
+  project {
+    languageLevel = 1.8
+  }
+}
+
+subprojects {
+  apply plugin: 'eclipse'
+  apply plugin: 'project-report'
+  apply plugin: 'jacoco'
+
+  tasks.withType(Test) {
+    test {
+      testLogging {
+        showStackTraces = true
+        showExceptions = true
+        showCauses = true
+        displayGranularity = maxGranularity
+        exceptionFormat = 'full'
+      }
+    }
+  }
+}
+
+project(':samza-api') {
+  apply plugin: 'checkstyle'
+  apply plugin: 'java'
+
+  dependencies {
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+  }
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+project(":samza-core_$scalaVersion") {
+  apply plugin: 'scala'
+  apply plugin: 'checkstyle'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  jar {
+    manifest {
+      attributes("Implementation-Version": "$version")
+    }
+  }
+
+  dependencies {
+    compile project(':samza-api')
+    compile("com.101tec:zkclient:$zkClientVersion") {
+      exclude module: 'junit:junit'
+    }
+    compile "com.google.guava:guava:$guavaVersion"
+    compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    compile "org.apache.commons:commons-collections4:$apacheCommonsCollections4Version"
+    compile "org.apache.commons:commons-lang3:$commonsLang3Version"
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    compile "org.eclipse.jetty:jetty-webapp:$jettyVersion"
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    testCompile project(":samza-api").sourceSets.test.output
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testCompile "org.powermock:powermock-api-mockito:$powerMockVersion"
+    testCompile "org.powermock:powermock-core:$powerMockVersion"
+    testCompile "org.powermock:powermock-module-junit4:$powerMockVersion"
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+project(':samza-azure') {
+  apply plugin: 'java'
+  apply plugin: 'checkstyle'
+
+  dependencies {
+    compile "com.microsoft.azure:azure-storage:5.3.1"
+    compile "com.microsoft.azure:azure-eventhubs:0.14.5"
+    compile "com.fasterxml.jackson.core:jackson-core:2.8.8"
+    compile "io.dropwizard.metrics:metrics-core:3.1.2"
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testCompile "org.powermock:powermock-api-mockito:$powerMockVersion"
+    testCompile "org.powermock:powermock-core:$powerMockVersion"
+    testCompile "org.powermock:powermock-module-junit4:$powerMockVersion"
+  }
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+  test {
+    // Exclude integration tests that require connection to EventHub
+    exclude 'org/apache/samza/system/eventhub/producer/*ITest*'
+    exclude 'org/apache/samza/system/eventhub/consumer/*ITest*'
+  }
+}
+
+project(':samza-aws') {
+  apply plugin: 'java'
+  apply plugin: 'checkstyle'
+
+  dependencies {
+    compile "com.amazonaws:aws-java-sdk-kinesis:1.11.152"
+    compile "com.amazonaws:amazon-kinesis-client:1.7.5"
+    compile "com.amazonaws:amazon-kinesis-producer:0.10.0"
+    compile "io.dropwizard.metrics:metrics-core:3.1.2"
+    compile "org.codehaus.jackson:jackson-core-asl:1.9.7"
+    compile "org.codehaus.jackson:jackson-mapper-asl:1.9.7"
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    runtime "org.apache.httpcomponents:httpclient:4.5.2"
+    runtime "org.apache.httpcomponents:httpcore:4.4.5"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-all:$mockitoVersion"
+  }
+
+  repositories {
+    maven {
+      url "https://repo1.maven.org/maven2/"
+    }
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+
+project(":samza-autoscaling_$scalaVersion") {
+  apply plugin: 'scala'
+  apply plugin: 'checkstyle'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    compile "org.eclipse.jetty:jetty-webapp:$jettyVersion"
+    compile("org.apache.hadoop:hadoop-yarn-client:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile("org.apache.hadoop:hadoop-common:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile "org.apache.httpcomponents:httpclient:$httpClientVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+project(':samza-elasticsearch') {
+  apply plugin: 'java'
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.elasticsearch:elasticsearch:$elasticsearchVersion"
+    compile "com.google.guava:guava:$guavaVersion"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+
+    testRuntime "org.slf4j:slf4j-simple:$slf4jVersion"
+  }
+}
+
+project(':samza-sql') {
+  apply plugin: 'java'
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-kafka_$scalaVersion")
+    compile "org.apache.avro:avro:$avroVersion"
+    compile "org.apache.calcite:calcite-core:$calciteVersion"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+
+    testCompile project(":samza-test_$scalaVersion")
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+
+    testRuntime "org.slf4j:slf4j-simple:$slf4jVersion"
+  }
+}
+
+project(':samza-tools') {
+  apply plugin: 'java'
+
+  dependencies {
+    compile project(':samza-sql')
+    compile project(':samza-api')
+    compile project(':samza-azure')
+    compile "log4j:log4j:$log4jVersion"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    compile "commons-cli:commons-cli:$commonsCliVersion"
+    compile "org.apache.avro:avro:$avroVersion"
+    compile "org.apache.commons:commons-lang3:$commonsLang3Version"
+    compile "org.apache.kafka:kafka-clients:$kafkaVersion"
+  }
+
+  tasks.create(name: "releaseToolsTarGz", dependsOn: configurations.archives.artifacts, type: Tar) {
+    into "samza-tools-${version}"
+    compression = Compression.GZIP
+    from(project.file("./scripts")) { into "scripts/" }
+    from(project.file("./config")) { into "config/" }
+    from(project(':samza-shell').file("src/main/bash/run-class.sh")) { into "scripts/" }
+    from(configurations.runtime) { into("lib/") }
+    from(configurations.archives.artifacts.files) { into("lib/") }
+    duplicatesStrategy 'exclude'
+  }
+}
+
+project(":samza-kafka_$scalaVersion") {
+  apply plugin: 'scala'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  configurations {
+    // Remove transitive dependencies from Zookeeper that we don't want.
+    compile.exclude group: 'javax.jms', module: 'jms'
+    compile.exclude group: 'com.sun.jdmk', module: 'jmxtools'
+    compile.exclude group: 'com.sun.jmx', module: 'jmxri'
+  }
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "com.101tec:zkclient:$zkClientVersion"
+    compile "org.apache.zookeeper:zookeeper:$zookeeperVersion"
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    compile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion"
+    compile "org.apache.kafka:kafka-clients:$kafkaVersion"
+    testCompile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion:test"
+    testCompile "org.apache.kafka:kafka-clients:$kafkaVersion:test"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+    testCompile project(":samza-core_$scalaVersion").sourceSets.test.output
+
+    // Logging in tests is good.
+    testRuntime "org.slf4j:slf4j-simple:$slf4jVersion"
+  }
+
+  test {
+    // Bump up the heap so we can start ZooKeeper and Kafka brokers.
+    minHeapSize = "1560m"
+    maxHeapSize = "1560m"
+    jvmArgs = ["-XX:+UseConcMarkSweepGC", "-server"]
+    // There appear to be issues between TestKafkaSystemAdmin and
+    // TestKafkaCheckpointManager both running brokeres and ZK. Restarting the
+    // gradle worker after every test clears things up. These tests should be
+    // moved to the integration test suite.
+    forkEvery = 1
+  }
+}
+
+project(':samza-log4j') {
+  apply plugin: 'java'
+  apply plugin: 'checkstyle'
+
+  dependencies {
+    compile "log4j:log4j:$log4jVersion"
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    testCompile "junit:junit:$junitVersion"
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+project(":samza-yarn_$scalaVersion") {
+  apply plugin: 'scala'
+  apply plugin: 'lesscss'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "org.scala-lang:scala-compiler:$scalaLibVersion"
+    compile "org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion"
+    compile "commons-httpclient:commons-httpclient:$commonsHttpClientVersion"
+    compile("org.apache.hadoop:hadoop-yarn-api:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+    }
+    compile("org.apache.hadoop:hadoop-yarn-common:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile("org.apache.hadoop:hadoop-yarn-client:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile("org.apache.hadoop:hadoop-common:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+      // Exclude because YARN's 3.4.5 ZK version is incompatbile with Kafka's 3.3.4.
+      exclude module: 'zookeeper'
+    }
+    compile("org.apache.hadoop:hadoop-hdfs:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile("org.scalatra:scalatra_$scalaVersion:$scalatraVersion") {
+      exclude module: 'scala-compiler'
+      exclude module: 'slf4j-api'
+    }
+    compile("org.scalatra:scalatra-scalate_$scalaVersion:$scalatraVersion") {
+      exclude module: 'scala-compiler'
+      exclude module: 'slf4j-api'
+    }
+    compile "joda-time:joda-time:$jodaTimeVersion"
+    compile "org.apache.zookeeper:zookeeper:$zookeeperVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testCompile project(":samza-core_$scalaVersion").sourceSets.test.output
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+  }
+
+  repositories {
+    maven {
+      url "http://repo.typesafe.com/typesafe/releases"
+    }
+  }
+
+  lesscss {
+    source = fileTree('src/main/less') {
+      include 'main.less'
+    }
+    dest = "$buildDir/resources/main/scalate/css"
+  }
+
+  jar.dependsOn("lesscss")
+}
+
+project(":samza-shell") {
+  apply plugin: 'java'
+
+  configurations {
+    gradleShell
+  }
+
+  dependencies {
+    gradleShell project(":samza-core_$scalaVersion")
+    gradleShell project(":samza-kafka_$scalaVersion")
+    gradleShell project(":samza-test_$scalaVersion")
+    gradleShell project(":samza-yarn_$scalaVersion")
+    gradleShell "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    gradleShell "log4j:log4j:1.2.16"
+  }
+
+  task shellTarGz(type: Tar) {
+    compression = Compression.GZIP
+    classifier = 'dist'
+    from 'src/main/bash'
+    from 'src/main/resources'
+    from 'src/main/visualizer'
+  }
+
+  artifacts {
+    archives(shellTarGz) {
+      name 'samza-shell'
+      classifier 'dist'
+    }
+  }
+
+  // Usage: ./gradlew samza-shell:runJob \
+  //  -PconfigPath=file:///path/to/job/config.properties
+  task runJob(type:JavaExec) {
+    description 'To run a job (defined in a properties file)'
+    main = 'org.apache.samza.job.JobRunner'
+    classpath = configurations.gradleShell
+    if (project.hasProperty('configPath')) args += ['--config-path', configPath]
+    jvmArgs = ["-Dlog4j.configuration=file:src/main/resources/log4j-console.xml"]
+  }
+
+  // Usage: ./gradlew samza-shell:checkpointTool \
+  //  -PconfigPath=file:///path/to/job/config.properties -PnewOffsets=file:///path/to/new/offsets.properties
+  task checkpointTool(type:JavaExec) {
+    description 'Command-line tool to inspect and manipulate the job’s checkpoint'
+    main = 'org.apache.samza.checkpoint.CheckpointTool'
+    classpath = configurations.gradleShell
+    if (project.hasProperty('configPath')) args += ['--config-path', configPath]
+    if (project.hasProperty('newOffsets')) args += ['--new-offsets', newOffsets]
+    jvmArgs = ["-Dlog4j.configuration=file:src/main/resources/log4j-console.xml"]
+  }
+
+  // Usage: ./gradlew samza-shell:kvPerformanceTest
+  //  -PconfigPath=file:///path/to/job/config.properties
+  task kvPerformanceTest(type:JavaExec) {
+    description 'Command-line tool to run key-value performance tests'
+    main = 'org.apache.samza.test.performance.TestKeyValuePerformance'
+    classpath = configurations.gradleShell
+    if (project.hasProperty('configPath')) args += ['--config-path', configPath]
+    jvmArgs = ["-Dlog4j.configuration=file:src/main/resources/log4j-console.xml"]
+  }
+}
+
+project(":samza-kv_$scalaVersion") {
+  apply plugin: 'scala'
+  apply plugin: 'checkstyle'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+}
+
+project(":samza-kv-inmemory_$scalaVersion") {
+  apply plugin: 'scala'
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile project(":samza-kv_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "com.google.guava:guava:$guavaVersion"
+    testCompile "junit:junit:$junitVersion"
+  }
+}
+
+project(":samza-kv-rocksdb_$scalaVersion") {
+  apply plugin: 'scala'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    compile project(":samza-kv_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "org.rocksdb:rocksdbjni:$rocksdbVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+  }
+}
+
+project(":samza-hdfs_$scalaVersion") {
+  apply plugin: 'scala'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+  sourceSets.main.java.srcDirs = []
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-core_$scalaVersion")
+    // currently hdfs system producer/consumer do depend on yarn for two things:
+    // 1. staging directory 2. security
+    // SAMZA-1032 to solve the staging directory dependency
+    compile project(":samza-yarn_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile("org.apache.hadoop:hadoop-hdfs:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+    }
+    compile("org.apache.hadoop:hadoop-common:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+      exclude module: 'zookeeper'
+    }
+
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+    testCompile "org.apache.hadoop:hadoop-minicluster:$yarnVersion"
+  }
+}
+
+project(":samza-rest") {
+  apply plugin: 'java'
+
+  dependencies {
+    compile project(":samza-shell")
+    compile project(":samza-core_$scalaVersion")
+
+    runtime "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    compile "com.google.guava:guava:$guavaVersion"
+    compile "org.glassfish.jersey.core:jersey-server:$jerseyVersion"
+    compile "org.glassfish.jersey.containers:jersey-container-servlet-core:$jerseyVersion"
+    compile "org.glassfish.jersey.containers:jersey-container-jetty-http:$jerseyVersion"
+    compile "org.glassfish.jersey.media:jersey-media-moxy:$jerseyVersion"
+    compile "org.eclipse.jetty.aggregate:jetty-all:$jettyVersion"
+    compile "commons-httpclient:commons-httpclient:$commonsHttpClientVersion"
+    compile("org.apache.hadoop:hadoop-yarn-client:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+      exclude group: 'com.sun.jersey'
+    }
+    runtime("org.apache.hadoop:hadoop-yarn-api:$yarnVersion") {
+      exclude module: 'slf4j-log4j12'
+      exclude module: 'servlet-api'
+      exclude group: 'com.sun.jersey'
+    }
+
+    testCompile "junit:junit:$junitVersion"
+    testCompile "org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:$jerseyVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+  }
+
+  tasks.create(name: "releaseRestServiceTar", type: Tar) {
+    description 'Build a tarball containing the samza-rest component and its dependencies'
+    compression = Compression.GZIP
+    from(file("$projectDir/src/main/config")) { into "config/" }
+    from(file("$projectDir/src/main/resources/log4j.xml")) { into "bin/" }
+    from(file("$projectDir/src/main/bash/run-samza-rest-service.sh")) { into "bin/" }
+    from(project(':samza-shell').file("src/main/bash/run-class.sh")) { into "bin/" }
+    from '../LICENSE'
+    from '../NOTICE'
+    from(configurations.runtime) { into("lib/") }
+    from(jar) { into("lib/") }
+  }
+
+  tasks.create(name: "restTarGz", type: Tar) {
+    description 'Build a tarball containing the samza-rest supplementary files'
+    compression = Compression.GZIP
+    from 'src/main/bash'
+    from 'src/main/resources'
+    from(project(':samza-shell').file("src/main/bash/run-class.sh"))
+  }
+
+  artifacts {
+    archives(restTarGz) {
+      name 'samza-rest-scripts'
+      classifier 'dist'
+    }
+  }
+}
+
+project(":samza-test_$scalaVersion") {
+  apply plugin: 'scala'
+  apply plugin: 'checkstyle'
+
+  // Force scala joint compilation
+  sourceSets.main.scala.srcDir "src/main/java"
+  sourceSets.test.scala.srcDir "src/test/java"
+
+  // Disable the Javac compiler by forcing joint compilation by scalac. This is equivalent to setting
+  // tasks.compileTestJava.enabled = false
+  sourceSets.main.java.srcDirs = []
+  sourceSets.test.java.srcDirs = []
+
+  configurations {
+    // Remove transitive dependencies from Zookeeper that we don't want.
+    compile.exclude group: 'javax.jms', module: 'jms'
+    compile.exclude group: 'com.sun.jdmk', module: 'jmxtools'
+    compile.exclude group: 'com.sun.jmx', module: 'jmxri'
+  }
+
+  dependencies {
+    compile project(':samza-api')
+    compile project(":samza-kv-inmemory_$scalaVersion")
+    compile project(":samza-kv-rocksdb_$scalaVersion")
+    compile project(":samza-core_$scalaVersion")
+    runtime project(":samza-log4j")
+    runtime project(":samza-yarn_$scalaVersion")
+    runtime project(":samza-kafka_$scalaVersion")
+    runtime project(":samza-hdfs_$scalaVersion")
+    compile "org.scala-lang:scala-library:$scalaLibVersion"
+    compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    compile "javax.mail:mail:1.4"
+    compile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion"
+    testCompile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion:test"
+    testCompile "com.101tec:zkclient:$zkClientVersion"
+    testCompile "junit:junit:$junitVersion"
+    testCompile project(":samza-kafka_$scalaVersion")
+    testCompile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion:test"
+    testCompile "org.apache.kafka:kafka-clients:$kafkaVersion:test"
+    testCompile project(":samza-core_$scalaVersion").sourceSets.test.output
+    testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
+    testCompile "org.mockito:mockito-core:$mockitoVersion"
+    testRuntime "org.slf4j:slf4j-simple:$slf4jVersion"
+  }
+
+  test {
+    // Bump up the heap so we can run KV store tests.
+    minHeapSize = "1560m"
+    maxHeapSize = "1560m"
+    jvmArgs = ["-XX:+UseConcMarkSweepGC", "-server"]
+  }
+
+  checkstyle {
+    configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+    toolVersion = "$checkstyleVersion"
+  }
+
+  tasks.create(name: "releaseTestJobs", dependsOn: configurations.archives.artifacts, type: Tar) {
+    description 'Build an integration test tarball'
+    compression = Compression.GZIP
+    from(file("$projectDir/src/main/config")) { into "config/" }
+    from(file("$projectDir/src/main/resources")) { into "lib/" }
+    from(project(':samza-shell').file("src/main/bash")) { into "bin/" }
+    from(file("$projectDir/src/main/python/ghostface_killah.py")) { into "bin/"}
+    from(project(':samza-shell').file("src/main/resources")) { into "lib/" }
+    from(project(':samza-shell').file("src/main/resources/log4j-console.xml")) { into "bin/" }
+    from '../LICENSE'
+    from '../NOTICE'
+    from(configurations.runtime) { into("lib/") }
+    from(configurations.archives.artifacts.files) { into("lib/") }
+  }
+}
