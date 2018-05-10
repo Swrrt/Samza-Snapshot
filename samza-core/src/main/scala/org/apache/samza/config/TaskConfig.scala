@@ -118,8 +118,8 @@ class TaskConfig(config: Config) extends ScalaMapConfig(config) with Logging {
     getOption(TaskConfig.GROUPER_FACTORY) match {
       case Some(grouperFactory) => grouperFactory
       case _ =>
-        info("No %s configuration, using 'org.apache.samza.container.grouper.task.GroupByContainerCountFactory'" format TaskConfig.GROUPER_FACTORY)
-        "org.apache.samza.container.grouper.task.GroupByContainerCountFactory"
+        info("No %s configuration, using 'org.apache.samza.container.grouper.task.GroupByContainerIdsFactory'" format TaskConfig.GROUPER_FACTORY)
+        "org.apache.samza.container.grouper.task.GroupByContainerIdsFactory"
     }
   }
 

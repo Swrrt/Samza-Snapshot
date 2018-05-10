@@ -126,7 +126,9 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
                     appStatus = ApplicationStatus.UnsuccessfulFinish;
                 }
             }
-
+            if(appStatus == ApplicationStatus.UnsuccessfulFinish){
+                System.exit(1);
+            }
             shutdownLatch.countDown();
         }
     }
