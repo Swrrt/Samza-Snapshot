@@ -197,7 +197,14 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
         // Ultimately this class probably won't end up extending ApplicationRunner, so this will be deleted
         throw new UnsupportedOperationException();
     }
-
+    public void waitForFinish() {
+        try {
+            shutdownLatch.await();
+        } catch (Exception e) {
+            log.error("Wait is interrupted by exception", e);
+            throw new SamzaException(e);
+        }
+    }
     public static void main(String[] args) throws Exception {
         Thread.setDefaultUncaughtExceptionHandler(
                 new SamzaContainerExceptionHandler(() -> {
@@ -224,6 +231,7 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
         StreamApplication streamApp = TaskFactoryUtil.createStreamApplication(config);
         FollowerStreamProcessorRunner runner = new FollowerStreamProcessorRunner(jobModel, containerId);
         runner.run(streamApp);
+        runner.waitForFinish();
     }
 
     StreamProcessor createStreamProcessor(
