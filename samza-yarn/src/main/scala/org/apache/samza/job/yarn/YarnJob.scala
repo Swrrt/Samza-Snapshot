@@ -85,13 +85,13 @@ class YarnJob(config: Config, hadoopConfig: Configuration) extends StreamJob {
       fwkVersion = "STABLE"
     }
     logger.info("Inside YarnJob: fwk_path is %s, ver is %s use it directly " format(fwkPath, fwkVersion))
-
-    var cmdExec = "./__package/bin/run-jc.sh" // default location
-
+    //Using run-leader.sh to run LeaderJobCoordinator instead of ClusterBasedJobCoordinator
+    //var cmdExec = "./__package/bin/run-jc.sh" // default location
+    var cmdExec = "./__package/bin/run-leader.sh"
     if (!fwkPath.isEmpty()) {
       // if we have framework installed as a separate package - use it
-      cmdExec = fwkPath + "/" + fwkVersion + "/bin/run-jc.sh"
-
+      //cmdExec = fwkPath + "/" + fwkVersion + "/bin/run-jc.sh"
+      cmdExec = fwkPath + "/" + fwkVersion + "/bin/run-leader.sh"
       logger.info("Using FWK path: " + "export SAMZA_LOG_DIR=%s && ln -sfn %s logs && exec %s 1>logs/%s 2>logs/%s".
              format(ApplicationConstants.LOG_DIR_EXPANSION_VAR, ApplicationConstants.LOG_DIR_EXPANSION_VAR, cmdExec,
                     ApplicationConstants.STDOUT, ApplicationConstants.STDERR))
