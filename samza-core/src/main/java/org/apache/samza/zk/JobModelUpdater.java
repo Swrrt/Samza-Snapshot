@@ -118,6 +118,7 @@ public class JobModelUpdater implements ZkControllerListener {
     }
 
     public void start(JobModel jobModel) {
+        LOG.info("JobModel Updater start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
@@ -151,7 +152,7 @@ public class JobModelUpdater implements ZkControllerListener {
     //////////////////////////////////////////////// LEADER stuff ///////////////////////////
     @Override
     public void onProcessorChange(List<String> processors) {
-        LOG.info("ZkJobCoordinator::onProcessorChange - list of processors changed! List size=" + processors.size());
+        LOG.info("JobModelUpdater::onProcessorChange - list of processors changed! List size=" + processors.size());
         if(processors != null && processors.size() > 0) currentProcessors = processors;
         debounceTimer.scheduleAfterDebounceTime(ON_PROCESSOR_CHANGE, debounceTimeMs,
                 () -> doOnProcessorChange(processors));
@@ -212,7 +213,7 @@ public class JobModelUpdater implements ZkControllerListener {
             } else {
                 nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
             }
-            LOG.info("pid=" + processorId + "Generated new Job Model. Version = " + nextJMVersion);
+            LOG.info("Leader generated new Job Model. Version = " + nextJMVersion);
             // Publish the new job model
             zkUtils.publishJobModel(nextJMVersion, jobModel);
 
@@ -222,7 +223,7 @@ public class JobModelUpdater implements ZkControllerListener {
             // Notify all processors about the new JobModel by updating JobModel Version number
             zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
 
-            LOG.info("pid=" + processorId + "Published new Job Model. Version = " + nextJMVersion);
+            LOG.info("Leader Published new Job Model. Version = " + nextJMVersion);
 
             debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
         }else{

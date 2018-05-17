@@ -191,7 +191,7 @@ public class LeaderJobCoordinator {
 
         try {
             //initialize JobCoordinator state
-            log.info("Starting Cluster Based Job Coordinator");
+            log.info("Starting Leader Job Coordinator");
             jobModelUpdater.start(jobModelManager.jobModel());
             containerProcessManager.start();
             partitionMonitor.start();
