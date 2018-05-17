@@ -79,7 +79,7 @@ public class JobModelUpdater implements ZkControllerListener {
 
     private final ZkUtils zkUtils;
     private final String processorId;
-    private final ZkController zkController;
+    private final FollowerControllerImpl zkController;
 
     private final Config config;
     private final ZkBarrierForVersionUpgrade barrier;
@@ -121,7 +121,7 @@ public class JobModelUpdater implements ZkControllerListener {
         LOG.info("JobModel Updater start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
-        zkController.register();
+        zkController.register(true);
         newJobModel = jobModel;
     }
     public void publishJobModel(JobModel jobModel){
