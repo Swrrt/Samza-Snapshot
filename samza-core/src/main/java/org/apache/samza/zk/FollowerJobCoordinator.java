@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * JobCoordinator for follower StreamProcessor managed via Zookeeper.
  */
 public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListener {
-    private static final Logger LOG = LoggerFactory.getLogger(ZkJobCoordinator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FollowerJobCoordinator.class);
     // TODO: MetadataCache timeout has to be 0 for the leader so that it can always have the latest information associated
     // with locality. Since host-affinity is not yet implemented, this can be fixed as part of SAMZA-1197
     private static final int METADATA_CACHE_TTL_MS = 5000;
