@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class LeaderJobCoordinator {
 
-    private static final Logger log = LoggerFactory.getLogger(ClusterBasedJobCoordinator.class);
+    private static final Logger log = LoggerFactory.getLogger(LeaderJobCoordinator.class);
 
     private final Config config;
 

@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  * are directly inside the runner.
  */
 public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
-    private static final Logger log = LoggerFactory.getLogger(LocalContainerRunner.class);
+    private static final Logger log = LoggerFactory.getLogger(FollowerStreamProcessorRunner.class);
     private final JobModel jobModel;
     private final String containerId;
     private final Set<StreamProcessor> processors = ConcurrentHashMap.newKeySet();
