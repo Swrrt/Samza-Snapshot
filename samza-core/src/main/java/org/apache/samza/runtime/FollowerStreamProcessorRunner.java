@@ -175,7 +175,7 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
                 processors.add(processor);
             });*/
             JobConfig jobConfig = new JobConfig(jobModel.getConfig());
-            log.debug("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
+            log.info("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
             FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
             StreamProcessor processor = createStreamProcessor(jobConfig, app, listener);
             listener.setProcessor(processor);

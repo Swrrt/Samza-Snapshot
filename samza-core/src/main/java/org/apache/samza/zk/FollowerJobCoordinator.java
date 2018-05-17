@@ -122,6 +122,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
 
     @Override
     public void start() {
+        LOG.info("FollowerJobCoordinator start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();

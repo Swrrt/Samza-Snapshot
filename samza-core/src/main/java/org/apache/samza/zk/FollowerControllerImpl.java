@@ -24,6 +24,8 @@ import org.apache.samza.coordinator.LeaderElector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 public class FollowerControllerImpl implements ZkController {
@@ -66,7 +68,8 @@ public class FollowerControllerImpl implements ZkController {
         // TODO - make a loop here with some number of attempts.
         //possibly split into two method - becomeLeader() and becomeParticipant()
         //zkLeaderElector.tryBecomeLeader();
-
+        String currentPath = zkUtils.registerProcessorAndGetId(new ProcessorData(getHostName(), processorIdStr));
+        LOG.info("ProcessorId is "+currentPath);
         // make sure we are connection to a job that uses the same ZK communication protocol version.
         try {
             zkUtils.validateZkVersion();
@@ -85,7 +88,14 @@ public class FollowerControllerImpl implements ZkController {
         // subscribe to JobModel version updates
         zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
     }
-
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOG.error("Failed to fetch hostname of the processor", e);
+            throw new SamzaException(e);
+        }
+    }
     @Override
     public boolean isLeader() {
         return isLeader;
