@@ -20,16 +20,18 @@ package org.apache.samza.clustermanager;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
 import org.apache.samza.config.*;
+import org.apache.samza.container.TaskName;
 import org.apache.samza.coordinator.JobModelManager;
+import org.apache.samza.coordinator.JobModelManager$;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
+import org.apache.samza.job.model.ContainerModel;
+import org.apache.samza.job.model.JobModel;
 import org.apache.samza.metrics.JmxServer;
 import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.metrics.MetricsRegistryMap;
@@ -68,7 +70,7 @@ public class LeaderJobCoordinator {
     /**
      * Handles callback for allocated containers, failed containers.
      */
-    private final ContainerProcessManager containerProcessManager;
+    private final ScalingContainerProcessManager containerProcessManager;
 
     /**
      * A JobModelManager to return and refresh the {@link org.apache.samza.job.model.JobModel} when required.
@@ -123,6 +125,9 @@ public class LeaderJobCoordinator {
     private static final String DEFAULT_JOB_NAME = "defaultJob";
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
     private final JobModelUpdater jobModelUpdater;
+    private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
+    private StreamMetadataCache streamMetadata = null;
+    private JobModel jobModel = null;
     /**
      *
      * Creates a new ClusterBasedJobCoordinator instance from a config. Invoke run() to actually
@@ -149,7 +154,7 @@ public class LeaderJobCoordinator {
         jobModelUpdater = new JobModelUpdater(config, metrics, getZkUtils(config,metrics));
         // build a container process Manager
 
-        containerProcessManager = new ContainerProcessManager(config, state, metrics);
+        containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
 
     }
     private ZkUtils getZkUtils(Config config, MetricsRegistry metricsRegistry) {
@@ -197,10 +202,16 @@ public class LeaderJobCoordinator {
             partitionMonitor.start();
 
             boolean isInterrupted = false;
-
+            int counter = 0;
+            jobModel = jobModelManager.jobModel();
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
+                    counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
+                    if(counter == 120){
+                        counter = 0;
+                        jobModelUpdater.publishJobModel(scaleUpByOne());
+                    }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
                     log.error("Interrupted in job coordinator loop {} ", e);
@@ -214,7 +225,18 @@ public class LeaderJobCoordinator {
             onShutDown();
         }
     }
-
+    private JobModel scaleUpByOne(){
+        List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
+        processors.add(processors.get(0).concat("_"+processors.size()));
+        jobModel = generateNewJobModel(processors);
+        return jobModel;
+    }
+    private JobModel generateNewJobModel(List<String> processors) {
+        for (ContainerModel containerModel : jobModel.getContainers().values()) {
+            containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
+        }
+        return JobModelManager.readJobModel(this.config, changeLogPartitionMap, null, streamMetadata, processors);
+    }
     private boolean checkAndThrowException() throws Exception {
         if (coordinatorException != null) {
             throw coordinatorException;
@@ -252,7 +274,7 @@ public class LeaderJobCoordinator {
 
     private StreamPartitionCountMonitor getPartitionCountMonitor(Config config) {
         Map<String, SystemAdmin> systemAdmins = new JavaSystemConfig(config).getSystemAdmins();
-        StreamMetadataCache streamMetadata = new StreamMetadataCache(Util.javaMapAsScalaMap(systemAdmins), 0, SystemClock.instance());
+        streamMetadata = new StreamMetadataCache(Util.javaMapAsScalaMap(systemAdmins), 0, SystemClock.instance());
         Set<SystemStream> inputStreamsToMonitor = new TaskConfigJava(config).getAllInputStreams();
         if (inputStreamsToMonitor.isEmpty()) {
             throw new SamzaException("Input streams to a job can not be empty.");
