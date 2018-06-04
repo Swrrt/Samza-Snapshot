@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
@@ -39,8 +38,6 @@ import org.apache.samza.container.TaskName;
 import org.apache.samza.coordinator.JobCoordinator;
 import org.apache.samza.coordinator.JobCoordinatorListener;
 import org.apache.samza.coordinator.JobModelManager;
-import org.apache.samza.coordinator.LeaderElector;
-import org.apache.samza.coordinator.LeaderElectorListener;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.metrics.MetricsRegistry;
@@ -51,7 +48,6 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.server.quorum.Leader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,8 +55,8 @@ import org.slf4j.LoggerFactory;
 /**
  * JobCoordinator for stand alone processor managed via Zookeeper.
  */
-public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinator{
-    private static final Logger LOG = LoggerFactory.getLogger(LeaderJobCoordinator.class);
+public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordinator{
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderZkJobCoordinator.class);
     // TODO: MetadataCache timeout has to be 0 for the leader so that it can always have the latest information associated
     // with locality. Since host-affinity is not yet implemented, this can be fixed as part of SAMZA-1197
     private static final int METADATA_CACHE_TTL_MS = 5000;
@@ -80,7 +76,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
     private final ZkUtils zkUtils;
     private final String processorId;
-    private final LeaderFollowerControllerImpl zkController;
+    private final LeaderZkControllerImpl zkController;
 
     private final Config config;
     private final ZkBarrierForVersionUpgrade barrier;
@@ -96,7 +92,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private Map<String, String> containerToProcessorMap = null;
-    public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
+    public LeaderZkJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
@@ -104,7 +100,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         // setup a listener for a session state change
         // we are mostly interested in "session closed" and "new session created" events
         zkUtils.getZkClient().subscribeStateChanges(new ZkSessionStateChangedListener());
-        this.zkController = new LeaderFollowerControllerImpl(processorId, zkUtils, this);
+        this.zkController = new LeaderZkControllerImpl(processorId, zkUtils, this);
         this.barrier =  new ZkBarrierForVersionUpgrade(
                 zkUtils.getKeyBuilder().getJobModelVersionBarrierPrefix(),
                 zkUtils,
@@ -119,16 +115,16 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     }
     @Override
     public void start(){
-        LOG.info("JobModel Updater start");
+        LOG.info("Leader JobCoordinator start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
-        zkController.register(true);
+        zkController.register();
     }
     public void start(JobModel jobModel) {
-        LOG.info("JobModel Updater start");
+        LOG.info("Leader JobCoordinator start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
-        zkController.register(true);
+        zkController.register();
         newJobModel = jobModel;
     }
     @Override
@@ -170,7 +166,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     //////////////////////////////////////////////// LEADER stuff ///////////////////////////
     @Override
     public void onProcessorChange(List<String> processors) {
-        LOG.info("JobModelUpdater::onProcessorChange - list of processors changed! List size=" + processors.size());
+        LOG.info("Leader JobCoordinator::onProcessorChange - list of processors changed! List size=" + processors.size());
         if(processors != null && processors.size() > 0) currentProcessors = processors;
         debounceTimer.scheduleAfterDebounceTime(ON_PROCESSOR_CHANGE, debounceTimeMs,
                 () -> doOnProcessorChange(processors));

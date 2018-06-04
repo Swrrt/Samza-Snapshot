@@ -20,7 +20,6 @@
 package org.apache.samza.zk;
 
 import org.apache.samza.SamzaException;
-import org.apache.samza.coordinator.LeaderElector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,16 +27,16 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-public class LeaderFollowerControllerImpl implements ZkController {
-    private static final Logger LOG = LoggerFactory.getLogger(LeaderFollowerControllerImpl.class);
+public class FollowerZkControllerImpl implements ZkController {
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderZkControllerImpl.class);
 
     private final String processorIdStr;
     private final ZkUtils zkUtils;
     private final ZkControllerListener zkControllerListener;
     private boolean isLeader;
 
-    public LeaderFollowerControllerImpl(String processorIdStr, ZkUtils zkUtils,
-                            ZkControllerListener zkControllerListener) {
+    public FollowerZkControllerImpl(String processorIdStr, ZkUtils zkUtils,
+                                        ZkControllerListener zkControllerListener) {
         this.processorIdStr = processorIdStr;
         this.zkUtils = zkUtils;
         this.zkControllerListener = zkControllerListener;
@@ -51,23 +50,13 @@ public class LeaderFollowerControllerImpl implements ZkController {
         zkUtils.validatePaths(new String[]{keyBuilder.getProcessorsPath(), keyBuilder.getJobModelVersionPath(), keyBuilder
                 .getJobModelPathPrefix()});
     }
-    public void register(boolean leader){
-        isLeader = leader;
-        try {
-            zkUtils.validateZkVersion();
-        } catch (SamzaException e) {
-            throw e;
-        }
-        zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
-        if(isLeader){
-            this.subscribeToProcessorChange();
-        }
-    }
     @Override
     public void register() {
         // TODO - make a loop here with some number of attempts.
         //possibly split into two method - becomeLeader() and becomeParticipant()
         //zkLeaderElector.tryBecomeLeader();
+        //Follower will never be leader :(
+        isLeader = false;
         String currentPath = zkUtils.registerProcessorAndGetId(new ProcessorData(getHostName(), processorIdStr));
         LOG.info("ProcessorId is "+currentPath);
         // make sure we are connection to a job that uses the same ZK communication protocol version.

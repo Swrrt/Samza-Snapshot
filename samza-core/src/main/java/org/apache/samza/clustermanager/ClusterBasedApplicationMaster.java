@@ -28,7 +28,6 @@ import org.apache.samza.PartitionChangeException;
 import org.apache.samza.config.*;
 import org.apache.samza.container.TaskName;
 import org.apache.samza.coordinator.JobModelManager;
-import org.apache.samza.coordinator.JobModelManager$;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
@@ -53,7 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ClusterBasedApplicationMaster {
 
-    private static final Logger log = LoggerFactory.getLogger(LeaderJobCoordinator.class);
+    private static final Logger log = LoggerFactory.getLogger(ClusterBasedApplicationMaster.class);
 
     private final Config config;
 
@@ -124,7 +123,7 @@ public class ClusterBasedApplicationMaster {
     private static final String DEFAULT_JOB_ID = "1";
     private static final String DEFAULT_JOB_NAME = "defaultJob";
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
-    private final LeaderJobCoordinator leaderJobCoordinator;
+    private final LeaderZkJobCoordinator leaderZkJobCoordinator;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private StreamMetadataCache streamMetadata = null;
     private JobModel jobModel = null;
@@ -151,7 +150,7 @@ public class ClusterBasedApplicationMaster {
         isJmxEnabled = clusterManagerConfig.getJmxEnabled();
 
         jobCoordinatorSleepInterval = clusterManagerConfig.getJobCoordinatorSleepInterval();
-        leaderJobCoordinator = new LeaderJobCoordinator(config, metrics, getZkUtils(config,metrics));
+        leaderZkJobCoordinator = new LeaderZkJobCoordinator(config, metrics, getZkUtils(config,metrics));
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
@@ -182,7 +181,7 @@ public class ClusterBasedApplicationMaster {
      */
     public void run() {
         if (!isStarted.compareAndSet(false, true)) {
-            log.info("Attempting to start an already started job coordinator. ");
+            log.info("Attempting to start an already started AM. ");
             return;
         }
         // set up JmxServer (if jmx is enabled)
@@ -196,8 +195,8 @@ public class ClusterBasedApplicationMaster {
 
         try {
             //initialize JobCoordinator state
-            log.info("Starting Leader Job Coordinator");
-            leaderJobCoordinator.start(jobModelManager.jobModel());
+            log.info("Starting ClusterBasedApplicationMaster");
+            leaderZkJobCoordinator.start(jobModelManager.jobModel());
             containerProcessManager.start();
             partitionMonitor.start();
 
@@ -210,16 +209,16 @@ public class ClusterBasedApplicationMaster {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 120){
                         counter = 0;
-                        leaderJobCoordinator.publishJobModel(scaleUpByOne());
+                        leaderZkJobCoordinator.publishJobModel(scaleUpByOne());
                     }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
-                    log.error("Interrupted in job coordinator loop {} ", e);
+                    log.error("Interrupted in AM loop {} ", e);
                     Thread.currentThread().interrupt();
                 }
             }
         } catch (Throwable e) {
-            log.error("Exception thrown in the JobCoordinator loop {} ", e);
+            log.error("Exception thrown in AM loop {} ", e);
             throw new SamzaException(e);
         } finally {
             onShutDown();
@@ -315,7 +314,7 @@ public class ClusterBasedApplicationMaster {
      */
     public static void main(String[] args) {
         Config coordinatorSystemConfig = null;
-        log.info("Using LeaderJobCoordinator now");
+        log.info("Using LeaderZkJobCoordinator now");
         final String coordinatorSystemEnv = System.getenv(ShellCommandConfig.ENV_COORDINATOR_SYSTEM_CONFIG());
         try {
             //Read and parse the coordinator system config.

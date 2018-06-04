@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class FollowerJobCoordinatorFactory implements JobCoordinatorFactory {
+public class FollowerZkJobCoordinatorFactory implements JobCoordinatorFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZkJobCoordinatorFactory.class);
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
@@ -50,7 +50,7 @@ public class FollowerJobCoordinatorFactory implements JobCoordinatorFactory {
         MetricsRegistry metricsRegistry = new MetricsRegistryMap();
         ZkUtils zkUtils = getZkUtils(config, metricsRegistry);
         LOG.debug("Creating ZkJobCoordinator instance with config: {}.", config);
-        return new FollowerJobCoordinator(config, metricsRegistry, zkUtils);
+        return new FollowerZkJobCoordinator(config, metricsRegistry, zkUtils);
     }
 
     private ZkUtils getZkUtils(Config config, MetricsRegistry metricsRegistry) {
