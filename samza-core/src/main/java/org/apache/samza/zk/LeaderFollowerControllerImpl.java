@@ -28,15 +28,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-public class FollowerControllerImpl implements ZkController {
-    private static final Logger LOG = LoggerFactory.getLogger(FollowerControllerImpl.class);
+public class LeaderFollowerControllerImpl implements ZkController {
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderFollowerControllerImpl.class);
 
     private final String processorIdStr;
     private final ZkUtils zkUtils;
     private final ZkControllerListener zkControllerListener;
     private boolean isLeader;
 
-    public FollowerControllerImpl(String processorIdStr, ZkUtils zkUtils,
+    public LeaderFollowerControllerImpl(String processorIdStr, ZkUtils zkUtils,
                             ZkControllerListener zkControllerListener) {
         this.processorIdStr = processorIdStr;
         this.zkUtils = zkUtils;

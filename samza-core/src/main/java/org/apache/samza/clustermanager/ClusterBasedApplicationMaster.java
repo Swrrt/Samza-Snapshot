@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A ClusterBasedJobCoordinator with StreamProcessor and ZooKeeper
  */
-public class LeaderJobCoordinator {
+public class ClusterBasedApplicationMaster {
 
     private static final Logger log = LoggerFactory.getLogger(LeaderJobCoordinator.class);
 
@@ -124,7 +124,7 @@ public class LeaderJobCoordinator {
     private static final String DEFAULT_JOB_ID = "1";
     private static final String DEFAULT_JOB_NAME = "defaultJob";
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
-    private final JobModelUpdater jobModelUpdater;
+    private final LeaderJobCoordinator leaderJobCoordinator;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private StreamMetadataCache streamMetadata = null;
     private JobModel jobModel = null;
@@ -136,7 +136,7 @@ public class LeaderJobCoordinator {
      * @param coordinatorSystemConfig the coordinator stream config that can be used to read the
      *                                {@link org.apache.samza.job.model.JobModel} from.
      */
-    public LeaderJobCoordinator(Config coordinatorSystemConfig) {
+    public ClusterBasedApplicationMaster(Config coordinatorSystemConfig) {
 
         metrics = new MetricsRegistryMap();
 
@@ -151,7 +151,7 @@ public class LeaderJobCoordinator {
         isJmxEnabled = clusterManagerConfig.getJmxEnabled();
 
         jobCoordinatorSleepInterval = clusterManagerConfig.getJobCoordinatorSleepInterval();
-        jobModelUpdater = new JobModelUpdater(config, metrics, getZkUtils(config,metrics));
+        leaderJobCoordinator = new LeaderJobCoordinator(config, metrics, getZkUtils(config,metrics));
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
@@ -197,7 +197,7 @@ public class LeaderJobCoordinator {
         try {
             //initialize JobCoordinator state
             log.info("Starting Leader Job Coordinator");
-            jobModelUpdater.start(jobModelManager.jobModel());
+            leaderJobCoordinator.start(jobModelManager.jobModel());
             containerProcessManager.start();
             partitionMonitor.start();
 
@@ -210,7 +210,7 @@ public class LeaderJobCoordinator {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 120){
                         counter = 0;
-                        jobModelUpdater.publishJobModel(scaleUpByOne());
+                        leaderJobCoordinator.publishJobModel(scaleUpByOne());
                     }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
@@ -310,7 +310,7 @@ public class LeaderJobCoordinator {
 
 
     /**
-     * The entry point for the {@link LeaderJobCoordinator}
+     * The entry point for the {@link ClusterBasedApplicationMaster}
      * @param args args
      */
     public static void main(String[] args) {
@@ -325,7 +325,7 @@ public class LeaderJobCoordinator {
             log.error("Exception while reading coordinator stream config {}", e);
             throw new SamzaException(e);
         }
-        LeaderJobCoordinator jc = new LeaderJobCoordinator(coordinatorSystemConfig);
+        ClusterBasedApplicationMaster jc = new ClusterBasedApplicationMaster(coordinatorSystemConfig);
         jc.run();
     }
 }

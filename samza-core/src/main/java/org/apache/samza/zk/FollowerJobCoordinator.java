@@ -106,7 +106,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         // setup a listener for a session state change
         // we are mostly interested in "session closed" and "new session created" events
         zkUtils.getZkClient().subscribeStateChanges(new ZkSessionStateChangedListener());
-        this.zkController = new FollowerControllerImpl(processorId, zkUtils, this);
+        this.zkController = new LeaderFollowerControllerImpl(processorId, zkUtils, this);
         this.barrier =  new ZkBarrierForVersionUpgrade(
                 zkUtils.getKeyBuilder().getJobModelVersionBarrierPrefix(),
                 zkUtils,
