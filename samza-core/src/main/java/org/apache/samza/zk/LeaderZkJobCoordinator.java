@@ -133,7 +133,8 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
     };
     public void publishJobModel(JobModel jobModel){
         newJobModel = jobModel;
-        doOnProcessorChange(currentProcessors);
+        LOG.info("New JobModel comes into Leader!");
+        onProcessorChange(currentProcessors);
     }
     @Override
     public String getProcessorId(){

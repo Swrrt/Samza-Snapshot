@@ -57,8 +57,10 @@ public class LeaderZkControllerImpl implements ZkController {
         //zkLeaderElector.tryBecomeLeader();
         //Leader will always be leader :)
         isLeader = true;
-        String currentPath = zkUtils.registerProcessorAndGetId(new ProcessorData(getHostName(), processorIdStr));
-        LOG.info("ProcessorId is "+currentPath);
+        //String currentPath = zkUtils.registerProcessorAndGetId(new ProcessorData(getHostName(), processorIdStr));
+
+        LOG.info("Leader registered!");
+        //LOG.info("ProcessorId is "+currentPath);
         // make sure we are connection to a job that uses the same ZK communication protocol version.
         try {
             zkUtils.validateZkVersion();
@@ -75,7 +77,8 @@ public class LeaderZkControllerImpl implements ZkController {
 
 
         // subscribe to JobModel version updates
-        zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
+        //zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
+        this.subscribeToProcessorChange();
     }
     private String getHostName() {
         try {
