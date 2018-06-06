@@ -27,6 +27,7 @@ import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
 import org.apache.samza.config.*;
 import org.apache.samza.container.TaskName;
+import org.apache.samza.coordinator.JobCoordinator;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
 import org.apache.samza.job.model.ContainerModel;
@@ -118,13 +119,8 @@ public class ClusterBasedApplicationMaster {
     /*
      * For ZooKeeper
      */
-    private static final String DEFAULT_JOB_ID = "1";
-    private static final String DEFAULT_JOB_NAME = "defaultJob";
-    private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
     private final LeaderZkJobCoordinator leaderZkJobCoordinator;
-    private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
-    private StreamMetadataCache streamMetadata = null;
-    private JobModel jobModel = null;
+
     /**
      *
      * Creates a new ClusterBasedJobCoordinator instance from a config. Invoke run() to actually
@@ -148,29 +144,12 @@ public class ClusterBasedApplicationMaster {
         isJmxEnabled = clusterManagerConfig.getJmxEnabled();
 
         jobCoordinatorSleepInterval = clusterManagerConfig.getJobCoordinatorSleepInterval();
-        leaderZkJobCoordinator = new LeaderZkJobCoordinator(config, metrics, getZkUtils(config,metrics));
+        leaderZkJobCoordinator = (new LeaderZkJobCoordinatorFactory(jobModelManager)).getJobCoordinator(config);
+
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
 
-    }
-    private ZkUtils getZkUtils(Config config, MetricsRegistry metricsRegistry) {
-        ZkConfig zkConfig = new ZkConfig(config);
-        ZkKeyBuilder keyBuilder = new ZkKeyBuilder(getJobCoordinationZkPath(config));
-        ZkClient zkClient = ZkCoordinationUtilsFactory
-                .createZkClient(zkConfig.getZkConnect(), zkConfig.getZkSessionTimeoutMs(), zkConfig.getZkConnectionTimeoutMs());
-        return new ZkUtils(keyBuilder, zkClient, zkConfig.getZkConnectionTimeoutMs(), metricsRegistry);
-    }
-    public static String getJobCoordinationZkPath(Config config) {
-        JobConfig jobConfig = new JobConfig(config);
-        String appId = new ApplicationConfig(config).getGlobalAppId();
-        String jobName = jobConfig.getName().isDefined()
-                ? jobConfig.getName().get()
-                : DEFAULT_JOB_NAME;
-        String jobId = jobConfig.getJobId().isDefined()
-                ? jobConfig.getJobId().get()
-                : DEFAULT_JOB_ID;
-        return String.format(JOB_COORDINATOR_ZK_PATH_FORMAT, appId, jobName, jobId);
     }
 
     /**
@@ -194,20 +173,21 @@ public class ClusterBasedApplicationMaster {
         try {
             //initialize JobCoordinator state
             log.info("Starting ClusterBasedApplicationMaster");
-            leaderZkJobCoordinator.start(jobModelManager.jobModel());
+            leaderZkJobCoordinator.start();
             containerProcessManager.start();
             partitionMonitor.start();
 
             boolean isInterrupted = false;
+            //For testing
             int counter = 0;
-            jobModel = jobModelManager.jobModel();
+            JobModel jobModel = jobModelManager.jobModel();
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
                     counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 120){
                         counter = 0;
-                        leaderZkJobCoordinator.publishJobModel(scaleUpByOne());
+                        leaderZkJobCoordinator.publishJobModel(scaleUpByOne(jobModel));
                     }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
@@ -222,18 +202,16 @@ public class ClusterBasedApplicationMaster {
             onShutDown();
         }
     }
-    private JobModel scaleUpByOne(){
+    /* For testing */
+    private JobModel scaleUpByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
         processors.add(processors.get(0).concat("_"+processors.size()));
-        jobModel = generateNewJobModel(processors);
+        jobModel = jobModelManager.jobModel();
+                //leaderZkJobCoordinator.generateNewJobModel(processors);
         return jobModel;
     }
-    private JobModel generateNewJobModel(List<String> processors) {
-        for (ContainerModel containerModel : jobModel.getContainers().values()) {
-            containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
-        }
-        return JobModelManager.readJobModel(this.config, changeLogPartitionMap, null, streamMetadata, processors);
-    }
+    /* For testing */
+
     private boolean checkAndThrowException() throws Exception {
         if (coordinatorException != null) {
             throw coordinatorException;
@@ -271,7 +249,7 @@ public class ClusterBasedApplicationMaster {
 
     private StreamPartitionCountMonitor getPartitionCountMonitor(Config config) {
         Map<String, SystemAdmin> systemAdmins = new JavaSystemConfig(config).getSystemAdmins();
-        streamMetadata = new StreamMetadataCache(Util.javaMapAsScalaMap(systemAdmins), 0, SystemClock.instance());
+        StreamMetadataCache streamMetadata = new StreamMetadataCache(Util.javaMapAsScalaMap(systemAdmins), 0, SystemClock.instance());
         Set<SystemStream> inputStreamsToMonitor = new TaskConfigJava(config).getAllInputStreams();
         if (inputStreamsToMonitor.isEmpty()) {
             throw new SamzaException("Input streams to a job can not be empty.");

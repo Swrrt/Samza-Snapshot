@@ -19,12 +19,9 @@
 package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.samza.config.ApplicationConfig;
@@ -92,7 +89,7 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private Map<String, String> containerToProcessorMap = null;
-    public LeaderZkJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
+    public LeaderZkJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
@@ -107,6 +104,8 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
                 new ZkBarrierListenerImpl());
         this.debounceTimeMs = new JobConfig(config).getDebounceTimeMs();
         this.reporters = MetricsReporterLoader.getMetricsReporters(new MetricsConfig(config), processorId);
+        //
+        newJobModel = jobModel;
         debounceTimer = new ScheduleAfterDebounceTime();
         debounceTimer.setScheduledTaskCallback(throwable -> {
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
@@ -120,22 +119,11 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
     }
-    public void start(JobModel jobModel) {
-        LOG.info("Leader JobCoordinator start");
-        startMetrics();
-        streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
-        zkController.register();
-        newJobModel = jobModel;
-    }
     @Override
     public JobModel getJobModel(){
         return newJobModel;
     };
-    public void publishJobModel(JobModel jobModel){
-        newJobModel = jobModel;
-        LOG.info("New JobModel comes into Leader!");
-        onProcessorChange(currentProcessors);
-    }
+
     @Override
     public String getProcessorId(){
         return processorId;
@@ -283,7 +271,25 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
         }
     }
 
-
+    /**
+     * Generate new JobModel when becoming a leader or the list of processor changed.
+     */
+    private JobModel generateNewJobModel(List<String> processors) {
+        String zkJobModelVersion = zkUtils.getJobModelVersion();
+        // If JobModel exists in zookeeper && cached JobModel version is unequal to JobModel version stored in zookeeper.
+        if (zkJobModelVersion != null && !Objects.equals(cachedJobModelVersion, zkJobModelVersion)) {
+            JobModel jobModel = zkUtils.getJobModel(zkJobModelVersion);
+            for (ContainerModel containerModel : jobModel.getContainers().values()) {
+                containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
+            }
+            cachedJobModelVersion = zkJobModelVersion;
+        }
+        /**
+         * Host affinity is not supported in standalone. Hence, LocalityManager(which is responsible for container
+         * to host mapping) is passed in as null when building the jobModel.
+         */
+        return JobModelManager.readJobModel(this.config, changeLogPartitionMap, null, streamMetadataCache, processors);
+    }
     class ZkBarrierListenerImpl implements ZkBarrierListener {
         private final String barrierAction = "BarrierAction";
 
@@ -371,7 +377,12 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
             debounceTimer.scheduleAfterDebounceTime(ZK_SESSION_ERROR, 0, () -> stop());
         }
     }
-
+    /* For testing */
+    public void publishJobModel(JobModel jobModel){
+        newJobModel = jobModel;
+        LOG.info("New JobModel comes into Leader!");
+        onProcessorChange(currentProcessors);
+    }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
         return zkUtils;
