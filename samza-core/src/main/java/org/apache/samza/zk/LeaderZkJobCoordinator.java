@@ -76,7 +76,7 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
 
     private final ZkUtils zkUtils;
     private final String processorId;
-    private final LeaderZkControllerImpl zkController;
+    private final ZkController zkController;
 
     private final Config config;
     private final ZkBarrierForVersionUpgrade barrier;

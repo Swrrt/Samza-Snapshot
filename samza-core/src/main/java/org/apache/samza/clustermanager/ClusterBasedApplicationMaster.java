@@ -118,8 +118,6 @@ public class ClusterBasedApplicationMaster {
     /*
      * For ZooKeeper
      */
-    private ScheduleAfterDebounceTime debounceTimer = null;
-    private int debounceTimeMs;
     private static final String DEFAULT_JOB_ID = "1";
     private static final String DEFAULT_JOB_NAME = "defaultJob";
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";

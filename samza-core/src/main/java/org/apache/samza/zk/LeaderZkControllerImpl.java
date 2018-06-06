@@ -80,14 +80,6 @@ public class LeaderZkControllerImpl implements ZkController {
         //zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
         this.subscribeToProcessorChange();
     }
-    private String getHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            LOG.error("Failed to fetch hostname of the processor", e);
-            throw new SamzaException(e);
-        }
-    }
     @Override
     public boolean isLeader() {
         return isLeader;
