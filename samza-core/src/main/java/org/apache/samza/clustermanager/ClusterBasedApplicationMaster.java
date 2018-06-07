@@ -206,8 +206,8 @@ public class ClusterBasedApplicationMaster {
     private JobModel scaleUpByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
         processors.add(processors.get(0).concat("_"+processors.size()));
-        jobModel = jobModelManager.jobModel();
-                //leaderZkJobCoordinator.generateNewJobModel(processors);
+        //jobModel = jobModelManager.jobModel();
+        jobModel = leaderZkJobCoordinator.testingGenerateNewJobModel(processors);
         return jobModel;
     }
     /* For testing */

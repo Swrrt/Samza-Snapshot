@@ -383,6 +383,10 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
         LOG.info("New JobModel comes into Leader!");
         onProcessorChange(currentProcessors);
     }
+    public JobModel testingGenerateNewJobModel(List<String> processors){
+        return generateNewJobModel(processors);
+
+    }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
         return zkUtils;
