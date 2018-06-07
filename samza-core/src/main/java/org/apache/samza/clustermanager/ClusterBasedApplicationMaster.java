@@ -42,6 +42,7 @@ import org.apache.samza.system.SystemStream;
 import org.apache.samza.util.SystemClock;
 import org.apache.samza.util.Util;
 import org.apache.samza.zk.*;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,7 +210,11 @@ public class ClusterBasedApplicationMaster {
         //jobModel = jobModelManager.jobModel();
         log.info("Generate new JobModel with processors: {}", processors);
         jobModel = leaderZkJobCoordinator.testingGenerateNewJobModel(processors);
-        log.info("Generate new JobModel : {}", jobModel);
+        ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
+        try {
+            log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
+        }catch (Exception e){
+        }
         return jobModel;
     }
     /* For testing */
