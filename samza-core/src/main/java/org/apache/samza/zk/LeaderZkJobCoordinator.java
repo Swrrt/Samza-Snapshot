@@ -275,15 +275,15 @@ public class LeaderZkJobCoordinator implements ZkControllerListener, JobCoordina
      * Generate new JobModel when becoming a leader or the list of processor changed.
      */
     private JobModel generateNewJobModel(List<String> processors) {
-        String zkJobModelVersion = zkUtils.getJobModelVersion();
+        //String zkJobModelVersion = zkUtils.getJobModelVersion();
         // If JobModel exists in zookeeper && cached JobModel version is unequal to JobModel version stored in zookeeper.
-        if (zkJobModelVersion != null && !Objects.equals(cachedJobModelVersion, zkJobModelVersion)) {
+        /*if (zkJobModelVersion != null && !Objects.equals(cachedJobModelVersion, zkJobModelVersion)) {
             JobModel jobModel = zkUtils.getJobModel(zkJobModelVersion);
             for (ContainerModel containerModel : jobModel.getContainers().values()) {
                 containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
             }
             cachedJobModelVersion = zkJobModelVersion;
-        }
+        }*/
         /**
          * Host affinity is not supported in standalone. Hence, LocalityManager(which is responsible for container
          * to host mapping) is passed in as null when building the jobModel.

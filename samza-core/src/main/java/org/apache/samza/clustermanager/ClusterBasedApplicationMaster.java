@@ -207,7 +207,9 @@ public class ClusterBasedApplicationMaster {
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
         processors.add(processors.get(0).concat("_"+processors.size()));
         //jobModel = jobModelManager.jobModel();
+        log.info("Generate new JobModel with processors: {}", processors);
         jobModel = leaderZkJobCoordinator.testingGenerateNewJobModel(processors);
+        log.info("Generate new JobModel : {}", jobModel);
         return jobModel;
     }
     /* For testing */
