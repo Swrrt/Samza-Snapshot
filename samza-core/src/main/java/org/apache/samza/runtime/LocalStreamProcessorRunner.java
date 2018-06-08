@@ -34,23 +34,16 @@ import org.apache.samza.config.Config;
 import org.apache.samza.config.JobConfig;
 import org.apache.samza.config.ShellCommandConfig;
 import org.apache.samza.config.TaskConfig;
-import org.apache.samza.container.ContainerHeartbeatClient;
-import org.apache.samza.container.ContainerHeartbeatMonitor;
 import org.apache.samza.container.SamzaContainer;
-import org.apache.samza.container.SamzaContainer$;
 import org.apache.samza.container.SamzaContainerExceptionHandler;
-import org.apache.samza.container.SamzaContainerListener;
-import org.apache.samza.execution.ExecutionPlan;
 import org.apache.samza.job.ApplicationStatus;
 import org.apache.samza.job.model.JobModel;
-import org.apache.samza.metrics.MetricsReporter;
 import org.apache.samza.processor.StreamProcessor;
 import org.apache.samza.processor.StreamProcessorLifecycleListener;
 import org.apache.samza.task.AsyncStreamTaskFactory;
 import org.apache.samza.task.StreamTaskFactory;
 import org.apache.samza.task.TaskFactoryUtil;
 import org.apache.samza.util.ScalaToJavaUtils;
-import org.apache.samza.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +56,8 @@ import org.slf4j.LoggerFactory;
  * Since we don't have the {@link org.apache.samza.coordinator.JobCoordinator} implementation in Yarn, the components (jobModel and containerId)
  * are directly inside the runner.
  */
-public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
-    private static final Logger log = LoggerFactory.getLogger(FollowerStreamProcessorRunner.class);
+public class LocalStreamProcessorRunner extends AbstractApplicationRunner {
+    private static final Logger log = LoggerFactory.getLogger(LocalStreamProcessorRunner.class);
     private final JobModel jobModel;
     private final String containerId;
     private final Set<StreamProcessor> processors = ConcurrentHashMap.newKeySet();
@@ -72,7 +65,7 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
     private final AtomicInteger numProcessorsToStart = new AtomicInteger();
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private ApplicationStatus appStatus = ApplicationStatus.New;
-    public FollowerStreamProcessorRunner(JobModel jobModel, String containerId) {
+    public LocalStreamProcessorRunner(JobModel jobModel, String containerId) {
         super(jobModel.getConfig());
         this.jobModel = jobModel;
         this.containerId = containerId;
@@ -142,7 +135,7 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
             throw new SamzaException("Neither APP nor task.class are defined defined");
         }
         log.info("LocalApplicationRunner will run " + taskName);
-        FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
+        LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
 
         StreamProcessor processor = createStreamProcessor(jobConfig, null, listener);
         listener.setProcessor(processor);
@@ -169,14 +162,14 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
             }
             plan.getJobConfigs().forEach(jobConfig -> {
                 log.debug("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
-                FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
+                LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
                 StreamProcessor processor = createStreamProcessor(jobConfig, app, listener);
                 listener.setProcessor(processor);
                 processors.add(processor);
             });*/
             JobConfig jobConfig = new JobConfig(jobModel.getConfig());
             log.info("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
-            FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new FollowerStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
+            LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
             StreamProcessor processor = createStreamProcessor(jobConfig, app, listener);
             listener.setProcessor(processor);
             processors.add(processor);
@@ -231,7 +224,7 @@ public class FollowerStreamProcessorRunner extends AbstractApplicationRunner {
         MDC.put("jobId", jobId);
 
         StreamApplication streamApp = TaskFactoryUtil.createStreamApplication(config);
-        FollowerStreamProcessorRunner runner = new FollowerStreamProcessorRunner(jobModel, containerId);
+        LocalStreamProcessorRunner runner = new LocalStreamProcessorRunner(jobModel, containerId);
         runner.run(streamApp);
         runner.waitForFinish();
     }

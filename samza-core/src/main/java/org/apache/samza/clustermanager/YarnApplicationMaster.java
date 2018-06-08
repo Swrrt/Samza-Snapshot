@@ -22,18 +22,13 @@ import com.google.common.annotations.VisibleForTesting;
 
 import java.util.*;
 
-import org.I0Itec.zkclient.ZkClient;
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
 import org.apache.samza.config.*;
-import org.apache.samza.container.TaskName;
-import org.apache.samza.coordinator.JobCoordinator;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
-import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.metrics.JmxServer;
-import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.serializers.model.SamzaObjectMapper;
 import org.apache.samza.system.StreamMetadataCache;
@@ -52,9 +47,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A ClusterBasedJobCoordinator with StreamProcessor and ZooKeeper
  */
-public class ClusterBasedApplicationMaster {
+public class YarnApplicationMaster {
 
-    private static final Logger log = LoggerFactory.getLogger(ClusterBasedApplicationMaster.class);
+    private static final Logger log = LoggerFactory.getLogger(YarnApplicationMaster.class);
 
     private final Config config;
 
@@ -120,7 +115,7 @@ public class ClusterBasedApplicationMaster {
     /*
      * For ZooKeeper
      */
-    private final LeaderZkJobCoordinator leaderZkJobCoordinator;
+    private final LeaderJobCoordinator leaderJobCoordinator;
 
     /**
      *
@@ -130,7 +125,7 @@ public class ClusterBasedApplicationMaster {
      * @param coordinatorSystemConfig the coordinator stream config that can be used to read the
      *                                {@link org.apache.samza.job.model.JobModel} from.
      */
-    public ClusterBasedApplicationMaster(Config coordinatorSystemConfig) {
+    public YarnApplicationMaster(Config coordinatorSystemConfig) {
 
         metrics = new MetricsRegistryMap();
 
@@ -145,7 +140,7 @@ public class ClusterBasedApplicationMaster {
         isJmxEnabled = clusterManagerConfig.getJmxEnabled();
 
         jobCoordinatorSleepInterval = clusterManagerConfig.getJobCoordinatorSleepInterval();
-        leaderZkJobCoordinator = (new LeaderZkJobCoordinatorFactory(jobModelManager)).getJobCoordinator(config);
+        leaderJobCoordinator = (new LeaderJobCoordinatorFactory(jobModelManager)).getJobCoordinator(config);
 
         // build a container process Manager
 
@@ -173,8 +168,8 @@ public class ClusterBasedApplicationMaster {
 
         try {
             //initialize JobCoordinator state
-            log.info("Starting ClusterBasedApplicationMaster");
-            leaderZkJobCoordinator.start();
+            log.info("Starting YarnApplicationMaster");
+            leaderJobCoordinator.start();
             containerProcessManager.start();
             partitionMonitor.start();
 
@@ -188,7 +183,7 @@ public class ClusterBasedApplicationMaster {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 120){
                         counter = 0;
-                        leaderZkJobCoordinator.publishJobModel(scaleUpByOne(jobModel));
+                        leaderJobCoordinator.publishJobModel(scaleUpByOne(jobModel));
                     }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
@@ -209,7 +204,7 @@ public class ClusterBasedApplicationMaster {
         processors.add(processors.get(0).concat("_"+processors.size()));
         //jobModel = jobModelManager.jobModel();
         log.info("Generate new JobModel with processors: {}", processors);
-        jobModel = leaderZkJobCoordinator.testingGenerateNewJobModel(processors);
+        jobModel = leaderJobCoordinator.testingGenerateNewJobModel(processors);
         ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
         try {
             log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
@@ -292,12 +287,12 @@ public class ClusterBasedApplicationMaster {
 
 
     /**
-     * The entry point for the {@link ClusterBasedApplicationMaster}
+     * The entry point for the {@link YarnApplicationMaster}
      * @param args args
      */
     public static void main(String[] args) {
         Config coordinatorSystemConfig = null;
-        log.info("Using LeaderZkJobCoordinator now");
+        log.info("Using LeaderJobCoordinator now");
         final String coordinatorSystemEnv = System.getenv(ShellCommandConfig.ENV_COORDINATOR_SYSTEM_CONFIG());
         try {
             //Read and parse the coordinator system config.
@@ -307,7 +302,7 @@ public class ClusterBasedApplicationMaster {
             log.error("Exception while reading coordinator stream config {}", e);
             throw new SamzaException(e);
         }
-        ClusterBasedApplicationMaster jc = new ClusterBasedApplicationMaster(coordinatorSystemConfig);
+        YarnApplicationMaster jc = new YarnApplicationMaster(coordinatorSystemConfig);
         jc.run();
     }
 }

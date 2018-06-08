@@ -85,7 +85,7 @@ class YarnJob(config: Config, hadoopConfig: Configuration) extends StreamJob {
       fwkVersion = "STABLE"
     }
     logger.info("Inside YarnJob: fwk_path is %s, ver is %s use it directly " format(fwkPath, fwkVersion))
-    //Using run-leader.sh to run LeaderZkJobCoordinator instead of ClusterBasedJobCoordinator
+    //Using run-leader.sh to run LeaderJobCoordinator instead of ClusterBasedJobCoordinator
     //var cmdExec = "./__package/bin/run-jc.sh" // default location
     var cmdExec = "./__package/bin/run-jc.sh"
     if (!fwkPath.isEmpty()) {

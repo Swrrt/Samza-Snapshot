@@ -19,13 +19,9 @@
 package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+
+import java.util.*;
+
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.samza.config.ApplicationConfig;
@@ -54,15 +50,14 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * JobCoordinator for follower StreamProcessor managed via Zookeeper.
+ * JobCoordinator for stand alone processor managed via Zookeeper.
  */
-public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerListener {
-    private static final Logger LOG = LoggerFactory.getLogger(FollowerZkJobCoordinator.class);
+public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinator{
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderJobCoordinator.class);
     // TODO: MetadataCache timeout has to be 0 for the leader so that it can always have the latest information associated
     // with locality. Since host-affinity is not yet implemented, this can be fixed as part of SAMZA-1197
     private static final int METADATA_CACHE_TTL_MS = 5000;
     private static final int NUM_VERSIONS_TO_LEAVE = 10;
-
     // Action name when the JobModel version changes
     private static final String JOB_MODEL_VERSION_CHANGE = "JobModelVersionChange";
 
@@ -87,59 +82,62 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
 
     private StreamMetadataCache streamMetadataCache = null;
     private ScheduleAfterDebounceTime debounceTimer = null;
-    private JobCoordinatorListener coordinatorListener = null;
-    private JobModel newJobModel;
+    private JobModel newJobModel = null;
+    private List<String> currentProcessors = null;
     private int debounceTimeMs;
     private boolean hasCreatedChangeLogStreams = false;
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
-
-    FollowerZkJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
+    private Map<String, String> containerToProcessorMap = null;
+    public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
-
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
-
         this.processorId = createProcessorId(config);
         this.zkUtils = zkUtils;
         // setup a listener for a session state change
         // we are mostly interested in "session closed" and "new session created" events
         zkUtils.getZkClient().subscribeStateChanges(new ZkSessionStateChangedListener());
-        this.zkController = new FollowerZkControllerImpl(processorId, zkUtils, this);
+        this.zkController = new LeaderZkControllerImpl(processorId, zkUtils, this);
         this.barrier =  new ZkBarrierForVersionUpgrade(
                 zkUtils.getKeyBuilder().getJobModelVersionBarrierPrefix(),
                 zkUtils,
                 new ZkBarrierListenerImpl());
         this.debounceTimeMs = new JobConfig(config).getDebounceTimeMs();
         this.reporters = MetricsReporterLoader.getMetricsReporters(new MetricsConfig(config), processorId);
+        //
+        newJobModel = jobModel;
         debounceTimer = new ScheduleAfterDebounceTime();
         debounceTimer.setScheduledTaskCallback(throwable -> {
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
     }
-
     @Override
-    public void start() {
-        LOG.info("FollowerZkJobCoordinator start");
+    public void start(){
+        LOG.info("Leader JobCoordinator start");
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
     }
+    @Override
+    public JobModel getJobModel(){
+        return newJobModel;
+    };
 
     @Override
+    public String getProcessorId(){
+        return processorId;
+    };
+    @Override
+    public void setListener(JobCoordinatorListener listener){
+    };
     public synchronized void stop() {
-        if (coordinatorListener != null) {
-            coordinatorListener.onJobModelExpired();
-        }
         //Setting the isLeader metric to false when the stream processor shuts down because it does not remain the leader anymore
         metrics.isLeader.set(false);
         debounceTimer.stopScheduler();
         zkController.stop();
 
         shutdownMetrics();
-        if (coordinatorListener != null) {
-            coordinatorListener.onCoordinatorStop();
-        }
     }
 
     private void startMetrics() {
@@ -154,26 +152,11 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
             reporter.stop();
         }
     }
-
-    @Override
-    public void setListener(JobCoordinatorListener listener) {
-        this.coordinatorListener = listener;
-    }
-
-    @Override
-    public JobModel getJobModel() {
-        return newJobModel;
-    }
-
-    @Override
-    public String getProcessorId() {
-        return processorId;
-    }
-
     //////////////////////////////////////////////// LEADER stuff ///////////////////////////
     @Override
     public void onProcessorChange(List<String> processors) {
-        LOG.info("FollowerZkJobCoordinator::onProcessorChange - list of processors changed! List size=" + processors.size());
+        LOG.info("Leader JobCoordinator::onProcessorChange - list of processors changed! List size=" + processors.size());
+        if(processors != null && processors.size() > 0) currentProcessors = processors;
         debounceTimer.scheduleAfterDebounceTime(ON_PROCESSOR_CHANGE, debounceTimeMs,
                 () -> doOnProcessorChange(processors));
     }
@@ -181,80 +164,86 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
     void doOnProcessorChange(List<String> processors) {
         // if list of processors is empty - it means we are called from 'onBecomeLeader'
         // TODO: Handle empty currentProcessorIds.
-        List<String> currentProcessorIds = getActualProcessorIds(processors);
-        Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);
-
-        if (currentProcessorIds.size() != uniqueProcessorIds.size()) {
-            LOG.info("Processors: {} has duplicates. Not generating job model.", currentProcessorIds);
-            return;
+        if(newJobModel == null){
+            LOG.warn("JobModel is not ready yet");
+            return ;
         }
+        JobModel jobModel = newJobModel;
+        if(processors != null && processors.size() == jobModel.getContainers().size()){
+            List<String> currentProcessorIds = getActualProcessorIds(processors);
+            Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);
+            if (currentProcessorIds.size() != uniqueProcessorIds.size()) {
+                LOG.info("Processors: {} has duplicates. Not generating job model.", currentProcessorIds);
+                return;
+            }
 
-        // Generate the JobModel
-        JobModel jobModel = generateNewJobModel(currentProcessorIds);
-        if (!hasCreatedChangeLogStreams) {
-            JobModelManager.createChangeLogStreams(new StorageConfig(config), jobModel.maxChangeLogStreamPartitions);
-            hasCreatedChangeLogStreams = true;
+            if (!jobModel.getContainers().keySet().contains(currentProcessorIds.get(0))){
+                /* Remapping the ProcessorsID */
+                if(containerToProcessorMap == null){
+                    containerToProcessorMap = new HashMap<String, String>();
+                }
+                Set <String> notUsedProcessors = new HashSet(currentProcessorIds);
+                for (String containerID: jobModel.getContainers().keySet()){
+                    if(currentProcessorIds.contains(containerToProcessorMap.get(containerID))){
+                        notUsedProcessors.remove(containerToProcessorMap.get(containerID));
+                    }else{
+                        containerToProcessorMap.remove(containerID);
+                    }
+                }
+                for (String containerID: jobModel.getContainers().keySet()){
+                    if(containerToProcessorMap.get(containerID)==null){
+                        String x = notUsedProcessors.iterator().next();
+                        containerToProcessorMap.put(containerID, x);
+                        notUsedProcessors.remove(x);
+                    }
+                }
+                Map<String, ContainerModel> models = new HashMap<>();
+                for(ContainerModel container: jobModel.getContainers().values()){
+                    models.put(containerToProcessorMap.get(container.getProcessorId()),new ContainerModel(containerToProcessorMap.get(container.getProcessorId()),container.getContainerId(),container.getTasks()));
+                }
+                jobModel = new JobModel(jobModel.getConfig(),models);
+            }
+
+            if (!hasCreatedChangeLogStreams) {
+                JobModelManager.createChangeLogStreams(new StorageConfig(config), jobModel.maxChangeLogStreamPartitions);
+                hasCreatedChangeLogStreams = true;
+            }
+            // Assign the next version of JobModel
+            String currentJMVersion = zkUtils.getJobModelVersion();
+            String nextJMVersion;
+            if (currentJMVersion == null) {
+                nextJMVersion = "1";
+            } else {
+                nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
+            }
+            LOG.info("Leader generated new Job Model. Version = " + nextJMVersion);
+            // Publish the new job model
+            zkUtils.publishJobModel(nextJMVersion, jobModel);
+
+            // Start the barrier for the job model update
+            barrier.create(nextJMVersion, currentProcessorIds);
+
+            // Notify all processors about the new JobModel by updating JobModel Version number
+            zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
+
+            LOG.info("Leader Published new Job Model. Version = " + nextJMVersion);
+
+            debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
+        }else{
+            LOG.info("Need to wait for all Processors online to pulish new JobModel!");
         }
-        // Assign the next version of JobModel
-        String currentJMVersion = zkUtils.getJobModelVersion();
-        String nextJMVersion;
-        if (currentJMVersion == null) {
-            nextJMVersion = "1";
-        } else {
-            nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
-        }
-        LOG.info("pid=" + processorId + "Generated new Job Model. Version = " + nextJMVersion);
-
-        // Publish the new job model
-        zkUtils.publishJobModel(nextJMVersion, jobModel);
-
-        // Start the barrier for the job model update
-        barrier.create(nextJMVersion, currentProcessorIds);
-
-        // Notify all processors about the new JobModel by updating JobModel Version number
-        zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
-
-        LOG.info("pid=" + processorId + "Published new Job Model. Version = " + nextJMVersion);
-
-        debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
     }
 
     @Override
     public void onNewJobModelAvailable(final String version) {
-        debounceTimer.scheduleAfterDebounceTime(JOB_MODEL_VERSION_CHANGE, 0, () ->
-        {
-            LOG.info("pid=" + processorId + ": new JobModel available");
-            // get the new job model from ZK
-            newJobModel = zkUtils.getJobModel(version);
-            LOG.info("pid=" + processorId + ": new JobModel available. ver=" + version + "; jm = " + newJobModel);
-
-            if (!newJobModel.getContainers().containsKey(processorId)) {
-                LOG.info("New JobModel does not contain pid={}. Stopping this processor. New JobModel: {}",
-                        processorId, newJobModel);
-                stop();
-            } else {
-                // stop current work
-                if (coordinatorListener != null) {
-                    coordinatorListener.onJobModelExpired();
-                }
-                // update ZK and wait for all the processors to get this new version
-                barrier.join(version, processorId);
-            }
-        });
     }
 
     @Override
     public void onNewJobModelConfirmed(String version) {
-        LOG.info("pid=" + processorId + "new version " + version + " of the job model got confirmed");
-        // get the new Model
-        JobModel jobModel = getJobModel();
-
-        // start the container with the new model
-        if (coordinatorListener != null) {
-            coordinatorListener.onNewJobModel(processorId, jobModel);
-        }
     }
-
+    public List<String> getCurrentProcessors(){
+        return currentProcessors;
+    }
     private String createProcessorId(Config config) {
         // TODO: This check to be removed after 0.13+
         ApplicationConfig appConfig = new ApplicationConfig(config);
@@ -286,21 +275,19 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
      * Generate new JobModel when becoming a leader or the list of processor changed.
      */
     private JobModel generateNewJobModel(List<String> processors) {
-        String zkJobModelVersion = zkUtils.getJobModelVersion();
         // If JobModel exists in zookeeper && cached JobModel version is unequal to JobModel version stored in zookeeper.
-        if (zkJobModelVersion != null && !Objects.equals(cachedJobModelVersion, zkJobModelVersion)) {
-            JobModel jobModel = zkUtils.getJobModel(zkJobModelVersion);
-            for (ContainerModel containerModel : jobModel.getContainers().values()) {
-                containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
-            }
-            cachedJobModelVersion = zkJobModelVersion;
+        JobModel jobModel = newJobModel;
+        for (ContainerModel containerModel : jobModel.getContainers().values()) {
+            containerModel.getTasks().forEach((taskName, taskModel) -> changeLogPartitionMap.put(taskName, taskModel.getChangelogPartition().getPartitionId()));
         }
+
         /**
          * Host affinity is not supported in standalone. Hence, LocalityManager(which is responsible for container
          * to host mapping) is passed in as null when building the jobModel.
          */
         return JobModelManager.readJobModel(this.config, changeLogPartitionMap, null, streamMetadataCache, processors);
     }
+
     class ZkBarrierListenerImpl implements ZkBarrierListener {
         private final String barrierAction = "BarrierAction";
 
@@ -365,9 +352,6 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
                 // increase generation of the ZK connection. All the callbacks from the previous generation will be ignored.
                 zkUtils.incGeneration();
 
-                if (coordinatorListener != null) {
-                    coordinatorListener.onJobModelExpired();
-                }
                 // reset all the values that might have been from the previous session (e.g ephemeral node path)
                 zkUtils.unregister();
 
@@ -391,7 +375,16 @@ public class FollowerZkJobCoordinator implements JobCoordinator, ZkControllerLis
             debounceTimer.scheduleAfterDebounceTime(ZK_SESSION_ERROR, 0, () -> stop());
         }
     }
+    /* For testing */
+    public void publishJobModel(JobModel jobModel){
+        newJobModel = jobModel;
+        LOG.info("New JobModel comes into Leader!");
+        onProcessorChange(currentProcessors);
+    }
+    public JobModel testingGenerateNewJobModel(List<String> processors){
+        return generateNewJobModel(processors);
 
+    }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
         return zkUtils;

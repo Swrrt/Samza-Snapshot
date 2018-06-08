@@ -26,23 +26,19 @@ import org.apache.samza.config.JobConfig;
 import org.apache.samza.config.ZkConfig;
 import org.apache.samza.coordinator.JobCoordinator;
 import org.apache.samza.coordinator.JobCoordinatorFactory;
-import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.metrics.MetricsRegistry;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class LeaderZkJobCoordinatorFactory implements JobCoordinatorFactory {
+public class FollowerJobCoordinatorFactory implements JobCoordinatorFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZkJobCoordinatorFactory.class);
     private static final String JOB_COORDINATOR_ZK_PATH_FORMAT = "%s/%s-%s-coordinationData";
     private static final String DEFAULT_JOB_ID = "1";
     private static final String DEFAULT_JOB_NAME = "defaultJob";
-    private final JobModelManager jobModelManager;
-    public LeaderZkJobCoordinatorFactory(JobModelManager jobModelManager){
-        this.jobModelManager = jobModelManager;
-    }
+
     /**
      * Method to instantiate an implementation of JobCoordinator
      *
@@ -50,11 +46,11 @@ public class LeaderZkJobCoordinatorFactory implements JobCoordinatorFactory {
      * @return An instance of IJobCoordinator
      */
     @Override
-    public LeaderZkJobCoordinator getJobCoordinator(Config config) {
+    public JobCoordinator getJobCoordinator(Config config) {
         MetricsRegistry metricsRegistry = new MetricsRegistryMap();
         ZkUtils zkUtils = getZkUtils(config, metricsRegistry);
         LOG.debug("Creating ZkJobCoordinator instance with config: {}.", config);
-        return new LeaderZkJobCoordinator(config, metricsRegistry, zkUtils, jobModelManager.jobModel());
+        return new FollowerJobCoordinator(config, metricsRegistry, zkUtils);
     }
 
     private ZkUtils getZkUtils(Config config, MetricsRegistry metricsRegistry) {
