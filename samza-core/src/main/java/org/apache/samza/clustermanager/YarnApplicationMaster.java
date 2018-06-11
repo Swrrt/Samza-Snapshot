@@ -212,7 +212,7 @@ public class YarnApplicationMaster {
         }catch (Exception e){
         }
         log.info("Requesting more containers");
-        //containerProcessManager.requestOneMore();
+        containerProcessManager.requestOneMore();
         return jobModel;
     }
     /* For testing */
