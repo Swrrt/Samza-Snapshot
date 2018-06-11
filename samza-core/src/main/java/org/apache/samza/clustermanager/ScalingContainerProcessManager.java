@@ -416,6 +416,7 @@ public class ScalingContainerProcessManager implements ClusterResourceManager.Ca
     }
     //For testing
     public void requestOneMore(){
+        log.info("Requesting one container!");
         int containerCount = state.containerCount.addAndGet(1);
         state.neededContainers.addAndGet(1);
         containerAllocator.requestResource("Extra-"+String.valueOf(containerCount),ResourceRequestState.ANY_HOST);
