@@ -183,7 +183,8 @@ public class YarnApplicationMaster {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 120){
                         counter = 0;
-                        leaderJobCoordinator.publishJobModel(scaleUpByOne(jobModel));
+                        jobModel = scaleUpByOne(jobModel);
+                        leaderJobCoordinator.publishJobModel(jobModel);
                     }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
@@ -211,7 +212,7 @@ public class YarnApplicationMaster {
         }catch (Exception e){
         }
         log.info("Requesting more containers");
-        //containerProcessManager.requestOneMore();
+        containerProcessManager.requestOneMore();
         return jobModel;
     }
     /* For testing */
