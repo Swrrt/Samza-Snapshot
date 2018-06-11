@@ -210,6 +210,8 @@ public class YarnApplicationMaster {
             log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
         }catch (Exception e){
         }
+        log.info("Requesting more containers");
+        //containerProcessManager.requestOneMore();
         return jobModel;
     }
     /* For testing */

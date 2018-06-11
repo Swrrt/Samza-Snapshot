@@ -54,7 +54,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ScalingContainerProcessManager implements ClusterResourceManager.Callback   {
 
-    private static final Logger log = LoggerFactory.getLogger(ContainerProcessManager.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalingContainerProcessManager.class);
     /**
      * Does this Samza Job need hostAffinity when containers are allocated.
      */
@@ -414,7 +414,10 @@ public class ScalingContainerProcessManager implements ClusterResourceManager.Ca
         }
         return factory;
     }
-
-
-
+    //For testing
+    public void requestOneMore(){
+        int containerCount = state.containerCount.addAndGet(1);
+        state.neededContainers.addAndGet(1);
+        containerAllocator.requestResource("Extra-"+String.valueOf(containerCount),ResourceRequestState.ANY_HOST);
+    }
 }

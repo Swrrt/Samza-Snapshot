@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 //This class is used in the refactored code path as called by run-jc.sh
 
 public class ScalingContainerAllocator extends AbstractContainerAllocator {
-    private static final Logger log = LoggerFactory.getLogger(ContainerAllocator.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalingContainerAllocator.class);
 
     public ScalingContainerAllocator(ClusterResourceManager manager,
                               Config config, SamzaApplicationState state) {
