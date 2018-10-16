@@ -21,12 +21,7 @@ package org.apache.samza.clustermanager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -326,5 +321,31 @@ public class ResourceRequestState {
     return Collections.unmodifiableMap(requestsToCountMap);
   }
 
-
+  /*
+    Release an allocated container
+  */
+  public void releaseContainer(String ContainerID) {
+    for(List<SamzaResource> e: allocatedResources.values()){
+      for(SamzaResource r: e){
+        if(r.getResourceID().equals(ContainerID)){
+          log.info("Find Container "+ContainerID+", release it");
+          manager.releaseResources(r);
+          return;
+        }
+      }
+    }
+    log.info("Didn't find container "+ContainerID);
+  }
+  /*
+    Release any allocated container
+   */
+  public void releaseContainer() {
+    for(List<SamzaResource> e: allocatedResources.values()) {
+      for (SamzaResource r : e) {
+        log.info("Find Container " + r.getResourceID() + ", release it");
+        manager.releaseResources(r);
+        return;
+      }
+    }
+  }
 }

@@ -183,7 +183,7 @@ public class YarnApplicationMaster {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 60){
                         counter = 0;
-                        jobModel = scaleUpByOne(jobModel);
+                        jobModel = scaleDownByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
                 } catch (InterruptedException e) {
@@ -213,6 +213,21 @@ public class YarnApplicationMaster {
         }
         log.info("Requesting more containers");
         containerProcessManager.requestOneMore();
+        return jobModel;
+    }
+    private JobModel scaleDownByOne(JobModel jobModel){
+        List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
+        processors.remove(0);
+        //jobModel = jobModelManager.jobModel();
+        log.info("Generate new JobModel with processors: {}", processors);
+        jobModel = leaderJobCoordinator.testingGenerateNewJobModel(processors);
+        ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
+        try {
+            log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
+        }catch (Exception e){
+        }
+        log.info("Requesting more containers");
+        containerProcessManager.releaseOne();
         return jobModel;
     }
     /* For testing */
