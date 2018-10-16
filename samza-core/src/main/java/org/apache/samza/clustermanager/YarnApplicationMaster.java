@@ -183,7 +183,7 @@ public class YarnApplicationMaster {
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 60){
                         counter = 0;
-                        jobModel = scaleDownByOne(jobModel);
+                        jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
                 } catch (InterruptedException e) {
