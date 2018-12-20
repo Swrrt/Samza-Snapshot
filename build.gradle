@@ -168,6 +168,8 @@ project(":samza-core_$scalaVersion") {
     compile("com.101tec:zkclient:$zkClientVersion") {
       exclude module: 'junit:junit'
     }
+    compile "org.json:json:20180813"
+    compile "commons-io:commons-io:2.6"
     compile "com.google.guava:guava:$guavaVersion"
     compile "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
     compile "org.apache.commons:commons-collections4:$apacheCommonsCollections4Version"
