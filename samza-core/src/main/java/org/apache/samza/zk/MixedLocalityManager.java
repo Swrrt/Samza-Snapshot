@@ -5,7 +5,9 @@ import org.apache.samza.container.LocalityManager;
 
 import java.util.*;
 
+import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
+import org.apache.samza.job.model.TaskModel;
 import org.json.*;
 import org.apache.commons.io.*;
 import java.net.URL;
@@ -171,14 +173,36 @@ public class MixedLocalityManager {
         return hostRack;
     }
     private Map<String, String> getTaskContainer(JobModel jobModel){
-        // TODO
-        return new HashMap<>();
+        Map<String, ContainerModel> containers = jobModel.getContainers();
+        Map<String, String> taskContainer = new HashMap<>();
+        for(ContainerModel container: containers.values()){
+            for(TaskModel task: container.getTasks().values()){
+                taskContainer.put(task.getTaskName().getTaskName(), container.getProcessorId());
+            }
+        }
+        return taskContainer;
     }
     public void updateContainers(){
-        //TODO
+        for(String containerId: containers.keySet()){
+            if(!containerHost.containsKey(containerId)){
+                chord.remove(containerId);
+                locality.remove(containerId);
+            }
+        }
+        for(Map.Entry<String, String> containerId: containerHost.entrySet()){
+            if(containers.containsKey(containerId.getKey())){
+                chord.
+            }else{
+                chord.insert(containerId, 5);
+                String host = containerHost.get(containerId);
+                List<String> local = (List)((ArrayList)hostRack.get(host)).clone();
+                local.add(host);
+                locality.insert(containerId, local, 10);
+            }
+        }
     }
     public void updateTasks(){
-        //TODO
+
     }
     public void update(JobModel jobModel){
         containerHost = webReader.readContainerHost();
