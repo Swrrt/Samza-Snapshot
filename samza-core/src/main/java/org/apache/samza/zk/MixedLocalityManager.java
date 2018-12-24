@@ -65,6 +65,7 @@ public class MixedLocalityManager {
             for(int i= nlayer - 2 ;i >= 0;i--)cost[i] = cost[i+1] * 10;
             coord = new HashMap<>();
         }
+        // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
         public void insert(String Id, List<String> items, Integer amount){
             if(coord.containsKey(Id)){
                coord.remove(Id);
@@ -132,15 +133,18 @@ public class MixedLocalityManager {
         }
 
     }
-    ChordHashing chord;
-    LocalityHashing locality;
-    WebReader webReader;
-    Map<String,List<String>> hostRack = null;
-    Map<String,String> containerHost = null;
-    Map<String, String> taskContainer = null;
-    Map<String, Integer> containers; //number of VN
-    Set<String> tasks;
-    final double p1, p2;
+    private ChordHashing chord;
+    private LocalityHashing locality;
+    private WebReader webReader;
+    private Map<String,List<String>> hostRack = null;
+    private Map<String,String> containerHost = null;
+    private Map<String, String> taskContainer = null;
+    private Map<String, Integer> containers; //number of VN for each container
+    private Set<String> tasks; //Existing tasks
+    private Map<String, String> processorIdToContainer = null;
+    private JobModel oldJobModel;
+    private final int defaultVNs;  // Default number of VNs for new coming containers
+    private final double p1, p2;   // Weight parameter for Chord and Locality
     public MixedLocalityManager(){
         chord = new ChordHashing();
         locality = new LocalityHashing();
@@ -149,28 +153,38 @@ public class MixedLocalityManager {
         containerHost = new HashMap<>();
         containers = new HashMap<>();
         tasks = new HashSet<>();
-        p1 = 0.5;
-        p2 = 0.5;
+        processorIdToContainer = new HashMap<>();
+        oldJobModel = null;
+        defaultVNs = 100;
+        p1 = 1;
+        p2 = 0;
     }
-    public MixedLocalityManager(double pp1, double pp2){
-        chord = new ChordHashing();
-        locality = new LocalityHashing();
-        webReader = new WebReader();
-        taskContainer = new HashMap<>();
-        containerHost = new HashMap<>();
-        containers = new HashMap<>();
-        tasks = new HashSet<>();
-        p1 = pp1;
-        p2 = pp2;
+    public void initial(JobModel jobModel){
+        getHostRack();
+        oldJobModel = jobModel;
     }
-    private Map<String, String> getLocality(){
+    // Read container-host mapping from web
+    private Map<String, String> getContainerHost(){
         return webReader.readContainerHost();
     }
+    // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
         if(hostRack == null){
             hostRack = webReader.readHostRack();
         }
         return hostRack;
+    }
+    // Construct the container-(container, host, rack cluster) mapping
+    private List<String> getContainerLocality(String item){
+        //TODO
+        getContainerHost();
+        return null;
+    }
+    // Construct the task-(container, host, rack cluster) mapping
+    private List<String> getTaskLocality(String item){
+        //TODO
+
+        return null;
     }
     private Map<String, String> getTaskContainer(JobModel jobModel){
         Map<String, ContainerModel> containers = jobModel.getContainers();
@@ -182,34 +196,60 @@ public class MixedLocalityManager {
         }
         return taskContainer;
     }
-    public void updateContainers(){
-        for(String containerId: containers.keySet()){
-            if(!containerHost.containsKey(containerId)){
-                chord.remove(containerId);
-                locality.remove(containerId);
-            }
-        }
-        for(Map.Entry<String, String> containerId: containerHost.entrySet()){
-            if(containers.containsKey(containerId.getKey())){
-                chord.
-            }else{
-                chord.insert(containerId, 5);
-                String host = containerHost.get(containerId);
-                List<String> local = (List)((ArrayList)hostRack.get(host)).clone();
-                local.add(host);
-                locality.insert(containerId, local, 10);
-            }
-        }
+    // New Container comes in;
+    public void insertContainer(String container){
+        //TODO
+        containers.put(container, defaultVNs);
+        chord.insert(container, defaultVNs);
+        locality.insert(container, getContainerLocality(container), 1);
     }
-    public void updateTasks(){
+    // Container left
+    public void removeContainer(String container){
+        //TODO
+        chord.remove(container);
+        locality.remove(container);
+        containers.remove(container);
+    }
 
+    // Initial all tasks at the beginning;
+    public void setTasks(List<String> tasks){
+        for(String task: tasks){
+            this.tasks.add(task);
+            chord.insert(task, 1);
+            locality.insert(task, getTaskLocality(task), 1);
+        }
     }
-    public void update(JobModel jobModel){
-        containerHost = webReader.readContainerHost();
-        hostRack = webReader.readHostRack();
-        taskContainer = getTaskContainer(jobModel);
-        updateContainers();
-        updateTasks();
+    private String getContainerID(String processor){
+        //TODO
+        //Translate processor ID to Container ID;
+        return null;
+    }
+    public JobModel generateJobModel(){
+        //TODO
+        //generate new job model from current containers and tasks setting
+        //store the new job model for future use;
+
+        return oldJobModel;
+    }
+    // Generate new Job Model based on new processors list
+    public JobModel generateNewJobModel(List<String> processors){
+        Set<String> containers = new HashSet<>();
+        //Translate from processorID to container ID
+        for(String processor: processors){
+            String container = getContainerID(processor);
+            containers.add(container);
+            //Insert new container
+            if(!this.containers.containsKey(container)){
+                insertContainer(container);
+            }
+        }
+        //Remove containers no longer exist
+        for(String container: this.containers.keySet()){
+            if(!containers.contains(container)){
+                removeContainer(container);
+            }
+        }
+        return generateJobModel();
     }
     public double distance(String t1, String t2){
         return p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);

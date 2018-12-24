@@ -79,7 +79,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private final ZkBarrierForVersionUpgrade barrier;
     private final ZkJobCoordinatorMetrics metrics;
     private final Map<String, MetricsReporter> reporters;
-
+    private MixedLocalityManager mixedLocalityManager;
     private StreamMetadataCache streamMetadataCache = null;
     private ScheduleAfterDebounceTime debounceTimer = null;
     private JobModel newJobModel = null;
@@ -91,6 +91,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private Map<String, String> containerToProcessorMap = null;
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
+        this.mixedLocalityManager = new MixedLocalityManager();
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
         this.zkUtils = zkUtils;
@@ -382,8 +383,9 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         onProcessorChange(currentProcessors);
     }
     public JobModel testingGenerateNewJobModel(List<String> processors){
-        return generateNewJobModel(processors);
-
+        // Generate new Job Model using MixedLocalityManager
+        return mixedLocalityManager.generateNewJobModel(processors);
+        // return generateNewJobModel(processors);
     }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
