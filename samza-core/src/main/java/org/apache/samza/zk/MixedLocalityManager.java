@@ -164,7 +164,7 @@ public class MixedLocalityManager {
         oldJobModel = jobModel;
     }
     // Read container-host mapping from web
-    private Map<String, String> getContainerHost(){
+    private Map<String, String> getContainerHost() {
         return webReader.readContainerHost();
     }
     // Read host-rack-cluster mapping from web
@@ -174,17 +174,26 @@ public class MixedLocalityManager {
         }
         return hostRack;
     }
+    private void updateContainerHost(){
+        //TODO: add a time interval between consecutive reading
+        if(true) {
+            containerHost = getContainerHost();
+        }
+    }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
-        //TODO
-        getContainerHost();
-        return null;
+        updateContainerHost();
+        List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(item))).clone();
+        itemLocality.add(item);
+        return itemLocality;
     }
     // Construct the task-(container, host, rack cluster) mapping
     private List<String> getTaskLocality(String item){
-        //TODO
-
-        return null;
+        updateContainerHost();
+        String container = taskContainer.get(item);
+        List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(container))).clone();
+        itemLocality.add(container);
+        return itemLocality;
     }
     private Map<String, String> getTaskContainer(JobModel jobModel){
         Map<String, ContainerModel> containers = jobModel.getContainers();
