@@ -3,7 +3,9 @@ import subprocess
 import re
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
+containers = {}
 def readYARN():
+# add time interval heres
     appattempt  = sys.argv[0]
     yarn_home = '~/cluster/yarn/'
     contents = subprocess.check_output('./' + yarn_home + 'bin/yarn container -list ' + appattempt)

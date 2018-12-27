@@ -12,10 +12,14 @@ import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
 import org.json.*;
 import org.apache.commons.io.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URL;
 import java.nio.charset.*;
 
 public class MixedLocalityManager {
+    private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
     private class ChordHashing{
         private final int Length;
         private Map<String, ArrayList<Integer>> coord;
@@ -97,8 +101,8 @@ public class MixedLocalityManager {
         String hostRackUrl;
         String containerHostUrl;
         public WebReader(){
-            hostRackUrl = "192.168.0.36:8001";
-            containerHostUrl = "192.168.0.36:8002";
+            hostRackUrl = "192.168.0.36:8880";
+            containerHostUrl = "192.168.0.36:8881";
         }
         public WebReader(String s1, String s2){
             hostRackUrl = new String(s1);
@@ -107,7 +111,9 @@ public class MixedLocalityManager {
         public Map<String, List<String>> readHostRack() {
             Map<String, List<String>> hostRack = new HashMap<>();
             try{
+                LOG.info("Reading Host-Rack information from ".concat(hostRackUrl));
                 JSONObject json = new JSONObject(IOUtils.toString(new URL(hostRackUrl), Charset.forName("UTF-8")));
+                LOG.info("Host-rack information ".concat(json.toString()));
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
@@ -123,11 +129,14 @@ public class MixedLocalityManager {
         public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();
             try{
+                LOG.info("Reading Container-Host information from ".concat(containerHostUrl));
                 JSONObject json = new JSONObject(IOUtils.toString(new URL(containerHostUrl), Charset.forName("UTF-8")));
+                LOG.info("Container-Host information ".concat(json.toString()));
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
                     //TODO translate YARN container ID to our container ID
+                    
                     containerHost.put(keyStr,value);
                 }
             }catch(Exception e){
@@ -163,8 +172,10 @@ public class MixedLocalityManager {
         defaultVNs = 100;
         p1 = 1;
         p2 = 0;
+        LOG.info("MixedLocalityManager is online");
     }
     public void initial(JobModel jobModel, Config config){
+        LOG.info("MixedLocalityManager is initializing");
         getHostRack();
         this.config = config;
         oldJobModel = jobModel;
@@ -175,6 +186,7 @@ public class MixedLocalityManager {
     }
     // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
+        LOG.info("Reading Host-Server-Rack-Cluster information from web");
         if(hostRack == null){
             hostRack = webReader.readHostRack();
         }

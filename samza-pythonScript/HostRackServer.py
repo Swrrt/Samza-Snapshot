@@ -6,10 +6,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 def readHostRack():
     path  = sys.argv[0]
     f = open(path, "r")
-    hosts = []
+    hosts = {}
     for line in contents:
         values = re.split(r" +", line)
-        hosts.append(values)
+        hosts[values[0]] = values[1:]
     hosts
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
