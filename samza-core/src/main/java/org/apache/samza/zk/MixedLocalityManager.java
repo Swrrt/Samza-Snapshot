@@ -1,10 +1,12 @@
 package org.apache.samza.zk;
 
 import javafx.util.Pair;
+import org.apache.samza.config.Config;
 import org.apache.samza.container.LocalityManager;
 
 import java.util.*;
 
+import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
@@ -125,6 +127,7 @@ public class MixedLocalityManager {
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
+                    //TODO translate YARN container ID to our container ID
                     containerHost.put(keyStr,value);
                 }
             }catch(Exception e){
@@ -140,27 +143,30 @@ public class MixedLocalityManager {
     private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
     private Map<String, Integer> containers; //number of VN for each container
-    private Set<String> tasks; //Existing tasks
+    private Map<String, TaskModel> tasks; //Existing tasks
     private Map<String, String> processorIdToContainer = null;
     private JobModel oldJobModel;
+    private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
     public MixedLocalityManager(){
+        config = null;
         chord = new ChordHashing();
         locality = new LocalityHashing();
         webReader = new WebReader();
         taskContainer = new HashMap<>();
         containerHost = new HashMap<>();
         containers = new HashMap<>();
-        tasks = new HashSet<>();
+        tasks = new HashMap<>();
         processorIdToContainer = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 100;
         p1 = 1;
         p2 = 0;
     }
-    public void initial(JobModel jobModel){
+    public void initial(JobModel jobModel, Config config){
         getHostRack();
+        this.config = config;
         oldJobModel = jobModel;
     }
     // Read container-host mapping from web
@@ -206,14 +212,14 @@ public class MixedLocalityManager {
         return taskContainer;
     }
     // New Container comes in;
-    public void insertContainer(String container){
+    private void insertContainer(String container){
         //TODO
         containers.put(container, defaultVNs);
         chord.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
     // Container left
-    public void removeContainer(String container){
+    private void removeContainer(String container){
         //TODO
         chord.remove(container);
         locality.remove(container);
@@ -221,23 +227,39 @@ public class MixedLocalityManager {
     }
 
     // Initial all tasks at the beginning;
-    public void setTasks(List<String> tasks){
-        for(String task: tasks){
-            this.tasks.add(task);
-            chord.insert(task, 1);
-            locality.insert(task, getTaskLocality(task), 1);
+    public void setTasks(Map<String, TaskModel> tasks){
+        for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
+            this.tasks.put(task.getKey(), task.getValue());
+            chord.insert(task.getKey(), 1);
+            locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
     }
     private String getContainerID(String processor){
         //TODO
         //Translate processor ID to Container ID;
-        return null;
+        return processor;
     }
     public JobModel generateJobModel(){
-        //TODO
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
-
+        Map<String, ContainerModel> containers = new HashMap<>();
+        for(String container:this.containers.keySet()){
+            containers.put(container, new ContainerModel(container, 0, new HashMap<TaskName, TaskModel>()));
+        }
+        for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
+            //Find the closest container for each task
+            String minContainer = null;
+            double min = 0;
+            for (String container: this.containers.keySet()){
+                double dis = distance(task.getKey(), container);
+                if(minContainer == null || dis<min){
+                    minContainer = container;
+                    min = dis;
+                }
+            }
+            containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
+        }
+        oldJobModel = new JobModel(config, containers);
         return oldJobModel;
     }
     // Generate new Job Model based on new processors list
@@ -258,6 +280,11 @@ public class MixedLocalityManager {
                 removeContainer(container);
             }
         }
+        return generateJobModel();
+    }
+    // Generate new job model when utilization changes.
+    public JobModel generateNewJobModel(Map<String, Integer> utlization){
+        //TODO
         return generateJobModel();
     }
     public double distance(String t1, String t2){
