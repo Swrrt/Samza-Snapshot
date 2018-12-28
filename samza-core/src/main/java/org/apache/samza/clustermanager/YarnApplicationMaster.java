@@ -202,7 +202,8 @@ public class YarnApplicationMaster {
     /* For testing */
     private JobModel scaleUpByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
-        processors.add(processors.get(0).concat("_"+processors.size()));
+        //processorsID is 0,1,2...,
+        processors.add(((Integer)processors.size()).toString());
         //jobModel = jobModelManager.jobModel();
         log.info("Generate new JobModel with processors: {}", processors);
         jobModel = leaderJobCoordinator.testingGenerateNewJobModel(processors);
