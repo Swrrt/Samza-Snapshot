@@ -117,10 +117,34 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
     }
+    // In YARN mode, we have containerId
+    FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, String containerId) {
+        this.config = config;
+
+        this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
+
+        this.processorId = containerId;
+        this.zkUtils = zkUtils;
+        // setup a listener for a session state change
+        // we are mostly interested in "session closed" and "new session created" events
+        zkUtils.getZkClient().subscribeStateChanges(new ZkSessionStateChangedListener());
+        this.zkController = new FollowerZkControllerImpl(processorId, zkUtils, this);
+        this.barrier =  new ZkBarrierForVersionUpgrade(
+                zkUtils.getKeyBuilder().getJobModelVersionBarrierPrefix(),
+                zkUtils,
+                new ZkBarrierListenerImpl());
+        this.debounceTimeMs = new JobConfig(config).getDebounceTimeMs();
+        this.reporters = MetricsReporterLoader.getMetricsReporters(new MetricsConfig(config), processorId);
+        debounceTimer = new ScheduleAfterDebounceTime();
+        debounceTimer.setScheduledTaskCallback(throwable -> {
+            LOG.error("Received exception from in JobCoordinator Processing!", throwable);
+            stop();
+        });
+    }
 
     @Override
     public void start() {
-        LOG.info("FollowerJobCoordinator start");
+        LOG.info("FollowerJobCoordinator start, with Processor ID:" + processorId);
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
@@ -254,7 +278,6 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             coordinatorListener.onNewJobModel(processorId, jobModel);
         }
     }
-
     private String createProcessorId(Config config) {
         // TODO: This check to be removed after 0.13+
         ApplicationConfig appConfig = new ApplicationConfig(config);

@@ -41,6 +41,9 @@ import org.apache.samza.metrics.MetricsReporter;
 import org.apache.samza.task.AsyncStreamTaskFactory;
 import org.apache.samza.task.StreamTaskFactory;
 import org.apache.samza.util.Util;
+import org.apache.samza.zk.FollowerJobCoordinator;
+import org.apache.samza.zk.FollowerJobCoordinatorFactory;
+import org.apache.zookeeper.server.quorum.Follower;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +66,7 @@ public class StreamProcessor {
   private final Config config;
   private final long taskShutdownMs;
   private final String processorId;
-
+  private final String containerId; //The ID in YARN
   private ExecutorService executorService;
 
   private volatile SamzaContainer container = null;
@@ -93,12 +96,12 @@ public class StreamProcessor {
    * @param processorListener         listener to the StreamProcessor life cycle
    */
   public StreamProcessor(Config config, Map<String, MetricsReporter> customMetricsReporters,
-                         AsyncStreamTaskFactory asyncStreamTaskFactory, StreamProcessorLifecycleListener processorListener) {
-    this(config, customMetricsReporters, (Object) asyncStreamTaskFactory, processorListener, null);
+                         AsyncStreamTaskFactory asyncStreamTaskFactory, StreamProcessorLifecycleListener processorListener, String containerId) {
+    this(config, customMetricsReporters, (Object) asyncStreamTaskFactory, processorListener, null, containerId);
   }
 
   /**
-   *Same as {@link #StreamProcessor(Config, Map, AsyncStreamTaskFactory, StreamProcessorLifecycleListener)}, except task
+   *Same as {@link #StreamProcessor(Config, Map, AsyncStreamTaskFactory, StreamProcessorLifecycleListener, String)}, except task
    * instances are created using the provided {@link StreamTaskFactory}.
    * @param config - config
    * @param customMetricsReporters metric Reporter
@@ -106,8 +109,8 @@ public class StreamProcessor {
    * @param processorListener  listener to the StreamProcessor life cycle
    */
   public StreamProcessor(Config config, Map<String, MetricsReporter> customMetricsReporters,
-                         StreamTaskFactory streamTaskFactory, StreamProcessorLifecycleListener processorListener) {
-    this(config, customMetricsReporters, (Object) streamTaskFactory, processorListener, null);
+                         StreamTaskFactory streamTaskFactory, StreamProcessorLifecycleListener processorListener, String containerId) {
+    this(config, customMetricsReporters, (Object) streamTaskFactory, processorListener, null, containerId);
   }
 
   /* package private */
@@ -118,24 +121,28 @@ public class StreamProcessor {
                 .getJobCoordinatorFactoryClassName())
         .getJobCoordinator(config);
   }
-
+  JobCoordinator getJobCoordinator(String containerId) {
+    return new FollowerJobCoordinatorFactory().getJobCoordinator(config, containerId);
+  }
   @VisibleForTesting
   JobCoordinator getCurrentJobCoordinator() {
     return jobCoordinator;
   }
 
   StreamProcessor(Config config, Map<String, MetricsReporter> customMetricsReporters, Object taskFactory,
-                  StreamProcessorLifecycleListener processorListener, JobCoordinator jobCoordinator) {
+                  StreamProcessorLifecycleListener processorListener, JobCoordinator jobCoordinator, String containerId) {
     this.taskFactory = taskFactory;
     this.config = config;
     this.taskShutdownMs = new TaskConfigJava(config).getShutdownMs();
     this.customMetricsReporter = customMetricsReporters;
     this.processorListener = processorListener;
-    this.jobCoordinator = (jobCoordinator != null) ? jobCoordinator : getJobCoordinator();
+    this.jobCoordinator = (jobCoordinator != null) ? jobCoordinator : getJobCoordinator(containerId);
     this.jobCoordinatorListener = createJobCoordinatorListener();
     this.jobCoordinator.setListener(jobCoordinatorListener);
+    // Use processorId in YARN
+    processorId = this.containerId = containerId;
 
-    processorId = this.jobCoordinator.getProcessorId();
+    //processorId = this.jobCoordinator.getProcessorId();
   }
 
   /**

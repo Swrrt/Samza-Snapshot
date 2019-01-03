@@ -52,6 +52,12 @@ public class FollowerJobCoordinatorFactory implements JobCoordinatorFactory {
         LOG.debug("Creating ZkJobCoordinator instance with config: {}.", config);
         return new FollowerJobCoordinator(config, metricsRegistry, zkUtils);
     }
+    public JobCoordinator getJobCoordinator(Config config, String containerId) {
+        MetricsRegistry metricsRegistry = new MetricsRegistryMap();
+        ZkUtils zkUtils = getZkUtils(config, metricsRegistry);
+        LOG.debug("Creating ZkJobCoordinator instance with config: {}.", config);
+        return new FollowerJobCoordinator(config, metricsRegistry, zkUtils, containerId);
+    }
 
     private ZkUtils getZkUtils(Config config, MetricsRegistry metricsRegistry) {
         ZkConfig zkConfig = new ZkConfig(config);

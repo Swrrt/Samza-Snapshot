@@ -136,7 +136,6 @@ public class MixedLocalityManager {
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
                     //TODO translate YARN container ID to our container ID
-                    
                     containerHost.put(keyStr,value);
                 }
             }catch(Exception e){

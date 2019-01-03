@@ -170,6 +170,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
             return ;
         }
         JobModel jobModel = newJobModel;
+        //TODO: Change this to our mechanism
         if(processors != null && processors.size() == jobModel.getContainers().size()){
             List<String> currentProcessorIds = getActualProcessorIds(processors);
             Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);

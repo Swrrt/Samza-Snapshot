@@ -137,7 +137,7 @@ public class LocalStreamProcessorRunner extends AbstractApplicationRunner {
         log.info("LocalApplicationRunner will run " + taskName);
         LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
 
-        StreamProcessor processor = createStreamProcessor(jobConfig, null, listener);
+        StreamProcessor processor = createStreamProcessor(jobConfig, null, listener, containerId);
         listener.setProcessor(processor);
         processor.start();
     }
@@ -170,7 +170,7 @@ public class LocalStreamProcessorRunner extends AbstractApplicationRunner {
             JobConfig jobConfig = new JobConfig(jobModel.getConfig());
             log.info("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
             LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
-            StreamProcessor processor = createStreamProcessor(jobConfig, app, listener);
+            StreamProcessor processor = createStreamProcessor(jobConfig, app, listener, containerId);
             listener.setProcessor(processor);
             processors.add(processor);
             numProcessorsToStart.set(processors.size());
@@ -232,14 +232,15 @@ public class LocalStreamProcessorRunner extends AbstractApplicationRunner {
     StreamProcessor createStreamProcessor(
             Config config,
             StreamApplication app,
-            StreamProcessorLifecycleListener listener) {
+            StreamProcessorLifecycleListener listener,
+            String containerId) {
         Object taskFactory = TaskFactoryUtil.createTaskFactory(config, app, new LocalApplicationRunner(config));
         if (taskFactory instanceof StreamTaskFactory) {
             return new StreamProcessor(
-                    config, new HashMap<>(), (StreamTaskFactory) taskFactory, listener);
+                    config, new HashMap<>(), (StreamTaskFactory) taskFactory, listener, containerId);
         } else if (taskFactory instanceof AsyncStreamTaskFactory) {
             return new StreamProcessor(
-                    config, new HashMap<>(), (AsyncStreamTaskFactory) taskFactory, listener);
+                    config, new HashMap<>(), (AsyncStreamTaskFactory) taskFactory, listener, containerId);
         } else {
             throw new SamzaException(String.format("%s is not a valid task factory",
                     taskFactory.getClass().getCanonicalName()));
