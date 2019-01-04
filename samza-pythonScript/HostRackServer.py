@@ -7,7 +7,7 @@ def readHostRack():
     path  = sys.argv[0]
     f = open(path, "r")
     hosts = {}
-    for line in contents:
+    for line in f:
         values = re.split(r" +", line)
         hosts[values[0]] = values[1:]
     hosts
