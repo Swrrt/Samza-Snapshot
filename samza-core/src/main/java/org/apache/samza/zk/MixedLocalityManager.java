@@ -189,13 +189,16 @@ public class MixedLocalityManager {
         if(hostRack == null){
             hostRack = webReader.readHostRack();
         }
+        LOG.info("Host-Server information:" + hostRack.toString());
         return hostRack;
     }
     private void updateContainerHost(){
         //TODO: add a time interval between consecutive reading
+        LOG.info("Reading Container-Host information");
         if(true) {
             containerHost = getContainerHost();
         }
+
     }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
@@ -253,6 +256,7 @@ public class MixedLocalityManager {
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
+        LOG.info("Generating new job model...");
         Map<String, ContainerModel> containers = new HashMap<>();
         for(String container:this.containers.keySet()){
             containers.put(container, new ContainerModel(container, 0, new HashMap<TaskName, TaskModel>()));
@@ -271,12 +275,14 @@ public class MixedLocalityManager {
             containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
         }
         oldJobModel = new JobModel(config, containers);
+        LOG.info("New job model:" + oldJobModel.toString());
         return oldJobModel;
     }
     // Generate new Job Model based on new processors list
     public JobModel generateNewJobModel(List<String> processors){
         Set<String> containers = new HashSet<>();
         //Translate from processorID to container ID
+        LOG.info("Generating new job model from processors:" + processors.toString());
         for(String processor: processors){
             String container = getContainerID(processor);
             containers.add(container);
