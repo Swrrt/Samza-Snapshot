@@ -6,15 +6,21 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 containers = {}
 def readYARN():
 # add time interval heres
-    appattempt  = sys.argv[0]
-    yarn_home = '~/cluster/yarn/'
-    contents = subprocess.check_output('./' + yarn_home + 'bin/yarn container -list ' + appattempt)
+    appattempt  = sys.argv[1]
+    yarn_home = '/home/samza/cluster/yarn/'
+    contents = ""
+    try:
+        contents = subprocess.check_output(['bash',yarn_home+'bin/yarn','container','-list', appattempt])
+    except subprocess.CalledProcessError as e:
+        contents
     containers = {}
-    for line in contents:
-        if(re.fullmatch(r"container.*")!= None):
+    print(contents)
+    for line in contents.decode('utf-8').splitlines():
+        print(line)
+        if(line.find('container')!=-1 and line.find('Total')==-1):
             values = re.split(r" +", line)
             containers[values[0]] = values[4]
-    containers
+    return(containers)
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(200)
@@ -23,7 +29,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         response = readYARN()
         self._set_headers()
-        self.wfile.write(json.dumps(response))
+        self.wfile.write(bytes(json.dumps(response), 'UTF-8'))
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
@@ -36,7 +42,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             'data':'server got your post data'
         }
         self._set_headers()
-        self.wfile.write(json.dumps(response))
+        self.wfile.write(bytes(json.dumps(response),'UTF-8'))
 
 def run():
     port = 8881
