@@ -251,6 +251,12 @@ public class MixedLocalityManager {
     private String getContainerID(String processor){
         //TODO
         //Translate processor ID to Container ID;
+        Set<String> containers = getContainerHost().keySet();
+        for(String container: containers){
+            int length = container.length();
+            if(container.substring(length - 6).equals(processor)) return container;
+        }
+        LOG.info("Cannot find the containerID correspond to processor:"+ processor);
         return processor;
     }
     public JobModel generateJobModel(){
@@ -281,7 +287,7 @@ public class MixedLocalityManager {
     // Generate new Job Model based on new processors list
     public JobModel generateNewJobModel(List<String> processors){
         Set<String> containers = new HashSet<>();
-        //Translate from processorID to container ID
+        //TODO: Translate from processorID to container ID
         LOG.info("Generating new job model from processors:" + processors.toString());
         for(String processor: processors){
             String container = getContainerID(processor);
