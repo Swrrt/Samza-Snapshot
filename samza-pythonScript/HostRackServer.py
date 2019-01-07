@@ -9,7 +9,8 @@ def readHostRack():
     hosts = {}
     for line in f:
         values = re.split(r" +", line.rstrip())
-        if(not values[1:])hosts[re.sub(r'\s+','', values[0])] = values[1:]
+        if(not values[1:]):
+            hosts[re.sub(r'\s+','', values[0])] = values[1:]
     return(hosts)
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):

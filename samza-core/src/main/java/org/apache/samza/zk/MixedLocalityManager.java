@@ -202,6 +202,7 @@ public class MixedLocalityManager {
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
         updateContainerHost();
+        getHostRack();
         List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(item))).clone();
         itemLocality.add(item);
         return itemLocality;
@@ -209,6 +210,7 @@ public class MixedLocalityManager {
     // Construct the task-(container, host, rack cluster) mapping
     private List<String> getTaskLocality(String item){
         updateContainerHost();
+        getHostRack();
         String container = taskContainer.get(item);
         List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(container))).clone();
         itemLocality.add(container);
