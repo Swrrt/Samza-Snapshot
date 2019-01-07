@@ -252,9 +252,10 @@ public class MixedLocalityManager {
         //TODO
         //Translate processor ID to Container ID;
         Set<String> containers = getContainerHost().keySet();
+        LOG.info("containerID from webReader: "+containers.toString());
         for(String container: containers){
             int length = container.length();
-            if(container.substring(length - 6).equals(processor)) return container;
+            if(container.substring(length - 6,length).equals(processor)) return container;
         }
         LOG.info("Cannot find the containerID correspond to processor:"+ processor);
         return processor;
