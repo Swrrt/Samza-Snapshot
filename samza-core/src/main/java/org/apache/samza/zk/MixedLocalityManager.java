@@ -153,7 +153,6 @@ public class MixedLocalityManager {
     private Map<String, String> taskContainer = null;
     private Map<String, Integer> containers; //number of VN for each container
     private Map<String, TaskModel> tasks; //Existing tasks
-    private Map<String, String> processorIdToContainer = null;
     private JobModel oldJobModel;
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
@@ -167,7 +166,6 @@ public class MixedLocalityManager {
         containerHost = new HashMap<>();
         containers = new HashMap<>();
         tasks = new HashMap<>();
-        processorIdToContainer = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 100;
         p1 = 1;
@@ -274,7 +272,8 @@ public class MixedLocalityManager {
         LOG.info("Generating new job model...");
         Map<String, ContainerModel> containers = new HashMap<>();
         for(String container:this.containers.keySet()){
-            containers.put(container, new ContainerModel(container, 0, new HashMap<TaskName, TaskModel>()));
+            String processor = container.substring(container.length()-6, container.length());
+            containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
         }
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             //Find the closest container for each task
