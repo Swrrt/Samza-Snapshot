@@ -117,11 +117,13 @@ public class MixedLocalityManager {
                 LOG.info("Host-rack information ".concat(json.toString()));
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
-                    String value = json.getString(keyStr);
+                    JSONArray value = json.getJSONArray(keyStr);
                     if(!hostRack.containsKey(keyStr)) {
                         hostRack.put(keyStr, new LinkedList<>());
                     }
-                    hostRack.get(keyStr).add(value);
+                    for(Object o: value){
+                        hostRack.get(keyStr).add((String)o);
+                    }
                 }
             }catch(Exception e){
                 LOG.info("Error when reading Host-Rack information: " + e.toString());
