@@ -101,8 +101,8 @@ public class MixedLocalityManager {
         String hostRackUrl;
         String containerHostUrl;
         public WebReader(){
-            hostRackUrl = "192.168.0.36:8880";
-            containerHostUrl = "192.168.0.36:8881";
+            hostRackUrl = "http://192.168.0.36:8880";
+            containerHostUrl = "http://192.168.0.36:8881";
         }
         public WebReader(String s1, String s2){
             hostRackUrl = new String(s1);
