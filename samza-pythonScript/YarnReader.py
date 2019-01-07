@@ -19,7 +19,7 @@ def readYARN():
         print(line)
         if(line.find('container')!=-1 and line.find('Total')==-1):
             values = re.split(r" +", line)
-            containers[values[0].translate(None, '\t\n ')] = re.split(r"\t+",values[4])[1].split(":")[0]
+            containers[re.sub(r'\s+','', values[0])] = re.split(r"\t+",values[4])[1].split(":")[0]
     return(containers)
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
