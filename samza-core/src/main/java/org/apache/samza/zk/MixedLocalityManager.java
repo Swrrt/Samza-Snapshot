@@ -139,6 +139,7 @@ public class MixedLocalityManager {
                     containerHost.put(keyStr,value);
                 }
             }catch(Exception e){
+                LOG.info("Error: "+e.toString());
             }
             return containerHost;
         }
