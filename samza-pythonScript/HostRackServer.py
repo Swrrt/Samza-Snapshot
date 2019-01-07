@@ -9,7 +9,7 @@ def readHostRack():
     hosts = {}
     for line in f:
         values = re.split(r" +", line.rstrip())
-        hosts[re.sub(r'\s+','', values[0])] = values[1:]
+        if(not values[1:])hosts[re.sub(r'\s+','', values[0])] = values[1:]
     return(hosts)
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -18,7 +18,6 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
     def do_GET(self):
         response = readHostRack()
-        print(response)
         self._set_headers()
         self.wfile.write(bytes(json.dumps(response), 'UTF-8'))
 

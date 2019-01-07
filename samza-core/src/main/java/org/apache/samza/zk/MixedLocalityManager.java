@@ -124,6 +124,7 @@ public class MixedLocalityManager {
                     hostRack.get(keyStr).add(value);
                 }
             }catch(Exception e){
+                LOG.info("Error when reading Host-Rack information: " + e.toString());
             }
             return hostRack;
         }
