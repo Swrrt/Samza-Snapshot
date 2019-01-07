@@ -111,7 +111,7 @@ object JobModelManager extends Logging {
     val processorList = new ListBuffer[String]()
     val containerCount = new JobConfig(config).getContainerCount
     for (i <- 0 until containerCount) {
-      processorList += String.format("%06d",i + 1);
+      processorList += "%06d".format(i + 1);
     }
 
     val jobModelManager = getJobModelManager(config, previousChangelogPartitionMapping, localityManager,
