@@ -25,6 +25,7 @@ public class MixedLocalityManager {
         private Map<String, ArrayList<Integer>> coord;
         public ChordHashing(){
             Length = 100000007;
+            coord = new HashMap<>();
         }
         public ChordHashing(int L){
             Length = L;
@@ -227,6 +228,7 @@ public class MixedLocalityManager {
     // New Container comes in;
     private void insertContainer(String container){
         //TODO
+        LOG.info("Inserting container "+container);
         containers.put(container, defaultVNs);
         chord.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
@@ -299,6 +301,7 @@ public class MixedLocalityManager {
         LOG.info("Generating new job model from processors:" + processors.toString());
         for(String processor: processors){
             String container = getContainerID(processor);
+            LOG.info("Container ID for processor:"+ processor+ " is: "+container);
             containers.add(container);
             //Insert new container
             if(!this.containers.containsKey(container)){
