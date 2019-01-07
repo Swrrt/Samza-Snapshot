@@ -170,6 +170,7 @@ public class LocalStreamProcessorRunner extends AbstractApplicationRunner {
             JobConfig jobConfig = new JobConfig(jobModel.getConfig());
             log.info("Starting job {} StreamProcessor with config {}", jobConfig.getName(), jobConfig);
             LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener listener = new LocalStreamProcessorRunner.FollowerStreamProcessorLifeCycleListener();
+            log.info("Starting StreamProcessor in container "+containerId);
             StreamProcessor processor = createStreamProcessor(jobConfig, app, listener, containerId);
             listener.setProcessor(processor);
             processors.add(processor);
