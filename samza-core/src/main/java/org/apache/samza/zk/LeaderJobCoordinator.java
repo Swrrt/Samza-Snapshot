@@ -119,6 +119,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
+        mixedLocalityManager.initial(newJobModel, config);
     }
     @Override
     public JobModel getJobModel(){

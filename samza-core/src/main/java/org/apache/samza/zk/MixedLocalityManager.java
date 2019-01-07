@@ -165,6 +165,7 @@ public class MixedLocalityManager {
         webReader = new WebReader();
         taskContainer = new HashMap<>();
         containerHost = new HashMap<>();
+        hostRack = new HashMap<>();
         containers = new HashMap<>();
         tasks = new HashMap<>();
         oldJobModel = null;
@@ -186,9 +187,7 @@ public class MixedLocalityManager {
     // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
         LOG.info("Reading Host-Server-Rack-Cluster information from web");
-        if(hostRack == null){
-            hostRack = webReader.readHostRack();
-        }
+        hostRack = webReader.readHostRack();
         LOG.info("Host-Server information:" + hostRack.toString());
         return hostRack;
     }
@@ -198,7 +197,6 @@ public class MixedLocalityManager {
         if(true) {
             containerHost = getContainerHost();
         }
-
     }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
@@ -254,7 +252,8 @@ public class MixedLocalityManager {
         //Translate processor ID to Container ID;
         int retry = 10;
         while(retry >= 0){
-            Set<String> containers = getContainerHost().keySet();
+            updateContainerHost();
+            Set<String> containers = containerHost.keySet();
             LOG.info("containerID from webReader: "+containers.toString());
             for(String container: containers){
                 int length = container.length();
