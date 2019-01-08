@@ -41,12 +41,14 @@ public class MixedLocalityManager {
             for(int i=0;i<VNs;i++){
                  list.add(generateHash(item));
             }
-            coord.put(new String(item), list);
+            coord.put(item, list);
         }
         public void remove(String item){
             coord.remove(item);
         }
         public int distance(String itemX, String itemY){
+            LOG.info("Chord distance between "+itemX+"  "+itemY);
+            LOG.info("Chord items "+coord.toString());
             int min = Length + 1000;
             ArrayList<Integer> x = coord.get(itemX), y = coord.get(itemY);
             for(int xx:x){
@@ -89,6 +91,8 @@ public class MixedLocalityManager {
         }
         public long distance(String cid1, String cid2){
             long sum = 0;
+            LOG.info("Locality distance between "+cid1+" "+cid2);
+            LOG.info("Locality items "+coord.toString());
             ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
             for(int i=0 ; i < nlayer; i++){
                 if(!v1.get(i).equals(v2.get(i))){
@@ -185,8 +189,8 @@ public class MixedLocalityManager {
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
                 //Create new tasks model!
-                tasks.put(new String(taskModel.getKey().getTaskName()), new TaskModel(taskModel.getValue().getTaskName(),taskModel.getValue().getSystemStreamPartitions(),taskModel.getValue().getChangelogPartition()));
-                taskContainer.put(new String(taskModel.getKey().getTaskName()), new String(containerModel.getProcessorId()));
+                tasks.put(taskModel.getKey().getTaskName(), new TaskModel(taskModel.getValue().getTaskName(),taskModel.getValue().getSystemStreamPartitions(),taskModel.getValue().getChangelogPartition()));
+                taskContainer.put(taskModel.getKey().getTaskName(), containerModel.getProcessorId());
             }
         }
         LOG.info("Task Models:" + tasks.toString());
@@ -237,7 +241,7 @@ public class MixedLocalityManager {
         Map<String, String> taskContainer = new HashMap<>();
         for(ContainerModel container: containers.values()){
             for(TaskModel task: container.getTasks().values()){
-                taskContainer.put(new String(task.getTaskName().getTaskName()), new String(container.getProcessorId()));
+                taskContainer.put(task.getTaskName().getTaskName(), container.getProcessorId());
             }
         }
         return taskContainer;
@@ -246,7 +250,7 @@ public class MixedLocalityManager {
     private void insertContainer(String container){
         //TODO
         LOG.info("Inserting container "+container);
-        containers.put(new String(container), defaultVNs);
+        containers.put(container, defaultVNs);
         chord.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
@@ -290,7 +294,7 @@ public class MixedLocalityManager {
         //store the new job model for future use;
         LOG.info("Generating new job model...");
         LOG.info("Containers: "+containers.toString());
-        LOG.info("Tasks: "+containers.toString());
+        LOG.info("Tasks: "+tasks.toString());
         Map<String, ContainerModel> containers = new HashMap<>();
         for(String container:this.containers.keySet()){
             String processor = container.substring(container.length()-6, container.length());
