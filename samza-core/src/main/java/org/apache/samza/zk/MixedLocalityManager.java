@@ -76,6 +76,7 @@ public class MixedLocalityManager {
         }
         // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
         public void insert(String Id, List<String> items, Integer amount){
+            LOG.info("Inserting to locality list container "+Id+" :"+items.toString());
             if(coord.containsKey(Id)){
                coord.remove(Id);
             }
@@ -85,6 +86,7 @@ public class MixedLocalityManager {
                 value.add(item);
             }
             value.add(amount.toString());
+            coord.put(Id, value);
         }
         public void remove(String Id){
             coord.remove(Id);
