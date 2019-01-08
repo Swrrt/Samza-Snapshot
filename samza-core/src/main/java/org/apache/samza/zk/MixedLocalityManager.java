@@ -101,7 +101,7 @@ public class MixedLocalityManager {
                     sum += cost[i];
                 }
             }
-            return sum * Integer.getInteger(v1.get(nlayer)) * Integer.getInteger(v2.get(nlayer));
+            return sum * Integer.getInteger(v1.get(nlayer-1)) * Integer.getInteger(v2.get(nlayer-1));
         }
     }
     private class WebReader{
