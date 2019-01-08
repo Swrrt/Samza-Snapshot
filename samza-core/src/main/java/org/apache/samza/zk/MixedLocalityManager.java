@@ -188,6 +188,7 @@ public class MixedLocalityManager {
 
             }
         }
+        LOG.info("Task Models:" + tasks.toString());
         setTasks(tasks);
     }
     // Read container-host mapping from web
