@@ -182,6 +182,13 @@ public class MixedLocalityManager {
         getHostRack();
         this.config = config;
         oldJobModel = jobModel;
+        for(ContainerModel containerModel: jobModel.getContainers().values()){
+            for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
+                tasks.put(taskModel.getKey().getTaskName(), taskModel.getValue());
+
+            }
+        }
+        setTasks(tasks);
     }
     // Read container-host mapping from web
     private Map<String, String> getContainerHost() {
