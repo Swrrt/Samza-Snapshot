@@ -289,6 +289,8 @@ public class MixedLocalityManager {
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
         LOG.info("Generating new job model...");
+        LOG.info("Containers: "+containers.toString());
+        LOG.info("Tasks: "+containers.toString());
         Map<String, ContainerModel> containers = new HashMap<>();
         for(String container:this.containers.keySet()){
             String processor = container.substring(container.length()-6, container.length());
@@ -299,6 +301,7 @@ public class MixedLocalityManager {
             String minContainer = null;
             double min = 0;
             for (String container: this.containers.keySet()){
+                LOG.info("Calculate distance between task-"+task.getKey()+" container-"+container);
                 double dis = distance(task.getKey(), container);
                 if(minContainer == null || dis<min){
                     minContainer = container;
