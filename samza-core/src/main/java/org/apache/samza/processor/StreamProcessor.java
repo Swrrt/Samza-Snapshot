@@ -140,7 +140,7 @@ public class StreamProcessor {
     this.jobCoordinatorListener = createJobCoordinatorListener();
     this.jobCoordinator.setListener(jobCoordinatorListener);
     // Use processorId in YARN
-    processorId = this.containerId = containerId;
+    processorId = this.containerId = sys.envecontainerId;
 
     //processorId = this.jobCoordinator.getProcessorId();
   }

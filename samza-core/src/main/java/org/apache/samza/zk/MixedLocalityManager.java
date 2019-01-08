@@ -140,7 +140,7 @@ public class MixedLocalityManager {
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
                     //TODO translate YARN container ID to our container ID
-                    containerHost.put(keyStr,value);
+                    containerHost.put(keyStr.substring(keyStr.length()-6, keyStr.length()),value);
                 }
             }catch(Exception e){
                 LOG.info("Error: "+e.toString());
@@ -201,11 +201,15 @@ public class MixedLocalityManager {
             containerHost = getContainerHost();
         }
     }
+    private String getContainerHost(String container){
+        if(containerHost.containsKey(container))return containerHost.get(container);
+        else return containerHost.values().iterator().next();
+    }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
         updateContainerHost();
         getHostRack();
-        List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(item))).clone();
+        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(item))).clone();
         itemLocality.add(item);
         return itemLocality;
     }
@@ -214,7 +218,7 @@ public class MixedLocalityManager {
         updateContainerHost();
         getHostRack();
         String container = taskContainer.get(item);
-        List<String> itemLocality = (List)((LinkedList)hostRack.get(containerHost.get(container))).clone();
+        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container))).clone();
         itemLocality.add(container);
         return itemLocality;
     }
@@ -252,10 +256,10 @@ public class MixedLocalityManager {
             locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
     }
-    private String getContainerID(String processor){
-        //TODO
+    private String getProcessorID(String ContainerID){
+        return ContainerID.substring(ContainerID.length()-6,ContainerID.length());
         //Translate processor ID to Container ID;
-        int retry = 10;
+        /*int retry = 10;
         while(retry >= 0){
             updateContainerHost();
             Set<String> containers = containerHost.keySet();
@@ -270,7 +274,7 @@ public class MixedLocalityManager {
             }catch (Exception e){
             }
         }
-        return processor;
+        return processor;*/
     }
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
@@ -304,12 +308,11 @@ public class MixedLocalityManager {
         //TODO: Translate from processorID to container ID
         LOG.info("Generating new job model from processors:" + processors.toString());
         for(String processor: processors){
-            String container = getContainerID(processor);
-            LOG.info("Container ID for processor:"+ processor+ " is: "+container);
-            containers.add(container);
+            containers.add(processor);
             //Insert new container
-            if(!this.containers.containsKey(container)){
-                insertContainer(container);
+            if(!this.containers.containsKey(processor)){
+                insertContainer(processor);
+
             }
         }
         //Remove containers no longer exist
