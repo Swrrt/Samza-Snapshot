@@ -185,7 +185,7 @@ public class MixedLocalityManager {
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
                 tasks.put(taskModel.getKey().getTaskName(), taskModel.getValue());
-
+                taskContainer.put(taskModel.getKey().getTaskName(),containerModel.getProcessorId());
             }
         }
         LOG.info("Task Models:" + tasks.toString());
@@ -228,6 +228,7 @@ public class MixedLocalityManager {
         String container = taskContainer.get(item);
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container))).clone();
         itemLocality.add(container);
+        LOG.info("Find Task " + item + " in " + itemLocality.toString());
         return itemLocality;
     }
     private Map<String, String> getTaskContainer(JobModel jobModel){
@@ -307,6 +308,7 @@ public class MixedLocalityManager {
             containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
         }
         oldJobModel = new JobModel(config, containers);
+        taskContainer = getTaskContainer(oldJobModel);
         LOG.info("New job model:" + oldJobModel.toString());
         return oldJobModel;
     }
