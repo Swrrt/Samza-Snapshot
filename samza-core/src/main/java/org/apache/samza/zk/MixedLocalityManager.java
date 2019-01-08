@@ -41,7 +41,7 @@ public class MixedLocalityManager {
             for(int i=0;i<VNs;i++){
                  list.add(generateHash(item));
             }
-            coord.put(item, list);
+            coord.put(new String(item), list);
         }
         public void remove(String item){
             coord.remove(item);
@@ -184,8 +184,9 @@ public class MixedLocalityManager {
         oldJobModel = jobModel;
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
-                tasks.put(taskModel.getKey().getTaskName(), taskModel.getValue());
-                taskContainer.put(taskModel.getKey().getTaskName(),containerModel.getProcessorId());
+                //Create new tasks model!
+                tasks.put(new String(taskModel.getKey().getTaskName()), new TaskModel(taskModel.getValue().getTaskName(),taskModel.getValue().getSystemStreamPartitions(),taskModel.getValue().getChangelogPartition()));
+                taskContainer.put(new String(taskModel.getKey().getTaskName()), new String(containerModel.getProcessorId()));
             }
         }
         LOG.info("Task Models:" + tasks.toString());
@@ -236,7 +237,7 @@ public class MixedLocalityManager {
         Map<String, String> taskContainer = new HashMap<>();
         for(ContainerModel container: containers.values()){
             for(TaskModel task: container.getTasks().values()){
-                taskContainer.put(task.getTaskName().getTaskName(), container.getProcessorId());
+                taskContainer.put(new String(task.getTaskName().getTaskName()), new String(container.getProcessorId()));
             }
         }
         return taskContainer;
@@ -245,7 +246,7 @@ public class MixedLocalityManager {
     private void insertContainer(String container){
         //TODO
         LOG.info("Inserting container "+container);
-        containers.put(container, defaultVNs);
+        containers.put(new String(container), defaultVNs);
         chord.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
@@ -260,7 +261,6 @@ public class MixedLocalityManager {
     // Initial all tasks at the beginning;
     public void setTasks(Map<String, TaskModel> tasks){
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-            this.tasks.put(task.getKey(), task.getValue());
             chord.insert(task.getKey(), 1);
             locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
