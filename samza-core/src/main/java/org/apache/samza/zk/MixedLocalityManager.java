@@ -102,7 +102,8 @@ public class MixedLocalityManager {
                     sum += cost[i];
                 }
             }
-            return sum * Integer.getInteger(v1.get(nlayer-1)) * Integer.getInteger(v2.get(nlayer-1));
+            LOG.info("Distance "+sum);
+            return sum * Integer.parseInt(v1.get(nlayer-1)) * Integer.parseInt(v2.get(nlayer-1));
         }
     }
     private class WebReader{
@@ -226,7 +227,7 @@ public class MixedLocalityManager {
         updateContainerHost();
         getHostRack();
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(item))).clone();
-        itemLocality.add(item);
+        itemLocality.add(0,item);
         return itemLocality;
     }
     // Construct the task-(container, host, rack cluster) mapping
@@ -235,7 +236,7 @@ public class MixedLocalityManager {
         getHostRack();
         String container = taskContainer.get(item);
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container))).clone();
-        itemLocality.add(container);
+        itemLocality.add(0,container);
         LOG.info("Find Task " + item + " in " + itemLocality.toString());
         return itemLocality;
     }
