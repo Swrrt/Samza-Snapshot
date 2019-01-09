@@ -96,7 +96,8 @@ public class MixedLocalityManager {
             LOG.info("Locality distance between "+cid1+" "+cid2);
             LOG.info("Locality items "+coord.toString());
             ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
-            for(int i=0 ; i < nlayer; i++){
+            LOG.info("Locality items "+v1.toString()+"      "+v2.toString());
+            for(int i=0 ; i < nlayer-1; i++){
                 if(!v1.get(i).equals(v2.get(i))){
                     sum += cost[i];
                 }
