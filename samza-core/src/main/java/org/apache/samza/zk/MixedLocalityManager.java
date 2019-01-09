@@ -299,10 +299,12 @@ public class MixedLocalityManager {
         LOG.info("Generating new job model...");
         LOG.info("Containers: "+containers.toString());
         LOG.info("Tasks: "+tasks.toString());
+        Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
         for(String container:this.containers.keySet()){
             String processor = container.substring(container.length()-6, container.length());
-            containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
+            //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
+            containerTasks.put(processor, new LinkedList<>());
         }
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             //Find the closest container for each task
@@ -316,7 +318,17 @@ public class MixedLocalityManager {
                     min = dis;
                 }
             }
-            containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
+            //containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
+            containerTasks.get(minContainer).add(task.getValue());
+        }
+        for(String container:this.containers.keySet()){
+            String processor = container.substring(container.length()-6, container.length());
+            //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
+            Map<TaskName, TaskModel> tasks = new HashMap<>();
+            for(TaskModel task: containerTasks.get(container)){
+                tasks.put(task.getTaskName(),task);
+            }
+            containers.put(processor, new ContainerModel(processor,0, tasks));
         }
         oldJobModel = new JobModel(config, containers);
         taskContainer = getTaskContainer(oldJobModel);
