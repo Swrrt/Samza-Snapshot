@@ -18,8 +18,10 @@ def readYARN():
     for line in contents.decode('utf-8').splitlines():
         print(line)
         if(line.find('container')!=-1 and line.find('Total')==-1):
+            line = re.sub('\t+', ' ', line)
+            line = re.sub(' +',' ',line)
             values = re.split(r" +", line)
-            containers[re.sub(r'\s+','', values[0])] = re.split(r"\t+",values[4])[1].split(":")[0]
+            containers[re.sub(r'\s+','', values[0])] = values[5].split(":")[0]
     return(containers)
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):

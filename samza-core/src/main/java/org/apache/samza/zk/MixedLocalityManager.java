@@ -359,6 +359,7 @@ public class MixedLocalityManager {
     // Generate new job model when utilization changes.
     public JobModel generateNewJobModel(Map<String, Integer> utlization){
         //TODO
+
         return generateJobModel();
     }
     public double distance(String t1, String t2){
