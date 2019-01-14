@@ -25,4 +25,11 @@
 # Set container name system property for use in Log4J
 [[ $JAVA_OPTS != *-Dsamza.container.name* && ! -z "$SAMZA_CONTAINER_ID" ]] && export JAVA_OPTS="$JAVA_OPTS -Dsamza.container.name=samza-container-$SAMZA_CONTAINER_ID"
 
+# Set JMX server
+[[ $JAVA_OPTS != *-Dcom.sun.management.jmxremote* ]] && export JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote"
+[[ $JAVA_OPTS != *-Dcom.sun.management.jmxremote.port* && ! -z "9010" ]] && export JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote.port=9010"
+[[ $JAVA_OPTS != *-Dcom.sun.management.jmxremote.local.only* && ! -z "false" ]] && export JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote.local.only=false"
+[[ $JAVA_OPTS != *-Dcom.sun.management.jmxremote.authenticate* && ! -z "false" ]] && export JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
+[[ $JAVA_OPTS != *-Dcom.sun.management.jmxremote.ssl* && ! -z "false" ]] && export JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+
 exec $(dirname $0)/run-class.sh org.apache.samza.runtime.LocalStreamProcessorRunner "$@"
