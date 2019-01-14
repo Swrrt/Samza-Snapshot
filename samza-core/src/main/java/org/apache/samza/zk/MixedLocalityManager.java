@@ -22,7 +22,7 @@ public class MixedLocalityManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
     private class ChordHashing{
         private final int Length;
-        private Map<String, ArrayList<Integer>> coord;
+        private Map<String, LinkedList<Integer>> coord;
         public ChordHashing(){
             Length = 100000007;
             coord = new HashMap<>();
@@ -37,7 +37,7 @@ public class MixedLocalityManager {
             return t.nextInt(Length);
         }
         public void insert(String item, int VNs){
-            ArrayList<Integer> list = new ArrayList<>();
+            LinkedList<Integer> list = new LinkedList<>();
             for(int i=0;i<VNs;i++){
                  list.add(generateHash(item));
             }
@@ -46,11 +46,20 @@ public class MixedLocalityManager {
         public void remove(String item){
             coord.remove(item);
         }
+        public void change(String item, int VNs){
+            LinkedList<Integer> list = coord.get(item);
+            while(list.size()<VNs){
+                list.add(generateHash(item));
+            }
+            while(list.size()>VNs){
+                list.remove();
+            }
+        }
         public int distance(String itemX, String itemY){
             LOG.info("Chord distance between "+itemX+"  "+itemY);
             LOG.info("Chord items "+coord.toString());
             int min = Length + 1000;
-            ArrayList<Integer> x = coord.get(itemX), y = coord.get(itemY);
+            LinkedList<Integer> x = coord.get(itemX), y = coord.get(itemY);
             for(int xx:x){
                 for(int yy: y){
                     int t = xx-yy;
@@ -359,7 +368,13 @@ public class MixedLocalityManager {
     // Generate new job model when utilization changes.
     public JobModel generateNewJobModel(Map<String, Integer> utlization){
         //TODO
-
+        /*
+        Calculate VNs according to utilization
+        */
+        for(Map.Entry<String,Integer> entry: utlization.entrySet()){
+            int usage = entry.getValue();
+            chord.change(entry.getKey(), (100-usage)*defaultVNs/50);
+        }
         return generateJobModel();
     }
     public double distance(String t1, String t2){
