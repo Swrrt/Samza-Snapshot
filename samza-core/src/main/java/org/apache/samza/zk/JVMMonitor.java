@@ -9,7 +9,7 @@ import java.lang.management.RuntimeMXBean;
 public class JVMMonitor implements Runnable{
     private static final Logger LOG = LoggerFactory.getLogger(JVMMonitor.class);
     private Thread t;
-    private final int MonitorSleepInterval = 1000;
+    private final int MonitorSleepInterval = 3000;
     private com.sun.management.OperatingSystemMXBean peOperatingSystemMXBean;
     private java.lang.management.OperatingSystemMXBean operatingSystemMXBean;
     private RuntimeMXBean runtimeMXBean;
@@ -31,8 +31,8 @@ public class JVMMonitor implements Runnable{
 
         // calculate cpu usage as a percentage value
         // to convert nanoseconds to milliseconds divide it by 1000000 and to get a percentage multiply it by 100
-        float cpuUsage = elapsedProcessCpuTime / (totalElapsedJvmUptime * 10000F);
-        LOG.info("Elapsed CPU Time:" + elapsedProcessCpuTime + "  |  ElapsedJvmUpTime:"+ elapsedJvmUptime +  "  |  AvailableProcessors:"+operatingSystemMXBean.getAvailableProcessors());
+        float cpuUsage = elapsedProcessCpuTime / (elapsedJvmUptime * 10000F);
+        //LOG.info("Elapsed CPU Time:" + elapsedProcessCpuTime + "  |  ElapsedJvmUpTime:"+ elapsedJvmUptime +  "  |  AvailableProcessors:"+operatingSystemMXBean.getAvailableProcessors());
 
         // set old timestamp values
         previousJvmProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime();
