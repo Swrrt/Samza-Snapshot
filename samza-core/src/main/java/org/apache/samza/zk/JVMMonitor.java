@@ -1,7 +1,5 @@
 package org.apache.samza.zk;
-import org.apache.hadoop.yarn.*;
 
-import com.sun.management.OperatingSystemMXBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
