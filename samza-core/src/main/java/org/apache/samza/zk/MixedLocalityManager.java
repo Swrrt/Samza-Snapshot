@@ -48,13 +48,14 @@ public class MixedLocalityManager {
             coord.remove(item);
         }
         public void change(String item, int VNs){
+            if(VNs < 1) VNs = 1;
             containerVNs.put(item, VNs);
             LinkedList<Integer> list = coord.get(item);
             while(list.size()<VNs){
                 list.add(generateHash(item));
             }
             while(list.size()>VNs){
-                list.remove();
+                list.removeFirst();
             }
         }
         public int distance(String itemX, String itemY){
@@ -384,10 +385,11 @@ public class MixedLocalityManager {
         */
         for(Map.Entry<String,Float> entry: utlization.entrySet()){
             float usage = entry.getValue();
-            LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
+            //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
             if(usage<50.0)chord.change(entry.getKey(), (50-Math.round(usage))/25*defaultVNs + getCurrentVNs(entry.getKey()));
             else if(usage>80.0)chord.change(entry.getKey(), getCurrentVNs(entry.getKey()) - (Math.round(usage)-80)*defaultVNs/40);
         }
+        LOG.info("New VNs: " + containerVNs.toString());
         return generateJobModel();
     }
     private int getCurrentVNs(String processorId){
