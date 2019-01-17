@@ -154,7 +154,7 @@ public class ZkUtils {
     return ephemeralPath;
   }
   public synchronized void registerLeader(String leaderAddr){
-    zkClient.createEphemeral(keyBuilder.getLeaderAddrPath_PATH()+"/", leaderAddr);
+    zkClient.createEphemeral(keyBuilder.getLeaderAddrPath_PATH(), leaderAddr);
     LOG.info("Leader Address written to ZK: "+leaderAddr);
   }
   public String getLeaderAddr(){
