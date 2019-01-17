@@ -58,7 +58,7 @@ public class FollowerZkControllerImpl implements ZkController {
         //Follower will never be leader :(
         isLeader = false;
         String currentPath = zkUtils.registerProcessorAndGetId(new ProcessorData(getHostName(), processorIdStr));
-        LOG.info("ProcessorId is "+currentPath);
+        LOG.info("ProcessorId is "+currentPath+", on Host:"+getHostName());
         // make sure we are connection to a job that uses the same ZK communication protocol version.
         try {
             zkUtils.validateZkVersion();

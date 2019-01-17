@@ -383,6 +383,24 @@ public class ZkUtils {
     }
   }
 
+  /*
+    Publish a CPU utilization information into ZK.
+   */
+  public void publishCPUUtilization(String processorId, float cpuUtlization) {
+    try {
+      String CPUStr = processorId+"_"+String.valueOf(cpuUtlization);
+      LOG.info("CPUUtilizationAsString=" + CPUStr);
+      zkClient.writeData(keyBuilder.getCPUUtilization_PATH() + "/", CPUStr);
+      LOG.info("wrote CPU utilization path =" + keyBuilder.getCPUUtilization_PATH());
+    } catch (Exception e) {
+      LOG.error("CPU Utilization publish failed for processor=" + processorId, e);
+      throw new SamzaException(e);
+    }
+  }
+  /*
+    Remove all CPU utilization
+   */
+
   /**
    * get the job model from ZK by version
    * @param jobModelVersion jobModel version to get
@@ -496,6 +514,15 @@ public class ZkUtils {
   public void subscribeToProcessorChange(IZkChildListener listener) {
     LOG.info("subscribing for child change at:" + keyBuilder.getProcessorsPath());
     zkClient.subscribeChildChanges(keyBuilder.getProcessorsPath(), listener);
+    metrics.subscriptions.inc();
+  }
+
+  /*
+    subscribe to the changes in the list of CPU utilization in ZK
+   */
+  public void subscribeToCPUChange(IZkChildListener listener) {
+    LOG.info("subscribing for child change at:" + keyBuilder.getCPUUtilization_PATH());
+    zkClient.subscribeChildChanges(keyBuilder.getCPUUtilization_PATH(), listener);
     metrics.subscriptions.inc();
   }
 
