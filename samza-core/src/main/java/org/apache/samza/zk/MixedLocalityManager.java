@@ -372,6 +372,7 @@ public class MixedLocalityManager {
     public JobModel rebalanceJobModel(){
         LOG.info("Rebalancing");
         HashMap util = utilizationServer.getAndRemoveUtilizationMap();
+        LOG.info("Utilization map is: " + util.toString());
         return generateNewJobModel(util);
     }
     // Generate new job model when utilization changes.
@@ -382,13 +383,14 @@ public class MixedLocalityManager {
         */
         for(Map.Entry<String,Float> entry: utlization.entrySet()){
             float usage = entry.getValue();
-            if(usage<50.0)chord.change(entry.getKey(), (50-Math.round(usage))/25*defaultVNs+getCurrentVNs(entry.getKey()));
-            else if(usage>80.0)chord.change(entry.getKey(), getCurrentVNs(entry.getKey())- (Math.round(usage)-80)*defaultVNs/40);
+            LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
+            if(usage<50.0)chord.change(entry.getKey(), (50-Math.round(usage))/25*defaultVNs + getCurrentVNs(entry.getKey()));
+            else if(usage>80.0)chord.change(entry.getKey(), getCurrentVNs(entry.getKey()) - (Math.round(usage)-80)*defaultVNs/40);
         }
         return generateJobModel();
     }
     private int getCurrentVNs(String processorId){
-        return containers.get(processorId);
+        return this.containers.get(processorId);
     }
     public double distance(String t1, String t2){
         return p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);

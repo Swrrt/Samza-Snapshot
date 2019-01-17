@@ -50,7 +50,8 @@ public class JVMMonitor implements Runnable{
             while(true){
                 Float i = getJvmCpuUsage();
                 LOG.info("JVM CPU usage is: "+i.toString());
-                client.sendUtilization(processorId, i);
+                //Currently only send the Utilization information when workload is too heavy or too light
+                if(i<50.0||i>80.0) client.sendUtilization(processorId, i);
                 Thread.sleep(MonitorSleepInterval);
             }
         }catch(Exception e){
