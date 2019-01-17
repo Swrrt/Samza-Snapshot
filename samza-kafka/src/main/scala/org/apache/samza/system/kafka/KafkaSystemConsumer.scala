@@ -93,7 +93,7 @@ private[kafka] class KafkaSystemConsumer(
    * However this is a soft limit per partition, as the
    * bytes are cached at the message boundaries, and the actual usage can be
    * 1000 bytes + size of max message in the partition for a given stream.
-   * The bytes if the size of the bytebuffer in Message. Hence, the
+   * The bytes if the size of the bytebuffer in UtilizationMessage. Hence, the
    * Object overhead is not taken into consideration. In this codebase
    * it seems to be quite small. Hence, even for 500000 messages this is around 4MB x 2 = 8MB,
    * which is not considerable.

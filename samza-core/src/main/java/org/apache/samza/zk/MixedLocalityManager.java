@@ -1,6 +1,7 @@
 package org.apache.samza.zk;
 
 import javafx.util.Pair;
+import org.apache.samza.RMI.UtilizationServer;
 import org.apache.samza.config.Config;
 import org.apache.samza.container.LocalityManager;
 
@@ -178,6 +179,7 @@ public class MixedLocalityManager {
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
+    private UtilizationServer utilizationServer = null;
     public MixedLocalityManager(){
         config = null;
         chord = new ChordHashing();
@@ -192,7 +194,7 @@ public class MixedLocalityManager {
         defaultVNs = 100;
         p1 = 1;
         p2 = 0;
-        LOG.info("MixedLocalityManager is online");
+        utilizationServer = new UtilizationServer();
     }
     public void initial(JobModel jobModel, Config config){
         LOG.info("MixedLocalityManager is initializing");
@@ -208,6 +210,7 @@ public class MixedLocalityManager {
         }
         LOG.info("Task Models:" + tasks.toString());
         setTasks(tasks);
+        utilizationServer.start();
     }
     // Read container-host mapping from web
     private Map<String, String> getContainerHost() {

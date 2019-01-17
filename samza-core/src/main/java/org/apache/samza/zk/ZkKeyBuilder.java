@@ -36,10 +36,9 @@ import com.google.common.base.Strings;
  *              |- 00000001
  *              |- 00000002
  *              |- ...
- *          |- CPU/
- *              |- 00000001_0.85
- *              |- 00000002_0.10
- *              |- ...
+ *          |- LeaderAddr/
+ *              |- 127.0.0.1
+ *
  * </pre>
  * Note: ZK Node levels without an ending forward slash ('/') represent a leaf node and non-leaf node, otherwise.
  *
@@ -53,7 +52,7 @@ public class ZkKeyBuilder {
   private final String pathPrefix;
 
   static final String PROCESSORS_PATH = "processors";
-  static final String CPUUtilization_PATH = "CPU";
+  static final String LEADER_ADDR_PATH = "LeaderAddr";
   static final String JOBMODEL_GENERATION_PATH = "JobModelGeneration";
   static final String JOB_MODEL_UPGRADE_BARRIER = "jobModelUpgradeBarrier";
 
@@ -103,7 +102,7 @@ public class ZkKeyBuilder {
   public String getJobModelVersionBarrierPrefix() {
     return String.format("%s/%s/%s/versionBarriers", getRootPath(), JOBMODEL_GENERATION_PATH, JOB_MODEL_UPGRADE_BARRIER);
   }
-  public String getCPUUtilization_PATH(){
-    return String.format("/%s/%s", pathPrefix, CPUUtilization_PATH);
+  public String getLeaderAddrPath_PATH(){
+    return String.format("/%s/%s", pathPrefix, LEADER_ADDR_PATH);
   }
 }

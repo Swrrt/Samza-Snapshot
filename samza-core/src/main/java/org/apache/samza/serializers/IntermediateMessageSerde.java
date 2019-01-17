@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  *   Version   : int
  *   TaskName  : string
  *   TaskCount : int
- *   Other Message Data (based on different types of control message)
+ *   Other UtilizationMessage Data (based on different types of control message)
  *
  * For user message, we use the user message serde.
  * For control message, we use json serde.
@@ -80,7 +80,7 @@ public class IntermediateMessageSerde implements Serde<Object> {
           object = eosSerde.fromBytes(data);
           break;
         default:
-          throw new UnsupportedOperationException(String.format("Message type %s is not supported", type.name()));
+          throw new UnsupportedOperationException(String.format("UtilizationMessage type %s is not supported", type.name()));
       }
       return object;
 

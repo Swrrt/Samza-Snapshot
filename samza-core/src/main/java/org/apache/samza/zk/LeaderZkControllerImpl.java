@@ -43,12 +43,19 @@ public class LeaderZkControllerImpl implements ZkController {
 
         init();
     }
-
     private void init() {
         ZkKeyBuilder keyBuilder = zkUtils.getKeyBuilder();
 
         zkUtils.validatePaths(new String[]{keyBuilder.getProcessorsPath(), keyBuilder.getJobModelVersionPath(), keyBuilder
                 .getJobModelPathPrefix()});
+    }
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOG.error("Failed to fetch hostname of the processor", e);
+            throw new SamzaException(e);
+        }
     }
     @Override
     public void register() {
@@ -75,7 +82,7 @@ public class LeaderZkControllerImpl implements ZkController {
             throw e;
         }
 
-
+        zkUtils.registerLeader(getHostName());
         // subscribe to JobModel version updates
         //zkUtils.subscribeToJobModelVersionChange(new ZkJobModelVersionChangeHandler(zkUtils));
         this.subscribeToProcessorChange();

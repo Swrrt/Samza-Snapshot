@@ -1,5 +1,6 @@
 package org.apache.samza.zk;
 
+import org.apache.samza.RMI.UtilizationClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,8 @@ public class JVMMonitor implements Runnable{
     private RuntimeMXBean runtimeMXBean;
     private long previousJvmProcessCpuTime = 0;
     private long previousJvmUptime = 0;
+    private String leaderAddr = "";
+    private String processorId = "";
     JVMMonitor(){
         peOperatingSystemMXBean = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
@@ -42,10 +45,12 @@ public class JVMMonitor implements Runnable{
     }
     public void run(){
         LOG.info("Running JVM CPU and memory monitor");
+        UtilizationClient client = new UtilizationClient(leaderAddr, 8883);
         try{
             while(true){
                 Float i = getJvmCpuUsage();
                 LOG.info("JVM CPU usage is: "+i.toString());
+                client.sendUtilization(processorId, i);
                 Thread.sleep(MonitorSleepInterval);
             }
         }catch(Exception e){
@@ -53,8 +58,10 @@ public class JVMMonitor implements Runnable{
         }
         LOG.info("JVM CPU monitor stopped");
     }
-    public void start(){
-        LOG.info("Starting JVM monitor");
+    public void start(String leaderAddr, String processorId){
+        LOG.info("Starting JVM monitor with Leader Address:" +leaderAddr);
+        this.leaderAddr = leaderAddr;
+        this.processorId = processorId;
         if(t == null){
             t = new Thread(this, "JVM monitor");
             t.start();

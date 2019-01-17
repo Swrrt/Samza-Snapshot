@@ -150,9 +150,11 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
-        jvmMonitor.start();
+        jvmMonitor.start(getLeaderAddr(), processorId);
     }
-
+    public String getLeaderAddr(){
+        return ((FollowerZkControllerImpl) zkController).getLeaderAddr();
+    }
     @Override
     public synchronized void stop() {
         if (coordinatorListener != null) {

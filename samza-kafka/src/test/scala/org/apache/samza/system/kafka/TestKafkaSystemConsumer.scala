@@ -159,7 +159,7 @@ class TestKafkaSystemConsumer {
 
     val msg = Array[Byte](5, 112, 9, 126)
     val msgAndOffset: MessageAndOffset = MessageAndOffset(new Message(msg), 887654)
-    // 4 data + 18 Message overhead + 80 IncomingMessageEnvelope overhead
+    // 4 data + 18 UtilizationMessage overhead + 80 IncomingMessageEnvelope overhead
     consumer.sink.addMessage(new TopicAndPartition("test-stream", 0),  msgAndOffset, 887354)
 
     assertEquals(106, consumer.getMessagesSizeInQueue(new SystemStreamPartition("test-system", "test-stream", new Partition(0))))

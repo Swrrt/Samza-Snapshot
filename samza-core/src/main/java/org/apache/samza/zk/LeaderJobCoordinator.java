@@ -20,10 +20,14 @@ package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.samza.RMI.UtilizationServer;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
@@ -89,6 +93,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private Map<String, String> containerToProcessorMap = null;
+
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
         this.mixedLocalityManager = new MixedLocalityManager();
@@ -113,6 +118,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
             stop();
         });
     }
+
     @Override
     public void start(){
         LOG.info("Leader JobCoordinator start");

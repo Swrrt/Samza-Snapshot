@@ -89,7 +89,9 @@ public class FollowerZkControllerImpl implements ZkController {
     public boolean isLeader() {
         return isLeader;
     }
-
+    public String getLeaderAddr(){
+        return zkUtils.getLeaderAddr();
+    }
     @Override
     public void stop() {
         // close zk connection

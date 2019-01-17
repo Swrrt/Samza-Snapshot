@@ -44,14 +44,14 @@ import org.slf4j.LoggerFactory;
  * This class converts a Samza Avro messages to Relational messages and vice versa.
  * This supports Samza messages where Key is a string and Value is an avro record.
  *
- * Conversion from Samza to Relational Message :
+ * Conversion from Samza to Relational UtilizationMessage :
  *     The key part of the samza message is represented as a special column {@link SamzaSqlRelMessage#KEY_NAME}
  *     in relational message.
  *
  *     The value part of the samza message is expected to be {@link IndexedRecord}, All the fields in the IndexedRecord form
  *     the corresponding fields of the relational message.
  *
- * Conversion from Relational to Samza Message :
+ * Conversion from Relational to Samza UtilizationMessage :
  *     This converts the Samza relational message into Avro {@link GenericRecord}.
  *     All the fields of the relational message is become fields of the Avro GenericRecord except of the field with name
  *     {@link SamzaSqlRelMessage#KEY_NAME}. This special field becomes the Key in the output Samza message.

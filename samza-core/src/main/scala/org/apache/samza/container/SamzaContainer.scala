@@ -1055,7 +1055,7 @@ class SamzaContainer(
  * Exception thrown when the SamzaContainer tries to transition to an illegal state.
  * {@link SamzaContainerStatus} has more details on the state transitions.
  *
- * @param s String, Message associated with the exception
+ * @param s String, UtilizationMessage associated with the exception
  * @param t Throwable, Wrapped error/exception thrown, if any.
  */
 class IllegalContainerStateException(s: String, t: Throwable) extends SamzaException(s, t) {
