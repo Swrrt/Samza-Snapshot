@@ -21,6 +21,8 @@ import java.nio.charset.*;
 
 public class MixedLocalityManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
+    private static final int LOWERBOUND = 10;
+    private static final int UPPERBOUND = 200;
     private class ChordHashing{
         private final int Length;
         private Map<String, LinkedList<Integer>> coord;
@@ -48,7 +50,8 @@ public class MixedLocalityManager {
             coord.remove(item);
         }
         public void change(String item, int VNs){
-            if(VNs < 1) VNs = 1;
+            if(VNs < LOWERBOUND) VNs = LOWERBOUND;
+            if(VNs > UPPERBOUND) VNs = UPPERBOUND;
             containerVNs.put(item, VNs);
             LinkedList<Integer> list = coord.get(item);
             while(list.size()<VNs){

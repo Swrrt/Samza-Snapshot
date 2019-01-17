@@ -295,13 +295,17 @@ public class StreamProcessor {
             stop();
           }
         };
-
-        container = createSamzaContainer(processorId, jobModel);
-        container.setContainerListener(containerListener);
-        LOGGER.info("Starting container " + container.toString());
-        executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
-            .setNameFormat("p-" + processorId + "-container-thread-%d").build());
-        executorService.submit(container::run);
+        // If this container has no task.
+        if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
+          container = createSamzaContainer(processorId, jobModel);
+          container.setContainerListener(containerListener);
+          LOGGER.info("Starting container " + container.toString());
+          executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+                  .setNameFormat("p-" + processorId + "-container-thread-%d").build());
+          executorService.submit(container::run);
+        }else{
+          LOGGER.info("This container has no task, become idle");
+        }
       }
 
       @Override
