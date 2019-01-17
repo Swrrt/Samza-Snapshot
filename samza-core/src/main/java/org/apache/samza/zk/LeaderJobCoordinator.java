@@ -395,6 +395,9 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         return mixedLocalityManager.generateNewJobModel(processors);
         // return generateNewJobModel(processors);
     }
+    public JobModel testingRebalance(){
+        return mixedLocalityManager.rebalanceJobModel();
+    }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
         return zkUtils;

@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class UtilizationServer {
@@ -24,8 +26,13 @@ public class UtilizationServer {
         }
         LOG.info("Utilization Monitor started");
     }
-    public ConcurrentHashMap getUtilizationMap(){
-        return util;
+    public HashMap getAndRemoveUtilizationMap(){
+        //Copy the utilization, in order to seclude local and remote resource
+        HashMap<String, Float> temp = new HashMap<>();
+        temp.putAll(util);
+        LOG.info("Got utilization map: "+temp.toString());
+        util.clear();
+        return temp;
     }
     public float getUtilization(String processorId){
         return util.get(processorId);

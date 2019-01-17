@@ -48,6 +48,7 @@ public class MixedLocalityManager {
             coord.remove(item);
         }
         public void change(String item, int VNs){
+            containers.put(item, VNs);
             LinkedList<Integer> list = coord.get(item);
             while(list.size()<VNs){
                 list.add(generateHash(item));
@@ -368,19 +369,34 @@ public class MixedLocalityManager {
         }
         return generateJobModel();
     }
+    public JobModel rebalanceJobModel(){
+        LOG.info("Rebalancing");
+        HashMap util = utilizationServer.getAndRemoveUtilizationMap();
+        return generateNewJobModel(util);
+    }
     // Generate new job model when utilization changes.
-    public JobModel generateNewJobModel(Map<String, Integer> utlization){
+    public JobModel generateNewJobModel(Map<String, Float> utlization){
         //TODO
         /*
         Calculate VNs according to utilization
         */
-        for(Map.Entry<String,Integer> entry: utlization.entrySet()){
-            int usage = entry.getValue();
-            chord.change(entry.getKey(), (100-usage)*defaultVNs/50);
+        for(Map.Entry<String,Float> entry: utlization.entrySet()){
+            float usage = entry.getValue();
+            if(usage<50.0)chord.change(entry.getKey(), (50-Math.round(usage))/25*defaultVNs+getCurrentVNs(entry.getKey()));
+            else if(usage>80.0)chord.change(entry.getKey(), getCurrentVNs(entry.getKey())- (Math.round(usage)-80)*defaultVNs/40);
         }
         return generateJobModel();
     }
+    private int getCurrentVNs(String processorId){
+        return containers.get(processorId);
+    }
     public double distance(String t1, String t2){
         return p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);
+    }
+    public double getUtil(String processorId){
+        return utilizationServer.getUtilization(processorId);
+    }
+    public HashMap getUtilMap(){
+        return utilizationServer.getAndRemoveUtilizationMap();
     }
 }

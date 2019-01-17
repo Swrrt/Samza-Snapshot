@@ -28,7 +28,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 public class FollowerZkControllerImpl implements ZkController {
-    private static final Logger LOG = LoggerFactory.getLogger(LeaderZkControllerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FollowerZkControllerImpl.class);
 
     private final String processorIdStr;
     private final ZkUtils zkUtils;

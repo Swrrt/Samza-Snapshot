@@ -182,6 +182,10 @@ public class YarnApplicationMaster {
                     counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(counter == 60){
+                        jobModel = reBalance(jobModel);
+                        leaderJobCoordinator.publishJobModel(jobModel);
+                    }
+                    if(counter == 120){
                         counter = 0;
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
@@ -213,6 +217,16 @@ public class YarnApplicationMaster {
         }
         log.info("Requesting more containers");
         containerProcessManager.requestOneMore();
+        return jobModel;
+    }
+    private JobModel reBalance(JobModel jobModel){
+        log.info("Rebalancing the JobModel");
+        jobModel = leaderJobCoordinator.testingRebalance();
+        ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
+        try {
+            log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
+        }catch (Exception e){
+        }
         return jobModel;
     }
     private JobModel scaleDownByOne(JobModel jobModel){
