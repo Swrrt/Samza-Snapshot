@@ -187,6 +187,7 @@ public class MixedLocalityManager {
     private final double p1, p2;   // Weight parameter for Chord and Locality
     private UtilizationServer utilizationServer = null;
     private LocalityServer localityServer = null;
+    private final int LOCALITY_RETRY_TIMES = 10;
     public MixedLocalityManager(){
         config = null;
         chord = new ChordHashing();
@@ -242,12 +243,15 @@ public class MixedLocalityManager {
     }*/
     private String getContainerHost(String container){
         //TODO: If the container is not here, wait for it?
-        while(localityServer.getLocality(container) == null){
+        int retry = LOCALITY_RETRY_TIMES;
+        while(localityServer.getLocality(container) == null && retry > 0){
+            retry--;
             try{
                 Thread.sleep(500);
             }catch (Exception e){
             }
         }
+        if(localityServer.getLocality(container) == null) return hostRack.keySet().iterator().next();
         return localityServer.getLocality(container);
         /*if(containerHost.containsKey(container))return containerHost.get(container);
         else {
