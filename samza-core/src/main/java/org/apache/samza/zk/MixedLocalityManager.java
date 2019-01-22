@@ -177,7 +177,7 @@ public class MixedLocalityManager {
     private LocalityHashing locality;
     private WebReader webReader;
     private Map<String,List<String>> hostRack = null;
-    private Map<String,String> containerHost = null;
+    //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
     private Map<String, Integer> containerVNs; //number of VN for each container
     private Map<String, TaskModel> tasks; //Existing tasks
@@ -193,7 +193,7 @@ public class MixedLocalityManager {
         locality = new LocalityHashing();
         webReader = new WebReader();
         taskContainer = new HashMap<>();
-        containerHost = new HashMap<>();
+        //containerHost = new HashMap<>();
         hostRack = new HashMap<>();
         containerVNs = new HashMap<>();
         tasks = new HashMap<>();
@@ -233,23 +233,30 @@ public class MixedLocalityManager {
         LOG.info("Host-Server information:" + hostRack.toString());
         return hostRack;
     }
-    private void updateContainerHost(){
+    /*private void updateContainerHost(){
         //TODO: add a time interval between consecutive reading
         LOG.info("Reading Container-Host information");
         if(true) {
             containerHost.putAll(getContainerHost());
         }
-    }
+    }*/
     private String getContainerHost(String container){
         //TODO: If the container is not here, wait for it?
-        if(containerHost.containsKey(container))return containerHost.get(container);
+        while(localityServer.getLocality(container) == null){
+            try{
+                Thread.sleep(500);
+            }catch (Exception e){
+            }
+        }
+        return localityServer.getLocality(container);
+        /*if(containerHost.containsKey(container))return containerHost.get(container);
         else {
             return containerHost.values().iterator().next();
-        }
+        }*/
     }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
-        updateContainerHost();
+        //updateContainerHost();
         getHostRack();
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(item))).clone();
         itemLocality.add(0,item);
@@ -257,7 +264,7 @@ public class MixedLocalityManager {
     }
     // Construct the task-(container, host, rack cluster) mapping
     private List<String> getTaskLocality(String item){
-        updateContainerHost();
+        //updateContainerHost();
         getHostRack();
         String container = taskContainer.get(item);
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container))).clone();
