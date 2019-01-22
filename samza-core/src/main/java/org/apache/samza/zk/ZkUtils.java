@@ -154,6 +154,7 @@ public class ZkUtils {
     return ephemeralPath;
   }
   public synchronized void registerLeader(String leaderAddr){
+    if(zkClient.exists(keyBuilder.getLeaderAddrPath_PATH()))zkClient.delete(keyBuilder.getLeaderAddrPath_PATH());
     zkClient.createEphemeral(keyBuilder.getLeaderAddrPath_PATH(), leaderAddr);
     LOG.info("Leader Address written to ZK: "+leaderAddr);
   }
