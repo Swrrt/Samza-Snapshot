@@ -1,6 +1,7 @@
 package org.apache.samza.zk;
 
 import javafx.util.Pair;
+import org.apache.samza.RMI.LocalityServer;
 import org.apache.samza.RMI.UtilizationServer;
 import org.apache.samza.config.Config;
 import org.apache.samza.container.LocalityManager;
@@ -123,14 +124,14 @@ public class MixedLocalityManager {
     }
     private class WebReader{
         String hostRackUrl;
-        String containerHostUrl;
+        //String containerHostUrl;
         public WebReader(){
             hostRackUrl = "http://192.168.0.36:8880";
-            containerHostUrl = "http://192.168.0.36:8881";
+            //containerHostUrl = "http://192.168.0.36:8881";
         }
         public WebReader(String s1, String s2){
             hostRackUrl = new String(s1);
-            containerHostUrl = new String(s2);
+            //containerHostUrl = new String(s2);
         }
         public Map<String, List<String>> readHostRack() {
             Map<String, List<String>> hostRack = new HashMap<>();
@@ -153,7 +154,7 @@ public class MixedLocalityManager {
             }
             return hostRack;
         }
-        public Map<String, String> readContainerHost(){
+        /*public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();
             try{
                 LOG.info("Reading Container-Host information from ".concat(containerHostUrl));
@@ -169,7 +170,7 @@ public class MixedLocalityManager {
                 LOG.info("Error: "+e.toString());
             }
             return containerHost;
-        }
+        }*/
 
     }
     private ChordHashing chord;
@@ -185,6 +186,7 @@ public class MixedLocalityManager {
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
     private UtilizationServer utilizationServer = null;
+    private LocalityServer localityServer = null;
     public MixedLocalityManager(){
         config = null;
         chord = new ChordHashing();
@@ -200,6 +202,7 @@ public class MixedLocalityManager {
         p1 = 1;
         p2 = 0;
         utilizationServer = new UtilizationServer();
+        localityServer = new LocalityServer();
     }
     public void initial(JobModel jobModel, Config config){
         LOG.info("MixedLocalityManager is initializing");
@@ -217,10 +220,11 @@ public class MixedLocalityManager {
         LOG.info("Task Models:" + tasks.toString());
         setTasks(tasks);
         utilizationServer.start();
+        localityServer.start();
     }
     // Read container-host mapping from web
     private Map<String, String> getContainerHost() {
-        return webReader.readContainerHost();
+        return localityServer.getLocalityMap();
     }
     // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
@@ -233,12 +237,15 @@ public class MixedLocalityManager {
         //TODO: add a time interval between consecutive reading
         LOG.info("Reading Container-Host information");
         if(true) {
-            containerHost = getContainerHost();
+            containerHost.putAll(getContainerHost());
         }
     }
     private String getContainerHost(String container){
+        //TODO: If the container is not here, wait for it?
         if(containerHost.containsKey(container))return containerHost.get(container);
-        else return containerHost.values().iterator().next();
+        else {
+            return containerHost.values().iterator().next();
+        }
     }
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){

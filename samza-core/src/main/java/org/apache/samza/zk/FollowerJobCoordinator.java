@@ -19,6 +19,9 @@
 package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -28,6 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.samza.RMI.LocalityClient;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
@@ -94,6 +99,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private JVMMonitor jvmMonitor = null;
+    private LocalityClient localityClient = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
 
@@ -117,6 +123,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
         jvmMonitor = new JVMMonitor();
+        this.localityClient = new LocalityClient();
     }
     // In YARN mode, we have containerId
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, String containerId) {
@@ -142,6 +149,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
         jvmMonitor = new JVMMonitor();
+        this.localityClient = new LocalityClient();
     }
 
     @Override
@@ -151,6 +159,15 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
         jvmMonitor.start(getLeaderAddr(), processorId);
+        localityClient.sendLocality(processorId, getHostName());
+    }
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOG.error("Failed to fetch hostname of the processor", e);
+            throw new SamzaException(e);
+        }
     }
     public String getLeaderAddr(){
         return ((FollowerZkControllerImpl) zkController).getLeaderAddr();
