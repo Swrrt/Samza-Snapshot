@@ -187,7 +187,7 @@ public class MixedLocalityManager {
     private final double p1, p2;   // Weight parameter for Chord and Locality
     private UtilizationServer utilizationServer = null;
     private LocalityServer localityServer = null;
-    private final int LOCALITY_RETRY_TIMES = 10;
+    private final int LOCALITY_RETRY_TIMES = 4;
     public MixedLocalityManager(){
         config = null;
         chord = new ChordHashing();
