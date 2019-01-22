@@ -230,7 +230,7 @@ public class MixedLocalityManager {
     // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
         LOG.info("Reading Host-Server-Rack-Cluster information from web");
-        hostRack = webReader.readHostRack();
+        hostRack.putAll(webReader.readHostRack());
         LOG.info("Host-Server information:" + hostRack.toString());
         return hostRack;
     }
@@ -244,8 +244,7 @@ public class MixedLocalityManager {
     private String getContainerHost(String container){
         //TODO: If the container is not here, wait for it?
         int retry = LOCALITY_RETRY_TIMES;
-        while(localityServer.getLocality(container) == null && retry > 0){
-            retry--;
+        while(localityServer.getLocality(container) == null){
             try{
                 Thread.sleep(500);
             }catch (Exception e){

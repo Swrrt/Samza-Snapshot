@@ -208,8 +208,6 @@ public class YarnApplicationMaster {
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
         processors.add(String.format("%06d",processors.size()+2));
         //jobModel = jobModelManager.jobModel();
-        log.info("Requesting more containers");
-        containerProcessManager.requestOneMore();
         log.info("Generate new JobModel with processors: {}", processors);
         jobModel = leaderJobCoordinator.testingGenerateNewJobModel(processors);
         ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
@@ -217,6 +215,8 @@ public class YarnApplicationMaster {
             log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
         }catch (Exception e){
         }
+        log.info("Requesting more containers");
+        containerProcessManager.requestOneMore();
         return jobModel;
     }
     private JobModel reBalance(JobModel jobModel){
