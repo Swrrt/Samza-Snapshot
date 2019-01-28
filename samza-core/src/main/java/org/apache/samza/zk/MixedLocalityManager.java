@@ -243,7 +243,7 @@ public class MixedLocalityManager {
     }*/
     private String getContainerHost(String container){
         //TODO: If the container is not here, wait for it?
-        int retry = LOCALITY_RETRY_TIMES;
+        int retry = 0;
         while(localityServer.getLocality(container) == null && retry > 0 ){
             retry--;
             try{
