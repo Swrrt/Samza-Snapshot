@@ -140,7 +140,8 @@ public class StreamOperatorTask implements StreamTask, InitableTask, WindowableT
     if (this.contextManager != null) {
       this.contextManager.close();
     }
-    operatorImplGraph.close();
+    if(operatorImplGraph != null)
+      operatorImplGraph.close();
   }
 
   /* package private for testing */

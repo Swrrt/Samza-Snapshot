@@ -18,6 +18,7 @@ public class JVMMonitor implements Runnable{
     private long previousJvmUptime = 0;
     private String leaderAddr = "";
     private String processorId = "";
+    private UtilizationClient client;
     JVMMonitor(){
         peOperatingSystemMXBean = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
@@ -45,7 +46,7 @@ public class JVMMonitor implements Runnable{
     }
     public void run(){
         LOG.info("Running JVM CPU and memory monitor");
-        UtilizationClient client = new UtilizationClient(leaderAddr, 8883);
+        client = new UtilizationClient(leaderAddr, 8883);
         try{
             while(true){
                 Float i = getJvmCpuUsage();
@@ -66,6 +67,13 @@ public class JVMMonitor implements Runnable{
         if(t == null){
             t = new Thread(this, "JVM monitor");
             t.start();
+        }
+    }
+    public void stop(){
+        try{
+            if(t!=null)t.join();
+        }catch(Exception e){
+            LOG.error(e.toString());
         }
     }
 }

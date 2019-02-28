@@ -186,6 +186,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if (coordinatorListener != null) {
             coordinatorListener.onCoordinatorStop();
         }
+        jvmMonitor.stop();
     }
 
     private void startMetrics() {
