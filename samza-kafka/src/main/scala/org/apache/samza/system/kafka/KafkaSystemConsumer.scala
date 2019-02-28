@@ -113,7 +113,7 @@ private[kafka] class KafkaSystemConsumer(
    * The default value is -1, which means this is not used. When the value
    * is > 0, then the fetchThreshold which is count based is ignored.
    */
-  fetchThresholdBytes: Long = -1,
+  fetchThresholdBytes: Long = 100000,
   /**
    * if(fetchThresholdBytes > 0) true else false
    */
