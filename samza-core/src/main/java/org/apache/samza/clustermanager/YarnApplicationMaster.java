@@ -181,7 +181,7 @@ public class YarnApplicationMaster {
                 try {
                     counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(counter == 30){
+                    /*if(counter == 30){
                         jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
@@ -190,6 +190,7 @@ public class YarnApplicationMaster {
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
+                    */
                 } catch (InterruptedException e) {
                     isInterrupted = true;
                     log.error("Interrupted in AM loop {} ", e);

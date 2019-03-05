@@ -178,6 +178,8 @@ project(":samza-core_$scalaVersion") {
     compile "org.eclipse.jetty:jetty-webapp:$jettyVersion"
     compile "org.scala-lang:scala-library:$scalaLibVersion"
     compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion"
+    compile "org.apache.kafka:kafka-clients:$kafkaVersion"
     testCompile project(":samza-api").sourceSets.test.output
     testCompile "junit:junit:$junitVersion"
     testCompile "org.mockito:mockito-core:$mockitoVersion"

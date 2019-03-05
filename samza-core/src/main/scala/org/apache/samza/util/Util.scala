@@ -411,8 +411,8 @@ object Util extends Logging {
   def rewriteConfig(config: Config): Config = {
     def rewrite(c: Config, rewriterName: String): Config = {
       val klass = config
-              .getConfigRewriterClass(rewriterName)
-              .getOrElse(throw new SamzaException("Unable to find class config for config rewriter %s." format rewriterName))
+        .getConfigRewriterClass(rewriterName)
+        .getOrElse(throw new SamzaException("Unable to find class config for config rewriter %s." format rewriterName))
       val rewriter = Util.getObj[ConfigRewriter](klass)
       info("Re-writing config with " + rewriter)
       rewriter.rewrite(rewriterName, c)

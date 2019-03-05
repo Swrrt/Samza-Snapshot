@@ -111,6 +111,8 @@ class RunLoop (
   private def process(envelope: IncomingMessageEnvelope) {
     metrics.processes.inc
 
+    /* Add our own throughput and latency metrics here */
+
     activeNs += updateTimerAndGetDuration(metrics.processNs) ((currentTimeNs: Long) => {
       if (envelope != null) {
         val ssp = envelope.getSystemStreamPartition
