@@ -185,13 +185,12 @@ public class YarnApplicationMaster {
                         //jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
-                    /*
+
                     if(counter == 60){
-                        counter = 0;
+                        //counter = 0;
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
-                    */
                 } catch (InterruptedException e) {
                     isInterrupted = true;
                     log.error("Interrupted in AM loop {} ", e);
