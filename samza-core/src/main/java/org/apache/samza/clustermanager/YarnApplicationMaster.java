@@ -181,12 +181,12 @@ public class YarnApplicationMaster {
                 try {
                     counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(counter == 45){
+                    if(counter == 60){
                         jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
 
-                    if(counter == 90){
+                    if(counter == 120){
                         counter = 0;
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
