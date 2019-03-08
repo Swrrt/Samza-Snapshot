@@ -181,12 +181,12 @@ public class YarnApplicationMaster {
                 try {
                     counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(counter == 120){
+                    if(config.getBoolean("job.loadbalance", false) && counter == 120){
                         jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
 
-                    if(counter == 240){
+                    if(config.getBoolean("job.scaling", false) && counter == 240){
                         counter = 0;
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
@@ -286,7 +286,7 @@ public class YarnApplicationMaster {
         Map<String, SystemAdmin> systemAdmins = new JavaSystemConfig(config).getSystemAdmins();
         StreamMetadataCache streamMetadata = new StreamMetadataCache(Util.javaMapAsScalaMap(systemAdmins), 0, SystemClock.instance());
         Set<SystemStream> inputStreamsToMonitor = new TaskConfigJava(config).getAllInputStreams();
-        if (inputStreamsToMonitor.isEmpty()) {
+        if (inputStreamsToMonitor.isEmpty()) {  
             throw new SamzaException("Input streams to a job can not be empty.");
         }
 
