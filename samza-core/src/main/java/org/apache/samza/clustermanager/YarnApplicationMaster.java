@@ -175,19 +175,24 @@ public class YarnApplicationMaster {
 
             boolean isInterrupted = false;
             //For testing
-            int counter = 0;
+            int loadbalanceCounter = 0, scalingCounter = 0;
             JobModel jobModel = jobModelManager.jobModel();
+            //Publish new JobModel when all Containers are ready
+            Thread.sleep(5000);
+            leaderJobCoordinator.publishJobModel(jobModel);
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
-                    counter++;
+                    loadbalanceCounter++;
+                    scalingCounter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(config.getBoolean("job.loadbalance", false) && counter == 120){
+                    if(config.getBoolean("job.loadbalance.on", false) && loadbalanceCounter == config.getInt("job.loadbalance.interval", 120)){
+                        loadbalanceCounter = 0;
                         jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
 
-                    if(config.getBoolean("job.scaling", false) && counter == 240){
-                        counter = 0;
+                    if(config.getBoolean("job.scaling.on", false) && scalingCounter == config.getInt("job.scaling.interval", 240)){
+                        scalingCounter = 0;
                         jobModel = scaleUpByOne(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
