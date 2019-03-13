@@ -111,7 +111,13 @@ object SamzaContainer extends Logging {
           retryBackoff = new ExponentialSleepStrategy(initialDelayMs = initialDelayMs)),
         classOf[JobModel])
   }
-
+  def apply(containerId: String,
+            jobModel: JobModel,
+            config: Config,
+            customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
+            taskFactory: Object) = {
+    apply(containerId, jobModel, config, customReporters, taskFactory, 0);
+  }
   def apply(
     containerId: String,
     jobModel: JobModel,
