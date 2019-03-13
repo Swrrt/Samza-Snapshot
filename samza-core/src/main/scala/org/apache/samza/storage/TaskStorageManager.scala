@@ -41,6 +41,14 @@ object TaskStorageManager {
     // TODO: Sanitize, check and clean taskName string as a valid value for a file
     new File(storeBaseDir, (storeName + File.separator + taskName.toString).replace(' ', '_'))
   }
+
+  /*
+    To avoid write lock error of RocksDB, we add a suffix for every task.
+   */
+  def getStorePartitionDir(storeBaseDir: File, storeName: String, taskName: TaskName, suffix: Int) = {
+    // TODO: Sanitize, check and clean taskName string as a valid value for a file
+    new File(storeBaseDir, (storeName + File.separator + taskName.toString + File.separator + suffix.toString).replace(' ', '_'))
+  }
 }
 
 /**
@@ -58,7 +66,8 @@ class TaskStorageManager(
   partition: Partition,
   systemAdmins: Map[String, SystemAdmin],
   changeLogDeleteRetentionsInMs: Map[String, Long],
-  clock: Clock) extends Logging {
+  clock: Clock,
+  suffix: Int = 0) extends Logging {
 
   var taskStoresToRestore = taskStores.filter{
     case (storeName, storageEngine) => storageEngine.getStoreProperties.isLoggedStore
@@ -86,7 +95,7 @@ class TaskStorageManager(
     debug("Cleaning base directories for stores.")
 
     taskStores.keys.foreach(storeName => {
-      val storePartitionDir = TaskStorageManager.getStorePartitionDir(storeBaseDir, storeName, taskName)
+      val storePartitionDir = TaskStorageManager.getStorePartitionDir(storeBaseDir, storeName, taskName, suffix)
       info("Got default storage partition directory as %s" format storePartitionDir.toPath.toString)
 
       if(storePartitionDir.exists()) {
@@ -94,7 +103,7 @@ class TaskStorageManager(
         Util.rm(storePartitionDir)
       }
 
-      val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName)
+      val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName, suffix)
       info("Got logged storage partition directory as %s" format loggedStorePartitionDir.toPath.toString)
 
       // Delete the logged store if it is not valid.
@@ -177,11 +186,11 @@ class TaskStorageManager(
     taskStores.foreach {
       case (storeName, storageEngine) =>
         if (storageEngine.getStoreProperties.isLoggedStore) {
-          val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName)
+          val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName, suffix)
           info("Using logged storage partition directory: %s for store: %s." format(loggedStorePartitionDir.toPath.toString, storeName))
           if (!loggedStorePartitionDir.exists()) loggedStorePartitionDir.mkdirs()
         } else {
-          val storePartitionDir = TaskStorageManager.getStorePartitionDir(storeBaseDir, storeName, taskName)
+          val storePartitionDir = TaskStorageManager.getStorePartitionDir(storeBaseDir, storeName, taskName, suffix)
           info("Using storage partition directory: %s for store: %s." format(storePartitionDir.toPath.toString, storeName))
           storePartitionDir.mkdirs()
         }
@@ -355,7 +364,7 @@ class TaskStorageManager(
         }
         debug("Got offset %s for store %s" format(newestOffset, storeName))
 
-        val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName)
+        val loggedStorePartitionDir = TaskStorageManager.getStorePartitionDir(loggedStoreBaseDir, storeName, taskName, suffix)
         val offsetFile = new File(loggedStorePartitionDir, offsetFileName)
         if (newestOffset != null) {
           debug("Storing offset for store in OFFSET file ")

@@ -117,7 +117,8 @@ object SamzaContainer extends Logging {
     jobModel: JobModel,
     config: Config,
     customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
-    taskFactory: Object) = {
+    taskFactory: Object,
+    storeSuffix: Int = 0) = {
     val containerModel = jobModel.getContainers.get(containerId)
     val containerName = "samza-container-%s" format containerId
     val maxChangeLogStreamPartitions = jobModel.maxChangeLogStreamPartitions
@@ -533,9 +534,9 @@ object SamzaContainer extends Logging {
             }
 
             val storeDir = if (changeLogSystemStreamPartition != null) {
-              TaskStorageManager.getStorePartitionDir(loggedStorageBaseDir, storeName, taskName)
+              TaskStorageManager.getStorePartitionDir(loggedStorageBaseDir, storeName, taskName, storeSuffix)
             } else {
-              TaskStorageManager.getStorePartitionDir(defaultStoreBaseDir, storeName, taskName)
+              TaskStorageManager.getStorePartitionDir(defaultStoreBaseDir, storeName, taskName, storeSuffix)
             }
 
             storeWatchPaths.add(storeDir.toPath)
@@ -566,7 +567,8 @@ object SamzaContainer extends Logging {
         partition = taskModel.getChangelogPartition,
         systemAdmins = systemAdmins,
         new StorageConfig(config).getChangeLogDeleteRetentionsInMs,
-        new SystemClock)
+        new SystemClock,
+        storeSuffix)
 
       val systemStreamPartitions = taskModel
         .getSystemStreamPartitions
