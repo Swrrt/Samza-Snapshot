@@ -202,7 +202,7 @@ public class StreamProcessor {
   }
 
   SamzaContainer createSamzaContainer(String processorId, JobModel jobModel, int storeSuffix) {
-    return SamzaContainer.apply(
+    return SamzaContainer.apply1(
         processorId,
         jobModel,
         config,
