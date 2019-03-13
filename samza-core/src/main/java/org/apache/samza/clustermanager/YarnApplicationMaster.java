@@ -178,9 +178,9 @@ public class YarnApplicationMaster {
             int loadbalanceCounter = 0, scalingCounter = 0;
             JobModel jobModel = jobModelManager.jobModel();
             //Publish new JobModel when all Containers are ready
-            log.info("JobConfig is :", config.toString());
-            Thread.sleep(5000);
-            leaderJobCoordinator.publishJobModel(jobModel);
+            log.info("JobConfig is :", config);
+            /*Thread.sleep(200000);
+            leaderJobCoordinator.publishJobModel(jobModel);*/
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
                     loadbalanceCounter++;
