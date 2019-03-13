@@ -67,7 +67,7 @@ class TaskStorageManager(
   systemAdmins: Map[String, SystemAdmin],
   changeLogDeleteRetentionsInMs: Map[String, Long],
   clock: Clock,
-  suffix: Int = 0) extends Logging {
+  val suffix: Int = 0) extends Logging {
 
   var taskStoresToRestore = taskStores.filter{
     case (storeName, storageEngine) => storageEngine.getStoreProperties.isLoggedStore
