@@ -116,7 +116,7 @@ object SamzaContainer extends Logging {
             config: Config,
             customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
             taskFactory: Object) = {
-    apply(containerId, jobModel, config, customReporters, taskFactory, 0);
+    this.apply(containerId, jobModel, config, customReporters, taskFactory, 0);
   }
   def apply(
     containerId: String,
