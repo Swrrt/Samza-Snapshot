@@ -24,6 +24,12 @@ public class JVMMonitor implements Runnable{
         operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
         runtimeMXBean = ManagementFactory.getRuntimeMXBean();
     }
+    private float getJvmPhyMemoryUsage(){
+        return peOperatingSystemMXBean.getTotalPhysicalMemorySize() - peOperatingSystemMXBean.getFreePhysicalMemorySize();
+    }
+    private float getJvmTotalMemoryUsage(){
+        return peOperatingSystemMXBean.getTotalPhysicalMemorySize() + peOperatingSystemMXBean.getTotalSwapSpaceSize() - peOperatingSystemMXBean.getFreePhysicalMemorySize() - peOperatingSystemMXBean.getFreeSwapSpaceSize();
+    }
     private float getJvmCpuUsage() {
         // elapsed process time is in nanoseconds
         long elapsedProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime() - previousJvmProcessCpuTime;
@@ -49,8 +55,9 @@ public class JVMMonitor implements Runnable{
         client = new UtilizationClient(leaderAddr, 8883);
         try{
             while(true){
-                Float i = getJvmCpuUsage();
+                Float i = getJvmCpuUsage(), j = getJvmPhyMemoryUsage(), k = getJvmTotalMemoryUsage();
                 LOG.info("JVM CPU usage is: "+i.toString());
+                LOG.info("JVM physical memory usage is: " + j.toString() + "  ; Total memory usage is: " + k.toString());
                 //Currently only send the Utilization information when workload is too heavy or too light
                 if(i<50.0||i>80.0) client.sendUtilization(processorId, i);
                 Thread.sleep(MonitorSleepInterval);
