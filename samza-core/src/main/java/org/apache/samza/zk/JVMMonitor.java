@@ -14,8 +14,6 @@ public class JVMMonitor implements Runnable{
     private com.sun.management.OperatingSystemMXBean peOperatingSystemMXBean;
     private java.lang.management.OperatingSystemMXBean operatingSystemMXBean;
     private RuntimeMXBean runtimeMXBean;
-    private long previousJvmProcessCpuTime = 0;
-    private long previousJvmUptime = 0;
     private String leaderAddr = "";
     private String processorId = "";
     private UtilizationClient client;
@@ -32,22 +30,26 @@ public class JVMMonitor implements Runnable{
     }
     private float getJvmCpuUsage() {
         // elapsed process time is in nanoseconds
-        long elapsedProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime() - previousJvmProcessCpuTime;
+        long prevElapsedProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime();
         // elapsed uptime is in milliseconds
-        long elapsedJvmUptime = runtimeMXBean.getUptime() - previousJvmUptime;
-
-        // total jvm uptime on all the available processors
-        long totalElapsedJvmUptime = elapsedJvmUptime * operatingSystemMXBean.getAvailableProcessors();
+        long prevElapsedJvmUptime = runtimeMXBean.getUptime();
+        // the available processors
+        // TODO: replace this with number of cores YARN gives;
+        int availableProcessors = 1;//operatingSystemMXBean.getAvailableProcessors();
+        try{
+            Thread.sleep(300);
+        }catch (Exception e){
+        }
+        long elapsedProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime() - prevElapsedProcessCpuTime;
+        // elapsed uptime is in milliseconds
+        long elapsedJvmUptime = runtimeMXBean.getUptime() - prevElapsedJvmUptime;
 
         // calculate cpu usage as a percentage value
         // to convert nanoseconds to milliseconds divide it by 1000000 and to get a percentage multiply it by 100
-        float cpuUsage = elapsedProcessCpuTime / (elapsedJvmUptime * 10000F);
+        float cpuUsage = elapsedProcessCpuTime / (elapsedJvmUptime * 10000F * availableProcessors);
         //LOG.info("Elapsed CPU Time:" + elapsedProcessCpuTime + "  |  ElapsedJvmUpTime:"+ elapsedJvmUptime +  "  |  AvailableProcessors:"+operatingSystemMXBean.getAvailableProcessors());
 
         // set old timestamp values
-        previousJvmProcessCpuTime = peOperatingSystemMXBean.getProcessCpuTime();
-        previousJvmUptime = runtimeMXBean.getUptime();
-
         return cpuUsage;
     }
     public void run(){
