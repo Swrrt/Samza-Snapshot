@@ -424,9 +424,10 @@ public class MixedLocalityManager {
         long Lower = avg / 2;
         for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
             Long messages = entry.getValue();
+            String containerId = entry.getKey().substring(16);
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
-            if(messages < Lower)chord.change(entry.getKey(), getCurrentVNs(entry.getKey()) + 20);
-            else if(messages > Upper)chord.change(entry.getKey(), getCurrentVNs(entry.getKey())/2);
+            if(messages < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
+            else if(messages > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
         }
         LOG.info("New VNs: " + containerVNs.toString());
         return generateJobModel();
