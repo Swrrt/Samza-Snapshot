@@ -31,6 +31,7 @@ public class UnprocessedMessageMonitor {
     }
     public void init(String brokers, String topic, String appName) {
         Properties props = createConsumerConfig(brokers, appName);
+        LOG.info("The App Name is: "+appName);
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
     }
@@ -81,7 +82,7 @@ public class UnprocessedMessageMonitor {
                         getJSONObject("org.apache.samza.system.SystemConsumersMetrics").
                         getLong("unprocessed-messages");
                 unprocessedMessages.put(containerId, unprocessedMessage);
-                LOG.info("UnprocessedMessages information: "+ containerId +" ," + unprocessedMessage);
+                //LOG.info("UnprocessedMessages information: "+ containerId +" ," + unprocessedMessage);
             }
         }
     }
