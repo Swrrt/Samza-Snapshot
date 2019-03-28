@@ -57,6 +57,7 @@ public class UnprocessedMessageMonitor {
                 for (ConsumerRecord<String, String> record : records) {
                     // sent kafka msg by http
                     // System.out.println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset());
+                    LOG.info("Received metrics:"+record);
                     parseUnprocessedMessages(record.value());
                 }
                 try{
@@ -72,6 +73,7 @@ public class UnprocessedMessageMonitor {
         JSONObject json = new JSONObject(record);
         //System.out.println(json);
         if(json.getJSONObject("header").getString("job-name").equals(appName) && json.getJSONObject("header").getString("container-name").contains("samza-container")){
+            LOG.info("!!!!\n"+json.getJSONObject("metrics")+"!!!!\n");
             //System.out.println("!!!!!!\n"+json.getJSONObject("metrics")+"!!!!!!\n");
             if(json.getJSONObject("metrics").has("org.apache.samza.system.SystemConsumersMetrics")) {
                 String containerId = json.getJSONObject("header").getString("container-name");
