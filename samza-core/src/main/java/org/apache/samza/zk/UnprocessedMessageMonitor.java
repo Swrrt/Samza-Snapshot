@@ -31,6 +31,7 @@ public class UnprocessedMessageMonitor {
     }
     public void init(String brokers, String topic, String appName) {
         Properties props = createConsumerConfig(brokers, appName);
+        this.appName = appName;
         LOG.info("The App Name is: "+appName);
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
