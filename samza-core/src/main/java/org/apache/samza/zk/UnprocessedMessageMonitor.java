@@ -73,12 +73,13 @@ public class UnprocessedMessageMonitor {
         //System.out.println(json);
         if(json.getJSONObject("header").getString("job-name").equals(appName) && json.getJSONObject("header").getString("container-name").contains("samza-container")){
             //System.out.println("!!!!!!\n"+json.getJSONObject("metrics")+"!!!!!!\n");
-            if(json.getJSONObject("metrics").has("org.apache.samza.container.SystemConsumersMetrics")) {
+            if(json.getJSONObject("metrics").has("org.apache.samza.system.SystemConsumersMetrics")) {
                 String containerId = json.getJSONObject("header").getString("container-name");
-                long processEnvelopes = json.getJSONObject("metrics").
-                        getJSONObject("org.apache.samza.container.SystemConsumersMetrics").
+                long unprocessedMessage = json.getJSONObject("metrics").
+                        getJSONObject("org.apache.samza.system.SystemConsumersMetrics").
                         getLong("unprocessed-messages");
-                unprocessedMessages.put(containerId, processEnvelopes);
+                unprocessedMessages.put(containerId, unprocessedMessage);
+                LOG.info("UnprocessedMessages information: "+ containerId +" ," + unprocessedMessage);
             }
         }
     }
