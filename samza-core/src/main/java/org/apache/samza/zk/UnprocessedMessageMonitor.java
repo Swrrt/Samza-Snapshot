@@ -32,7 +32,7 @@ public class UnprocessedMessageMonitor {
     public void init(String brokers, String topic, String appName) {
         Properties props = createConsumerConfig(brokers, appName);
         this.appName = appName;
-        LOG.info("The App Name is: "+appName);
+        //LOG.info("The App Name is: "+appName);
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
     }
@@ -74,9 +74,9 @@ public class UnprocessedMessageMonitor {
     private void parseUnprocessedMessages(String record){
         JSONObject json = new JSONObject(record);
         //System.out.println(json);
-        LOG.info("Json: "+json.toString());
+        //LOG.info("Json: "+json.toString());
         if(json.getJSONObject("header").getString("job-name").equals(appName) && json.getJSONObject("header").getString("container-name").contains("samza-container")){
-            LOG.info("!!!!\n"+json.getJSONObject("metrics")+"!!!!\n");
+            //LOG.info("!!!!\n"+json.getJSONObject("metrics")+"!!!!\n");
             //System.out.println("!!!!!!\n"+json.getJSONObject("metrics")+"!!!!!!\n");
             if(json.getJSONObject("metrics").has("org.apache.samza.system.SystemConsumersMetrics")) {
                 String containerId = json.getJSONObject("header").getString("container-name");
