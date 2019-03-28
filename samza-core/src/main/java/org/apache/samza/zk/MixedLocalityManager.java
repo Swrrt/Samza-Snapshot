@@ -186,6 +186,7 @@ public class MixedLocalityManager {
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
     private UtilizationServer utilizationServer = null;
+    private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
     private final int LOCALITY_RETRY_TIMES = 1;
     public MixedLocalityManager(){
@@ -203,6 +204,7 @@ public class MixedLocalityManager {
         p1 = 1;
         p2 = 0;
         utilizationServer = new UtilizationServer();
+        unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
     }
     public void initial(JobModel jobModel, Config config){
@@ -220,6 +222,8 @@ public class MixedLocalityManager {
         }
         LOG.info("Task Models:" + tasks.toString());
         setTasks(tasks);
+        unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
+        unprocessedMessageMonitor.start();
         utilizationServer.start();
         localityServer.start();
     }
@@ -394,21 +398,35 @@ public class MixedLocalityManager {
     }
     public JobModel rebalanceJobModel(){
         LOG.info("Rebalancing");
+        /*
         HashMap util = utilizationServer.getAndRemoveUtilizationMap();
         LOG.info("Utilization map is: " + util.toString());
-        return generateNewJobModel(util);
+        */
+        //Using UnprocessedMessages to rebalance
+        HashMap unprocessedMessages = unprocessedMessageMonitor.getUnprocessedMessage();
+        LOG.info("Unprocessed Messages information: " + unprocessedMessages.toString());
+        return generateNewJobModel(unprocessedMessages);
     }
-    // Generate new job model when utilization changes.
-    public JobModel generateNewJobModel(Map<String, Float> utlization){
+    // Generate new job model with UnprocessedMessages information.
+    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages){
         //TODO
         /*
-        Calculate VNs according to utilization
+        Calculate VNs according to UnprocessedMessages
         */
-        for(Map.Entry<String,Float> entry: utlization.entrySet()){
-            float usage = entry.getValue();
+        long total = 0;
+        int number = 0;
+        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
+            total += entry.getValue();
+            number++;
+        }
+        long avg = total/ number;
+        long Upper = avg * 2;
+        long Lower = avg / 2;
+        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
+            Long messages = entry.getValue();
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
-            if(usage<50.0)chord.change(entry.getKey(), (50-Math.round(usage))/25*defaultVNs + getCurrentVNs(entry.getKey()));
-            else if(usage>80.0)chord.change(entry.getKey(), getCurrentVNs(entry.getKey()) - (Math.round(usage)-80)*defaultVNs/40);
+            if(messages < Lower)chord.change(entry.getKey(), getCurrentVNs(entry.getKey()) + 20);
+            else if(messages > Upper)chord.change(entry.getKey(), getCurrentVNs(entry.getKey())/2);
         }
         LOG.info("New VNs: " + containerVNs.toString());
         return generateJobModel();
@@ -419,10 +437,10 @@ public class MixedLocalityManager {
     public double distance(String t1, String t2){
         return p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);
     }
-    public double getUtil(String processorId){
+    /*public double getUtil(String processorId){
         return utilizationServer.getUtilization(processorId);
     }
     public HashMap getUtilMap(){
         return utilizationServer.getAndRemoveUtilizationMap();
-    }
+    }*/
 }
