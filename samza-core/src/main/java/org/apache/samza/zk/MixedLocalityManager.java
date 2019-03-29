@@ -427,8 +427,14 @@ public class MixedLocalityManager {
             Long messages = entry.getValue();
             String containerId = entry.getKey().substring(16);
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
-            if(messages < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
-            else if(messages > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
+            if(this.containerVNs.containsKey(containerId)){
+                if(messages < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
+                else if(messages > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
+            }else{
+                //Remove left containers
+                unprocessedMessages.remove(containerId);
+                unprocessedMessageMonitor.removeContainer(containerId);
+            }
         }
         LOG.info("New VNs: " + containerVNs.toString());
         return generateJobModel();

@@ -42,6 +42,12 @@ public class UnprocessedMessageMonitor {
         if (executor != null)
             executor.shutdown();
     }
+    public void removeContainer(String containerId){
+        LOG.info("Remove container: "+containerId);
+        if(unprocessedMessages.contains(containerId)){
+            unprocessedMessages.remove(containerId);
+        }else LOG.info("Does not contain container: "+containerId);
+    }
     public long getUnprocessedMessage(String containerId){
         return unprocessedMessages.get(containerId);
     }

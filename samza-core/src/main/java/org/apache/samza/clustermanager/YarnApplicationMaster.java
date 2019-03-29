@@ -187,7 +187,7 @@ public class YarnApplicationMaster {
                     scalingCounter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
                     if(config.getBoolean("job.loadbalance.on", false) && loadbalanceCounter == config.getInt("job.loadbalance.interval", 120)){
-                        //loadbalanceCounter = 0;
+                        loadbalanceCounter = 0;
                         jobModel = reBalance(jobModel);
                         leaderJobCoordinator.publishJobModel(jobModel);
                     }
