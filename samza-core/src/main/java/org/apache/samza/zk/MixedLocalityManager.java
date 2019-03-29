@@ -63,7 +63,7 @@ public class MixedLocalityManager {
             }
         }
         public int distance(String itemX, String itemY){
-            LOG.info("Chord distance between "+itemX+"  "+itemY);
+            LOG.info("Calculate Chord distance between "+itemX+"  "+itemY);
             LOG.info("Chord items "+coord.toString());
             int min = Length + 1000;
             LinkedList<Integer> x = coord.get(itemX), y = coord.get(itemY);
@@ -76,6 +76,7 @@ public class MixedLocalityManager {
                     }
                 }
             }
+            LOG.info("Calculate Chord distance between "+itemX+"  "+itemY + " is: " + min);
             return min;
         }
     };
@@ -86,8 +87,8 @@ public class MixedLocalityManager {
         public LocalityHashing(){
             nlayer = 5;
             cost = new long[nlayer];
-            cost[nlayer - 1] = 1;
-            for(int i= nlayer - 2 ;i >= 0;i--)cost[i] = cost[i+1] * 10;
+            cost[0] = 1;
+            for(int i= 1 ;i < nlayer ;i++)cost[i] = cost[i-1] * 10;
             coord = new HashMap<>();
         }
         // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
@@ -109,7 +110,7 @@ public class MixedLocalityManager {
         }
         public long distance(String cid1, String cid2){
             long sum = 0;
-            LOG.info("Locality distance between "+cid1+" "+cid2);
+            LOG.info("Calculating Locality distance between "+cid1+" "+cid2);
             LOG.info("Locality items "+coord.toString());
             ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
             LOG.info("Locality items "+v1.toString()+"      "+v2.toString());
@@ -436,7 +437,9 @@ public class MixedLocalityManager {
         return this.containerVNs.get(processorId);
     }
     public double distance(String t1, String t2){
-        return p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);
+        double dis = p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);
+        LOG.info("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
+        return dis;
     }
     /*public double getUtil(String processorId){
         return utilizationServer.getUtilization(processorId);
