@@ -427,12 +427,14 @@ public class MixedLocalityManager {
         double Lower = avgTime / 2;
         for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
             long messages = entry.getValue();
-            double speed = processingSpeed.get(entry.getKey());
-            String containerId = entry.getKey().substring(16);
+            double speed = 0; //Assume containers with no responses as dead
+            if(processingSpeed.containsKey(entry.getKey()))speed = processingSpeed.get(entry.getKey());
 
+            String containerId = entry.getKey().substring(16);
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
             if(this.containerVNs.containsKey(containerId)){
-                if(messages/speed < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
+                if(speed == 0)chord.change(containerId, 0);
+                else if(messages/speed < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
                 else if(messages/speed > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
             }else{
                 //Remove left containers

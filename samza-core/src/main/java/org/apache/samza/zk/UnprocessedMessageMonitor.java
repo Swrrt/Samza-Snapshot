@@ -23,6 +23,7 @@ public class UnprocessedMessageMonitor {
     private ExecutorService executor;
     private long delay;
     private String appName;
+    private final long processSpeedTimeout = 30000;
     private ConcurrentHashMap<String, Long> unprocessedMessages;
     private ConcurrentHashMap<String, Long> processedEnv;
     private ConcurrentHashMap<String, Double> processingSpeed;
@@ -84,6 +85,7 @@ public class UnprocessedMessageMonitor {
                     // sent kafka msg by http
                     // System.out.println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset());
                     //LOG.info("Received metrics:"+record);
+                    parseProcessEnvelopes(record.value());
                     parseUnprocessedMessages(record.value());
                 }
                 try{
@@ -104,20 +106,15 @@ public class UnprocessedMessageMonitor {
                 long processEnvelopes = json.getJSONObject("metrics").
                         getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
                         getLong("process-envelopes");
-                double processLatency = json.getJSONObject("metrics").
-                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
-                        getLong("process-ns");
-                double windowLatency = json.getJSONObject("metrics").
-                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
-                        getLong("window-ns");
-                double commitLatency = json.getJSONObject("metrics").
-                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
-                        getLong("commit-ns");
-                double totalLatency = processLatency + windowLatency + commitLatency;
                 long time = json.getJSONObject("header").getLong("time");
                 String containerId = json.getJSONObject("header").getString("container-name");
                 long dEnv = processEnvelopes;
                 long dTime = time;
+                if(processedTime.containsKey(containerId) && time - processedTime.get(containerId) > processSpeedTimeout){
+                    processedTime.remove(containerId);
+                    processedEnv.remove(containerId);
+                    processingSpeed.remove(containerId);
+                }
                 if (processedEnv.containsKey(containerId) && processedTime.containsKey(containerId)) {
                     if (processEnvelopes > processedEnv.get(containerId)) {
                         dEnv -= processedEnv.get(containerId);
