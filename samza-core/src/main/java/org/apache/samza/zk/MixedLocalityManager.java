@@ -405,14 +405,16 @@ public class MixedLocalityManager {
         */
         //Using UnprocessedMessages to rebalance
         HashMap unprocessedMessages = unprocessedMessageMonitor.getUnprocessedMessage();
+        HashMap processingSpeed = unprocessedMessageMonitor.getProcessingSpeed();
         LOG.info("Unprocessed Messages information: " + unprocessedMessages.toString());
-        return generateNewJobModel(unprocessedMessages);
+        LOG.info("Processing speed information: " + processingSpeed.toString());
+        return generateNewJobModel(unprocessedMessages, processingSpeed);
     }
     // Generate new job model with UnprocessedMessages information.
-    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages){
+    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed){
         //TODO
         /*
-        Calculate VNs according to UnprocessedMessages
+        Calculate VNs according to UnprocessedMessages and current processing Speed
         */
         long total = 0;
         int number = 0;
@@ -420,19 +422,20 @@ public class MixedLocalityManager {
             total += entry.getValue();
             number++;
         }
-        long avg = total/ number;
-        long Upper = avg * 2;
-        long Lower = avg / 2;
+        double avgTime = 10.0;
+        double Upper = avgTime * 2;
+        double Lower = avgTime / 2;
         for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
-            Long messages = entry.getValue();
+            long messages = entry.getValue();
+            double speed = processingSpeed.get(entry.getKey());
             String containerId = entry.getKey().substring(16);
+
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
             if(this.containerVNs.containsKey(containerId)){
-                if(messages < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
-                else if(messages > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
+                if(messages/speed < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
+                else if(messages/speed > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
             }else{
                 //Remove left containers
-                unprocessedMessages.remove(containerId);
                 unprocessedMessageMonitor.removeContainer(containerId);
             }
         }

@@ -14,8 +14,8 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
+//TODO: use Kafka information (offset) to monitor processing speed
 public class UnprocessedMessageMonitor {
     private static final Logger LOG = LoggerFactory.getLogger(UnprocessedMessageMonitor.class);
     private KafkaConsumer<String,String> consumer;
@@ -24,10 +24,16 @@ public class UnprocessedMessageMonitor {
     private long delay;
     private String appName;
     private ConcurrentHashMap<String, Long> unprocessedMessages;
+    private ConcurrentHashMap<String, Long> processedEnv;
+    private ConcurrentHashMap<String, Double> processingSpeed;
+    private ConcurrentHashMap<String, Long> processedTime;
     private Thread t;
     private final int MonitorSleepInterval = 1000;
     public UnprocessedMessageMonitor(){
         unprocessedMessages = new ConcurrentHashMap<>();
+        processedEnv = new ConcurrentHashMap<>();
+        processingSpeed = new ConcurrentHashMap<>();
+        processedTime = new ConcurrentHashMap<>();
     }
     public void init(String brokers, String topic, String appName) {
         Properties props = createConsumerConfig(brokers, appName);
@@ -47,6 +53,13 @@ public class UnprocessedMessageMonitor {
         if(unprocessedMessages.contains(containerId)){
             unprocessedMessages.remove(containerId);
         }else LOG.info("Does not contain container: "+containerId);
+        if(processedEnv.contains(containerId)){
+            processedEnv.remove(containerId);
+            processedTime.remove(containerId);
+        }
+        if(processingSpeed.contains(containerId)){
+            processingSpeed.remove(containerId);
+        }
     }
     public long getUnprocessedMessage(String containerId){
         return unprocessedMessages.get(containerId);
@@ -54,6 +67,11 @@ public class UnprocessedMessageMonitor {
     public HashMap<String, Long> getUnprocessedMessage(){
         HashMap<String, Long> ret = new HashMap<>();
         ret.putAll(unprocessedMessages);
+        return ret;
+    }
+    public HashMap<String, Double> getProcessingSpeed(){
+        HashMap<String, Double> ret = new HashMap<>();
+        ret.putAll(processingSpeed);
         return ret;
     }
     private void run() {
@@ -74,6 +92,45 @@ public class UnprocessedMessageMonitor {
                 }
             }catch(Exception ex) {
                 ex.printStackTrace();
+            }
+        }
+    }
+    private void parseProcessEnvelopes(String record) {
+        JSONObject json = new JSONObject(record);
+        //System.out.println(json);
+        if (json.getJSONObject("header").getString("job-name").equals(appName) && json.getJSONObject("header").getString("container-name").contains("samza-container")) {
+            //System.out.println("!!!!!!\n"+json.getJSONObject("metrics")+"!!!!!!\n");
+            if (json.getJSONObject("metrics").has("org.apache.samza.container.SamzaContainerMetrics")) {
+                long processEnvelopes = json.getJSONObject("metrics").
+                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
+                        getLong("process-envelopes");
+                double processLatency = json.getJSONObject("metrics").
+                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
+                        getLong("process-ns");
+                double windowLatency = json.getJSONObject("metrics").
+                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
+                        getLong("window-ns");
+                double commitLatency = json.getJSONObject("metrics").
+                        getJSONObject("org.apache.samza.container.SamzaContainerMetrics").
+                        getLong("commit-ns");
+                double totalLatency = processLatency + windowLatency + commitLatency;
+                long time = json.getJSONObject("header").getLong("time");
+                String containerId = json.getJSONObject("header").getString("container-name");
+                long dEnv = processEnvelopes;
+                long dTime = time;
+                if (processedEnv.containsKey(containerId) && processedTime.containsKey(containerId)) {
+                    if (processEnvelopes > processedEnv.get(containerId)) {
+                        dEnv -= processedEnv.get(containerId);
+                        dTime -= processedTime.get(containerId);
+                        double throughput = 0;
+                        if (dTime > 0) {
+                            throughput = dEnv / ((double) dTime);
+                            processingSpeed.put(containerId, throughput * 1000);
+                        }
+                    }
+                }
+                processedEnv.put(containerId, processEnvelopes);
+                processedTime.put(containerId, time);
             }
         }
     }
