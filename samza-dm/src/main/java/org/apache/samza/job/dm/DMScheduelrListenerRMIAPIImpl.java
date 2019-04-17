@@ -1,3 +1,7 @@
+/**
+ * initial condisderation, for our own metrics system
+ **/
+
 package org.apache.samza.job.dm;
 
 import java.rmi.RemoteException;
