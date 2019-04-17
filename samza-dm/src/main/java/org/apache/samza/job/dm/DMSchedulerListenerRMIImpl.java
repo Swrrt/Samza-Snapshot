@@ -1,3 +1,7 @@
+/**
+ * initial consideration
+ **/
+
 package org.apache.samza.job.dm;
 
 import org.apache.samza.config.Config;
