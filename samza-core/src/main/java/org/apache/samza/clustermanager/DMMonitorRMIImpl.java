@@ -1,3 +1,7 @@
+/**
+ * now not in use, initial consideration is to create our own monitor.
+ **/
+
 package org.apache.samza.clustermanager;
 
 import java.net.MalformedURLException;
