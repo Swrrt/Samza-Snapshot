@@ -1,5 +1,6 @@
 package org.apache.samza.zk;
 
+import com.google.common.hash.Hashing;
 import javafx.util.Pair;
 import org.apache.samza.RMI.LocalityServer;
 import org.apache.samza.RMI.UtilizationServer;
@@ -19,72 +20,84 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.nio.charset.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MixedLocalityManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
     private static final int LOWERBOUND = 10;
     private static final int UPPERBOUND = 200;
-    private class ChordHashing{
-        private final int Length;
+    private class ConsistentHashing{
+        private int Length;
         private Map<String, LinkedList<Integer>> coord;
-        public ChordHashing(){
-            Length = 100000007;
+        private Map<String, Integer> taskCoord;
+        public ConsistentHashing(){
             coord = new HashMap<>();
         }
-        public ChordHashing(int L){
-            Length = L;
-            coord = new HashMap<>();
+        // Shuffle tasks to the ring
+        protected void initTasks(Map<String, TaskModel> tasks){
+            Length = tasks.size();
+            List<String> taskNames = new ArrayList<>(Length);
+            for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
+                taskNames.add(task.getKey());
+            }
+            Collections.shuffle(taskNames);
+            taskCoord = new HashMap<>();
+            for(int i=0; i < Length; i++){
+                taskCoord.put(taskNames.get(i), i);
+            }
         }
         // Generate hash value for strings
         private int generateHash(String item){
-            Random t = new Random();
-            return t.nextInt(Length);
+            //Using SHA-1 Hashing
+            return Hashing.sha1().hashString(item, Charsets.UTF_8).asInt() % Length;
+        }
+        //Generate Virtual Node id
+        private String generateVNName(String containerId, int VNid){
+            return containerId + '_' + VNid;
         }
         public void insert(String item, int VNs){
             LinkedList<Integer> list = new LinkedList<>();
             for(int i=0;i<VNs;i++){
-                 list.add(generateHash(item));
+                 list.add(generateHash(generateVNName(item,i)));
             }
             coord.put(item, list);
         }
         public void remove(String item){
             coord.remove(item);
         }
-        public void change(String item, int VNs){
-            if(VNs < LOWERBOUND) VNs = LOWERBOUND;
-            if(VNs > UPPERBOUND) VNs = UPPERBOUND;
-            containerVNs.put(item, VNs);
-            LinkedList<Integer> list = coord.get(item);
-            while(list.size()<VNs){
-                list.add(generateHash(item));
-            }
-            while(list.size()>VNs){
-                list.removeFirst();
-            }
+        public void balance(String maxContainer, String minContainer){
+            LOG.info("Move virtual node of " + maxContainer + " to " + minContainer);
+            if(coord.get(maxContainer).size()>1){
+                int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(maxContainer).size());
+                LOG.info("Move the " + randomNum + "-th VN");
+                int x = coord.get(maxContainer).remove(randomNum);
+                coord.get(minContainer).add(randomNum);
+            }else LOG.info(maxContainer + " only has 1 VN. No movement");
+
         }
         public int distance(String itemX, String itemY){
-            LOG.info("Calculate Chord distance between "+itemX+"  "+itemY);
-            LOG.info("Chord items "+coord.toString());
+            LOG.info("Calculate load distance between "+itemX+"  "+itemY);
+            LOG.info("load items "+coord.toString());
             int min = Length + 1000;
-            LinkedList<Integer> x = coord.get(itemX), y = coord.get(itemY);
-            for(int xx:x){
-                for(int yy: y){
-                    int t = xx-yy;
-                    if(t<0)t = -t;
-                    if(t < min){
-                        min = t;
-                    }
+            int x = taskCoord.get(itemX);
+            LinkedList<Integer> y = coord.get(itemY);
+            for(int yy: y){
+                int t = x - yy;
+                if(t<0)t = -t;
+                if(t < min){
+                    min = t;
                 }
             }
-            LOG.info("Calculate Chord distance between "+itemX+"  "+itemY + " is: " + min);
+            LOG.info("Calculate load distance between "+itemX+"  "+itemY + " is: " + min);
             return min;
         }
     };
-    private class LocalityHashing{
+    private class LocalityDistance{
         private long[] cost;
         private final int nlayer;
         private Map<String, ArrayList<String>> coord;
-        public LocalityHashing(){
+        private Map<String, ArrayList<String>> taskCoord; //position of task's partition
+        public LocalityDistance(){
             nlayer = 5;
             cost = new long[nlayer];
             cost[0] = 1;
@@ -125,9 +138,11 @@ public class MixedLocalityManager {
     }
     private class WebReader{
         String hostRackUrl;
+        String hostHostUrl;
         //String containerHostUrl;
         public WebReader(){
             hostRackUrl = "http://192.168.0.36:8880";
+            hostHostUrl = "http://192.168.0.36:8880";
             //containerHostUrl = "http://192.168.0.36:8881";
         }
         public WebReader(String s1, String s2){
@@ -155,6 +170,43 @@ public class MixedLocalityManager {
             }
             return hostRack;
         }
+        public Map<String, Map<String, Integer>> readHostHostDistance(){
+            Map<String, Map<String, Integer>> hostHostDistance = new HashMap<>();
+            try{
+                LOG.info("Reading Host-Host information from ".concat(hostHostUrl));
+                JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
+                LOG.debug("Host-Host information ".concat(json.toString()));
+                for(Object key: json.keySet()){
+                    String keyStr = (String)key;
+                    JSONObject values = json.getJSONObject(keyStr);
+                    if(!hostHostDistance.containsKey(keyStr)){
+                        hostHostDistance.put(keyStr, new HashMap<>());
+                    }
+                    for(Object value: values.keySet()){
+                        hostHostDistance.get(keyStr).put((String)value, values.getInt((String)value));
+                    }
+                }
+            }catch(Exception e){
+                LOG.info("Error when reading Host-Host information: " + e.toString());
+            }
+            return hostHostDistance;
+        }
+        public Map<String, String> readPartitionLeaderDistance(){
+            Map<String, String> taskHostDistance = new HashMap<>();
+            try{
+                LOG.info("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
+                JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
+                LOG.debug("PartitionLeader-Host information ".concat(json.toString()));
+                for(Object key: json.keySet()){
+                    String keyStr = (String)key;
+                    String value = json.getString(keyStr);
+                    taskHostDistance.put(keyStr, value);
+                }
+            }catch(Exception e){
+                LOG.info("Error when reading Host-Host information: " + e.toString());
+            }
+            return taskHostDistance;
+        }
         /*public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();
             try{
@@ -174,8 +226,8 @@ public class MixedLocalityManager {
         }*/
 
     }
-    private ChordHashing chord;
-    private LocalityHashing locality;
+    private ConsistentHashing consistentHashing;
+    private LocalityDistance locality;
     private WebReader webReader;
     private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
@@ -192,8 +244,8 @@ public class MixedLocalityManager {
     private final int LOCALITY_RETRY_TIMES = 1;
     public MixedLocalityManager(){
         config = null;
-        chord = new ChordHashing();
-        locality = new LocalityHashing();
+        consistentHashing = new ConsistentHashing();
+        locality = new LocalityDistance();
         webReader = new WebReader();
         taskContainer = new HashMap<>();
         //containerHost = new HashMap<>();
@@ -296,21 +348,22 @@ public class MixedLocalityManager {
         //TODO
         LOG.info("Inserting container "+container);
         containerVNs.put(container, defaultVNs);
-        chord.insert(container, defaultVNs);
+        consistentHashing.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
     // Container left
     private void removeContainer(String container){
         //TODO
-        chord.remove(container);
+        consistentHashing.remove(container);
         locality.remove(container);
         containerVNs.remove(container);
     }
 
     // Initial all tasks at the beginning;
     public void setTasks(Map<String, TaskModel> tasks){
+        consistentHashing.initTasks(tasks);
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-            chord.insert(task.getKey(), 1);
+            consistentHashing.insert(task.getKey(), 1);
             locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
     }
@@ -422,7 +475,7 @@ public class MixedLocalityManager {
             total += entry.getValue();
             number++;
         }
-        double avgTime = 10.0;
+        double avgTime = 4.0;
         double Upper = avgTime * 2;
         double Lower = avgTime / 2;
         for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
@@ -433,9 +486,9 @@ public class MixedLocalityManager {
             String containerId = entry.getKey().substring(16);
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
             if(this.containerVNs.containsKey(containerId)){
-                if(speed == 0)chord.change(containerId, 0);
-                else if(messages/speed < Lower)chord.change(containerId, getCurrentVNs(containerId) + 20);
-                else if(messages/speed > Upper)chord.change(containerId, getCurrentVNs(containerId)/2);
+                if(speed == 0)consistentHashing.change(containerId, 0);
+                else if(messages/speed < Lower)consistentHashing.change(containerId, getCurrentVNs(containerId) + 20);
+                else if(messages/speed > Upper)consistentHashing.change(containerId, getCurrentVNs(containerId)/2);
             }else{
                 //Remove left containers
                 unprocessedMessageMonitor.removeContainer(containerId);
@@ -448,7 +501,7 @@ public class MixedLocalityManager {
         return this.containerVNs.get(processorId);
     }
     public double distance(String t1, String t2){
-        double dis = p1*chord.distance(t1,t2)+p2*locality.distance(t1,t2);
+        double dis = p1*consistentHashing.distance(t1,t2)+p2*locality.distance(t1,t2);
         LOG.info("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
     }
