@@ -65,13 +65,27 @@ public class MixedLocalityManager {
         public void remove(String item){
             coord.remove(item);
         }
-        public void balance(String maxContainer, String minContainer){
+        /*
+            Add a VN to container
+         */
+        public void addVN(String containerId, int vn){
+            LOG.info("Add Virtual Node at position: " + vn + " to container " + containerId);
+            coord.get(containerId).add(vn);
+        }
+        /*
+            Remove a VN from container.
+         */
+        public int removeVN(String containerId){
+            LOG.info("Remove Virtual Node from to container " + containerId);
+            int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(containerId).size());
+            return coord.get(containerId).remove(randomNum);
+        }
+        public void simpleBalance(String maxContainer, String minContainer){
             LOG.info("Move virtual node of " + maxContainer + " to " + minContainer);
             if(coord.get(maxContainer).size()>1){
-                int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(maxContainer).size());
-                LOG.info("Move the " + randomNum + "-th VN");
-                int x = coord.get(maxContainer).remove(randomNum);
-                coord.get(minContainer).add(randomNum);
+                int vn = removeVN(maxContainer);
+                LOG.info("Move the VN at position: " + vn);
+                addVN(minContainer, vn);
             }else LOG.info(maxContainer + " only has 1 VN. No movement");
 
         }
