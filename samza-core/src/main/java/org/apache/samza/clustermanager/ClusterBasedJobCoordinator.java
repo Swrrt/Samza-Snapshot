@@ -161,6 +161,8 @@ public class ClusterBasedJobCoordinator {
 
     // build a container process Manager
     containerProcessManager = new ContainerProcessManager(config, state, metrics);
+
+
   }
 
   /**
@@ -184,6 +186,10 @@ public class ClusterBasedJobCoordinator {
     try {
       //initialize JobCoordinator state
       log.info("Starting Cluster Based Job Coordinator");
+
+      // init and start the listener
+      DMListener listener = new DMListenerRMI();
+      listener.startListener();
 
       containerProcessManager.start();
       partitionMonitor.start();
