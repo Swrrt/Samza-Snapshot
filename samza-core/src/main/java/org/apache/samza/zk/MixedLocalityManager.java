@@ -24,8 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class MixedLocalityManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
-    private static final int LOWERBOUND = 10;
-    private static final int UPPERBOUND = 200;
+    private double threshold;
     private class ConsistentHashing{
         private int Length;
         private Map<String, LinkedList<Integer>> coord;
@@ -267,7 +266,7 @@ public class MixedLocalityManager {
         containerVNs = new HashMap<>();
         tasks = new HashMap<>();
         oldJobModel = null;
-        defaultVNs = 100;
+        defaultVNs = 10;
         p1 = 1;
         p2 = 0;
         utilizationServer = new UtilizationServer();
@@ -290,6 +289,7 @@ public class MixedLocalityManager {
         LOG.info("Task Models:" + tasks.toString());
         setTasks(tasks);
         unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
+        threshold = config.getDouble("balance.threshold", 10.0);
         unprocessedMessageMonitor.start();
         utilizationServer.start();
         localityServer.start();
@@ -475,31 +475,55 @@ public class MixedLocalityManager {
         HashMap processingSpeed = unprocessedMessageMonitor.getProcessingSpeed();
         LOG.info("Unprocessed Messages information: " + unprocessedMessages.toString());
         LOG.info("Processing speed information: " + processingSpeed.toString());
-        return generateNewJobModel(unprocessedMessages, processingSpeed);
+        return generateNewJobModel(unprocessedMessages, processingSpeed, oldJobModel);
     }
-    // Generate new job model with UnprocessedMessages information.
-    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed){
-        //TODO
-        /*
-        Calculate VNs according to UnprocessedMessages and current processing Speed
-        */
-        long total = 0;
-        int number = 0;
-        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
-            total += entry.getValue();
-            number++;
-        }
-        double avgTime = 4.0;
-        double Upper = avgTime * 2;
-        double Lower = avgTime / 2;
-        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
-            long messages = entry.getValue();
-            double speed = 0; //Assume containers with no responses as dead
-            if(processingSpeed.containsKey(entry.getKey()))speed = processingSpeed.get(entry.getKey());
+    /*
+        Water filling to move VN from most overloaded container to not overloaded container
+        Minimize max(unproc/proc)
+     */
+    public JobModel waterfill(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel){
+        long totalUnproc = 0;
+        int number = unprocessedMessages.size();
+        double totalProc = 0;
+        Map<String, Long> unprocessedContainer = new HashMap<>();
+        Map<String, String> taskContainer = getTaskContainer(oldJobModel);
 
-            String containerId = entry.getKey().substring(16);
+        /*
+         Calculate unprocessed messages for containers
+         */
+        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
+            totalUnproc += entry.getValue();
+            String containerId = taskContainer.get(entry.getKey());
+            if(!unprocessedContainer.containsKey(containerId)){
+                unprocessedContainer.put(containerId,0l);
+            }
+            unprocessedContainer.put(containerId, unprocessedContainer.get(containerId) + entry.getValue());
+        }
+
+        for(Double x: processingSpeed.values()){
+            totalProc += x;
+        }
+
+        if(totalProc < 1e-9){
+            LOG.info("Total Processing Speed is too low, no change is made");
+            return generateJobModel();
+        }
+        double target = totalUnproc / totalProc;
+        /*
+            Choose most overloaded container
+         */
+        double max = 0;
+        for(Map.Entry<String, Double> entry: processingSpeed.entrySet()){
+            if()
+            long messages = entry.getValue();
+            String containerId = entry.getKey();
+            double proc = 0;
+            if(processingSpeed.containsKey(containerId)){
+                processingSpeed.get(containerId);
+            }
+            containerId = containerId.substring(16); //Need to translate
             //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
-            if(this.containerVNs.containsKey(containerId)){
+            if(containerVNs.containsKey(containerId)){
                 if(speed == 0)consistentHashing.change(containerId, 0);
                 else if(messages/speed < Lower)consistentHashing.change(containerId, getCurrentVNs(containerId) + 20);
                 else if(messages/speed > Upper)consistentHashing.change(containerId, getCurrentVNs(containerId)/2);
@@ -509,7 +533,34 @@ public class MixedLocalityManager {
             }
         }
         LOG.info("New VNs: " + containerVNs.toString());
-        return generateJobModel();
+        JobModel tryJobModel = generateJobModel();
+        calculate()
+    }
+    /*
+        Generate new job model with UnprocessedMessages information.
+        Unprocessed Messages by tasks.
+        Processing Speed by containers.
+        Return true to scale up.
+     */
+    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel){
+        //TODO
+        /*
+        Calculate VNs according to UnprocessedMessages and current processing Speed
+        */
+        int iterate_times = 1; // Maximal # of iteration
+        JobModel tryJobModel = oldJobModel;
+        for(int times = 0; times < iterate_times; times++){
+            tryJobModel = waterfill(unprocessedMessages, processingSpeed, tryJobModel);
+            if(!checkOverload(unprocessedMessages, processingSpeed, tryJobModel))break;
+        }
+        if(checkOverload(unprocessedMessages, processingSpeed, tryJobModel)){
+            LOG.info("Cannot balance the load, need scaling out");
+            /*
+                TODO:
+                scaling out
+             */
+        }
+        return tryJobModel;
     }
     private int getCurrentVNs(String processorId){
         return this.containerVNs.get(processorId);
