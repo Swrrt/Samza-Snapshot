@@ -508,13 +508,28 @@ public class MixedLocalityManager {
             LOG.info("Total Processing Speed is too low, no change is made");
             return generateJobModel();
         }
-        double target = totalUnproc / totalProc;
         /*
             Choose most overloaded container
          */
-        double max = 0;
-        for(Map.Entry<String, Double> entry: processingSpeed.entrySet()){
-            if()
+        double max = -1;
+        String maxContainer = "";
+        for(Map.Entry<String, Double> entry: processingSpeed.entrySet()) {
+            String keyName = entry.getKey();
+            Double speed = entry.getValue();
+            if (speed > 1e-9 && unprocessedContainer.containsKey(keyName)) {
+                long unprocessed = unprocessedContainer.get(keyName);
+                if (unprocessed / speed > max) {
+                    max = unprocessed / speed;
+                    maxContainer = keyName;
+                }
+            }
+        }
+        LOG.info("Current max backlog/process container: " + maxContainer);
+        /*
+            Move virtual nodes from most overloaded container
+         */
+        double perVN = max/getCurrentVNs(maxContainer.substring(16));
+
             long messages = entry.getValue();
             String containerId = entry.getKey();
             double proc = 0;
