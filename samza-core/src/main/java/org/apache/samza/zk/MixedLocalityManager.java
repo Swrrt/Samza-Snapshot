@@ -245,7 +245,6 @@ public class MixedLocalityManager {
     private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
-    private Map<String, Integer> containerVNs; //number of VN for each container
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
     private Config config;
@@ -263,7 +262,6 @@ public class MixedLocalityManager {
         taskContainer = new HashMap<>();
         //containerHost = new HashMap<>();
         hostRack = new HashMap<>();
-        containerVNs = new HashMap<>();
         tasks = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 10;
@@ -361,7 +359,6 @@ public class MixedLocalityManager {
     private void insertContainer(String container){
         //TODO
         LOG.info("Inserting container "+container);
-        containerVNs.put(container, defaultVNs);
         consistentHashing.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
@@ -370,7 +367,6 @@ public class MixedLocalityManager {
         //TODO
         consistentHashing.remove(container);
         locality.remove(container);
-        containerVNs.remove(container);
     }
 
     // Initial all tasks at the beginning;
@@ -405,11 +401,11 @@ public class MixedLocalityManager {
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
         LOG.info("Generating new job model...");
-        LOG.info("Containers: "+containerVNs.toString());
+        LOG.info("Containers: "+ consistentHashing.coord.keySet());
         LOG.info("Tasks: "+tasks.toString());
         Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
-        for(String container:this.containerVNs.keySet()){
+        for(String container:this.consistentHashing.coord.keySet()){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             containerTasks.put(processor, new LinkedList<>());
@@ -418,7 +414,7 @@ public class MixedLocalityManager {
             //Find the closest container for each task
             String minContainer = null;
             double min = 0;
-            for (String container: this.containerVNs.keySet()){
+            for (String container: this.consistentHashing.coord.keySet()){
                 LOG.info("Calculate distance between task-"+task.getKey()+" container-"+container);
                 double dis = distance(task.getKey(), container);
                 if(minContainer == null || dis<min){
@@ -429,7 +425,7 @@ public class MixedLocalityManager {
             //containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
             containerTasks.get(minContainer).add(task.getValue());
         }
-        for(String container:this.containerVNs.keySet()){
+        for(String container:this.consistentHashing.coord.keySet()){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             Map<TaskName, TaskModel> tasks = new HashMap<>();
@@ -451,13 +447,13 @@ public class MixedLocalityManager {
         for(String processor: processors){
             containers.add(processor);
             //Insert new container
-            if(!this.containerVNs.containsKey(processor)){
+            if(!this.consistentHashing.coord.containsKey(processor)){
                 insertContainer(processor);
 
             }
         }
         //Remove containers no longer exist
-        for(String container: this.containerVNs.keySet()){
+        for(String container: this.consistentHashing.coord.keySet()){
             if(!containers.contains(container)){
                 removeContainer(container);
             }
@@ -478,10 +474,35 @@ public class MixedLocalityManager {
         return generateNewJobModel(unprocessedMessages, processingSpeed, oldJobModel);
     }
     /*
+        Check whether the job model is still overloaded.
+     */
+    public boolean checkOverload(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel tryJobModel){
+        Map<String, Long> unprocessedContainer = new HashMap<>();
+        Map<String, String> taskContainer = getTaskContainer(oldJobModel);
+        /*
+         Calculate unprocessed messages for containers
+         */
+        for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
+            String containerId = taskContainer.get(entry.getKey());
+            if (!unprocessedContainer.containsKey(containerId)) {
+                unprocessedContainer.put(containerId, 0l);
+            }
+            unprocessedContainer.put(containerId, unprocessedContainer.get(containerId) + entry.getValue());
+        }
+        for(String containerId: processingSpeed.keySet()){
+            if(unprocessedContainer.containsKey(containerId)){
+                double rate = unprocessedContainer.get(containerId)/processingSpeed.get(containerId);
+                if(rate > threshold + 1e-9)return true;
+            }
+        }
+        return false;
+    }
+    /*
         Water filling to move VN from most overloaded container to not overloaded container
         Minimize max(unproc/proc)
      */
-    public JobModel waterfill(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel){
+
+    public JobModel waterfill(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel) {
         long totalUnproc = 0;
         int number = unprocessedMessages.size();
         double totalProc = 0;
@@ -491,20 +512,20 @@ public class MixedLocalityManager {
         /*
          Calculate unprocessed messages for containers
          */
-        for(Map.Entry<String, Long> entry: unprocessedMessages.entrySet()){
+        for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
             totalUnproc += entry.getValue();
             String containerId = taskContainer.get(entry.getKey());
-            if(!unprocessedContainer.containsKey(containerId)){
-                unprocessedContainer.put(containerId,0l);
+            if (!unprocessedContainer.containsKey(containerId)) {
+                unprocessedContainer.put(containerId, 0l);
             }
             unprocessedContainer.put(containerId, unprocessedContainer.get(containerId) + entry.getValue());
         }
 
-        for(Double x: processingSpeed.values()){
+        for (Double x : processingSpeed.values()) {
             totalProc += x;
         }
 
-        if(totalProc < 1e-9){
+        if (totalProc < 1e-9) {
             LOG.info("Total Processing Speed is too low, no change is made");
             return generateJobModel();
         }
@@ -513,7 +534,7 @@ public class MixedLocalityManager {
          */
         double max = -1;
         String maxContainer = "";
-        for(Map.Entry<String, Double> entry: processingSpeed.entrySet()) {
+        for (Map.Entry<String, Double> entry : processingSpeed.entrySet()) {
             String keyName = entry.getKey();
             Double speed = entry.getValue();
             if (speed > 1e-9 && unprocessedContainer.containsKey(keyName)) {
@@ -528,28 +549,35 @@ public class MixedLocalityManager {
         /*
             Move virtual nodes from most overloaded container
          */
-        double perVN = max/getCurrentVNs(maxContainer.substring(16));
-
-            long messages = entry.getValue();
-            String containerId = entry.getKey();
-            double proc = 0;
-            if(processingSpeed.containsKey(containerId)){
-                processingSpeed.get(containerId);
-            }
-            containerId = containerId.substring(16); //Need to translate
-            //LOG.info("Utilization of " +entry.getKey()+" is: "+entry.getValue());
-            if(containerVNs.containsKey(containerId)){
-                if(speed == 0)consistentHashing.change(containerId, 0);
-                else if(messages/speed < Lower)consistentHashing.change(containerId, getCurrentVNs(containerId) + 20);
-                else if(messages/speed > Upper)consistentHashing.change(containerId, getCurrentVNs(containerId)/2);
-            }else{
-                //Remove left containers
-                unprocessedMessageMonitor.removeContainer(containerId);
-            }
+        double perVN = max / getNumberOfVirtualNodes(maxContainer.substring(16));
+        double unprocVN = unprocessedContainer.get(maxContainer) / getNumberOfVirtualNodes(maxContainer.substring(16));
+        if (max < threshold - 1e-9) {
+            LOG.info("No need to move");
+            return oldJobModel;
         }
-        LOG.info("New VNs: " + containerVNs.toString());
-        JobModel tryJobModel = generateJobModel();
-        calculate()
+        long moveVNs = (long) Math.ceil((max - threshold) / perVN);
+        /*
+            Choose the container which estimate minimize the backlog/process to put
+            TODO: use real backlog/process
+
+        */
+        for (int i = 0; i < moveVNs; i++) {
+            int vn = consistentHashing.removeVN(maxContainer);
+            String minContainer = maxContainer;
+            double min = threshold + 100;
+            for (String container : unprocessedContainer.keySet())
+                if (!container.equals(maxContainer) && processingSpeed.containsKey(container)) {
+                    double proc = processingSpeed.get(container);
+                    double unproc = unprocessedContainer.get(container) + unprocVN;
+                    if (proc > 1e-9 && unproc / proc < min) {
+                        min = unproc / proc;
+                        minContainer = container;
+                    }
+
+                }
+            addVNs(minContainer, vn);
+        }
+        return generateJobModel();
     }
     /*
         Generate new job model with UnprocessedMessages information.
@@ -565,9 +593,12 @@ public class MixedLocalityManager {
         int iterate_times = 1; // Maximal # of iteration
         JobModel tryJobModel = oldJobModel;
         for(int times = 0; times < iterate_times; times++){
-            tryJobModel = waterfill(unprocessedMessages, processingSpeed, tryJobModel);
             if(!checkOverload(unprocessedMessages, processingSpeed, tryJobModel))break;
+            tryJobModel = waterfill(unprocessedMessages, processingSpeed, tryJobModel);
         }
+        /*
+            VNs are changed after waterfill()!
+         */
         if(checkOverload(unprocessedMessages, processingSpeed, tryJobModel)){
             LOG.info("Cannot balance the load, need scaling out");
             /*
@@ -577,8 +608,11 @@ public class MixedLocalityManager {
         }
         return tryJobModel;
     }
-    private int getCurrentVNs(String processorId){
-        return this.containerVNs.get(processorId);
+    private void addVNs(String containerId, int vnCoordinate) {
+        consistentHashing.addVN(containerId, vnCoordinate);
+    }
+    private int getNumberOfVirtualNodes(String containerId) {
+        return consistentHashing.coord.get(containerId).size();
     }
     public double distance(String t1, String t2){
         double dis = p1*consistentHashing.distance(t1,t2)+p2*locality.distance(t1,t2);
