@@ -471,7 +471,16 @@ public class MixedLocalityManager {
         HashMap processingSpeed = unprocessedMessageMonitor.getProcessingSpeed();
         LOG.info("Unprocessed Messages information: " + unprocessedMessages.toString());
         LOG.info("Processing speed information: " + processingSpeed.toString());
-        return generateNewJobModel(unprocessedMessages, processingSpeed, oldJobModel);
+
+        JobModel newJobModel = generateNewJobModel(unprocessedMessages, processingSpeed, oldJobModel);
+        // If scaling is needed
+        if(newJobModel == null){
+            /*
+                TODO:
+                Trigger scaling
+             */
+        }
+        return newJobModel;
     }
     /*
         Check whether the job model is still overloaded.
@@ -604,7 +613,9 @@ public class MixedLocalityManager {
             /*
                 TODO:
                 scaling out
+                Return null for scaling out
              */
+            return null;
         }
         return tryJobModel;
     }
