@@ -36,6 +36,7 @@ def scalaModules = [
         'samza-kv-rocksdb',
         'samza-hdfs',
         'samza-yarn',
+        'samza-dm',
         'samza-test',
         'samza-autoscaling'
 ] as HashSet
