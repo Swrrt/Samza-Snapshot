@@ -24,6 +24,8 @@ import java.util.*;
 
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
+import org.apache.samza.clustermanager.dm.DMListener;
+import org.apache.samza.clustermanager.dm.DMListenerRMI;
 import org.apache.samza.config.*;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
@@ -173,19 +175,24 @@ public class YarnApplicationMaster {
             containerProcessManager.start();
             partitionMonitor.start();
 
+            // init and start the listener
+            DMListener listener = new DMListenerRMI();
+            listener.setYarnApplicationMaster(this);
+            listener.startListener();
+
             boolean isInterrupted = false;
             //For testing
             int counter = 0;
             JobModel jobModel = jobModelManager.jobModel();
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
-                    counter++;
+//                    counter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(counter == 120){
-                        counter = 0;
-                        jobModel = scaleUpByOne(jobModel);
-                        leaderJobCoordinator.publishJobModel(jobModel);
-                    }
+//                    if(counter == 120){
+//                        counter = 0;
+//                        jobModel = scaleUpByOne(jobModel);
+//                        leaderJobCoordinator.publishJobModel(jobModel);
+//                    }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
                     log.error("Interrupted in AM loop {} ", e);
@@ -199,6 +206,16 @@ public class YarnApplicationMaster {
             onShutDown();
         }
     }
+
+    public void scaleUpByN(int numContainer){
+        log.info("DM: invoked from dm and will scale out one container.");
+        for (int i = 0; i< numContainer; i++){
+            JobModel jobModel = jobModelManager.jobModel();
+            jobModel = scaleUpByOne(jobModel);
+            leaderJobCoordinator.publishJobModel(jobModel);
+        }
+    }
+
     /* For testing */
     private JobModel scaleUpByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
@@ -212,7 +229,7 @@ public class YarnApplicationMaster {
         }catch (Exception e){
         }
         log.info("Requesting more containers");
-        //containerProcessManager.requestOneMore();
+        containerProcessManager.requestOneMore();
         return jobModel;
     }
     /* For testing */
