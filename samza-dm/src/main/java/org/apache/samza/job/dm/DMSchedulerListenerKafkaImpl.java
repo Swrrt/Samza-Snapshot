@@ -41,8 +41,8 @@ public class DMSchedulerListenerKafkaImpl implements DMSchedulerListener {
             ConsumerRecords<String, String> records = consumer.poll(10000);
             for (ConsumerRecord<String, String> record : records) {
                 // print the offset,key and value for the consumer records.
-                System.out.printf("offset = %d, key = %s, value = %s\n", record.offset(), record.key(), record.value());
-//                StageReport report = new StageReport(record.value());
+//                System.out.printf("offset = %d, key = %s, value = %s\n", record.offset(), record.key(), record.value());
+                StageReport report = new StageReport(record.value());
                 scheduler.updateStage(report);
             }
         }
