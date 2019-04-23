@@ -234,6 +234,10 @@ public class YarnApplicationMaster {
     }
     /* For testing */
 
+    private void reBalance(JobModel jobModel){
+        //TODO: invoke leaderJobCoordinator and do onProcessorChange()
+    }
+
     private boolean checkAndThrowException() throws Exception {
         if (coordinatorException != null) {
             throw coordinatorException;
