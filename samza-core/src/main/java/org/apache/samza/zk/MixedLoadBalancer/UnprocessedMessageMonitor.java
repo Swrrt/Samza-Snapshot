@@ -1,10 +1,9 @@
-package org.apache.samza.zk;
+package org.apache.samza.zk.MixedLoadBalancer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.samza.zk.JVMMonitor;
 import org.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

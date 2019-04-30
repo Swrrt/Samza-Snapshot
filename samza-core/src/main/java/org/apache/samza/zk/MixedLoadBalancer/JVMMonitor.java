@@ -1,6 +1,6 @@
-package org.apache.samza.zk;
+package org.apache.samza.zk.MixedLoadBalancer;
 
-import org.apache.samza.RMI.UtilizationClient;
+import org.apache.samza.zk.MixedLoadBalancer.RMI.UtilizationClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

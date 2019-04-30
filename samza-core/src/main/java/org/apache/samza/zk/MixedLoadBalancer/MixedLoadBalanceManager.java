@@ -1,11 +1,11 @@
-package org.apache.samza.zk;
+package org.apache.samza.zk.MixedLoadBalancer;
 
 import com.google.common.hash.Hashing;
-import javafx.util.Pair;
-import org.apache.samza.RMI.LocalityServer;
-import org.apache.samza.RMI.UtilizationServer;
+import kafka.admin.ConsumerGroupCommand;
+import org.apache.samza.system.SystemStreamPartition;
+import org.apache.samza.zk.MixedLoadBalancer.RMI.LocalityServer;
+import org.apache.samza.zk.MixedLoadBalancer.RMI.UtilizationServer;
 import org.apache.samza.config.Config;
-import org.apache.samza.container.LocalityManager;
 
 import java.util.*;
 
@@ -22,231 +22,25 @@ import java.net.URL;
 import java.nio.charset.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class MixedLocalityManager {
-    private static final Logger LOG = LoggerFactory.getLogger(MixedLocalityManager.class);
+public class MixedLoadBalanceManager {
+    private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
     private double threshold;
-    private class ConsistentHashing{
-        private int Length;
-        private Map<String, LinkedList<Integer>> coord;
-        private Map<String, Integer> taskCoord;
-        public ConsistentHashing(){
-            coord = new HashMap<>();
-        }
-        // Shuffle tasks to the ring
-        protected void initTasks(Map<String, TaskModel> tasks){
-            Length = tasks.size();
-            List<String> taskNames = new ArrayList<>(Length);
-            for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-                taskNames.add(task.getKey());
-            }
-            Collections.shuffle(taskNames);
-            taskCoord = new HashMap<>();
-            for(int i=0; i < Length; i++){
-                taskCoord.put(taskNames.get(i), i);
-            }
-        }
-        // Generate hash value for strings
-        private int generateHash(String item){
-            //Using SHA-1 Hashing
-            return Hashing.sha1().hashString(item, Charsets.UTF_8).asInt() % Length;
-        }
-        //Generate Virtual Node id
-        private String generateVNName(String containerId, int VNid){
-            return containerId + '_' + VNid;
-        }
-        public void insert(String item, int VNs){
-            LinkedList<Integer> list = new LinkedList<>();
-            for(int i=0;i<VNs;i++){
-                 list.add(generateHash(generateVNName(item,i)));
-            }
-            coord.put(item, list);
-        }
-        public void remove(String item){
-            coord.remove(item);
-        }
-        /*
-            Add a VN to container
-         */
-        public void addVN(String containerId, int vn){
-            LOG.info("Add Virtual Node at position: " + vn + " to container " + containerId);
-            coord.get(containerId).add(vn);
-        }
-        /*
-            Remove a VN from container.
-         */
-        public int removeVN(String containerId){
-            LOG.info("Remove Virtual Node from to container " + containerId);
-            int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(containerId).size());
-            return coord.get(containerId).remove(randomNum);
-        }
-        public void simpleBalance(String maxContainer, String minContainer){
-            LOG.info("Move virtual node of " + maxContainer + " to " + minContainer);
-            if(coord.get(maxContainer).size()>1){
-                int vn = removeVN(maxContainer);
-                LOG.info("Move the VN at position: " + vn);
-                addVN(minContainer, vn);
-            }else LOG.info(maxContainer + " only has 1 VN. No movement");
 
-        }
-        public int distance(String itemX, String itemY){
-            LOG.info("Calculate load distance between "+itemX+"  "+itemY);
-            LOG.info("load items "+coord.toString());
-            int min = Length + 1000;
-            int x = taskCoord.get(itemX);
-            LinkedList<Integer> y = coord.get(itemY);
-            for(int yy: y){
-                int t = x - yy;
-                if(t<0)t = -t;
-                if(t < min){
-                    min = t;
-                }
-            }
-            LOG.info("Calculate load distance between "+itemX+"  "+itemY + " is: " + min);
-            return min;
-        }
-    };
-    private class LocalityDistance{
-        private long[] cost;
-        private final int nlayer;
-        private Map<String, ArrayList<String>> coord;
-        private Map<String, ArrayList<String>> taskCoord; //position of task's partition
-        public LocalityDistance(){
-            nlayer = 5;
-            cost = new long[nlayer];
-            cost[0] = 1;
-            for(int i= 1 ;i < nlayer ;i++)cost[i] = cost[i-1] * 10;
-            coord = new HashMap<>();
-        }
-        // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
-        public void insert(String Id, List<String> items, Integer amount){
-            LOG.info("Inserting to locality list container "+Id+" :"+items.toString());
-            if(coord.containsKey(Id)){
-               coord.remove(Id);
-            }
-            ArrayList<String> value = new ArrayList<>();
-            int i = 0;
-            for (String item : items) {
-                value.add(item);
-            }
-            value.add(amount.toString());
-            coord.put(Id, value);
-        }
-        public void remove(String Id){
-            coord.remove(Id);
-        }
-        public long distance(String cid1, String cid2){
-            long sum = 0;
-            LOG.info("Calculating Locality distance between "+cid1+" "+cid2);
-            LOG.info("Locality items "+coord.toString());
-            ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
-            LOG.info("Locality items "+v1.toString()+"      "+v2.toString());
-            for(int i=0 ; i < nlayer-1; i++){
-                if(!v1.get(i).equals(v2.get(i))){
-                    sum += cost[i];
-                }
-            }
-            LOG.info("Distance "+sum);
-            return sum * Integer.parseInt(v1.get(nlayer-1)) * Integer.parseInt(v2.get(nlayer-1));
-        }
-    }
-    private class WebReader{
-        String hostRackUrl;
-        String hostHostUrl;
-        //String containerHostUrl;
-        public WebReader(){
-            hostRackUrl = "http://192.168.0.36:8880";
-            hostHostUrl = "http://192.168.0.36:8880";
-            //containerHostUrl = "http://192.168.0.36:8881";
-        }
-        public WebReader(String s1, String s2){
-            hostRackUrl = new String(s1);
-            //containerHostUrl = new String(s2);
-        }
-        public Map<String, List<String>> readHostRack() {
-            Map<String, List<String>> hostRack = new HashMap<>();
-            try{
-                LOG.info("Reading Host-Rack information from ".concat(hostRackUrl));
-                JSONObject json = new JSONObject(IOUtils.toString(new URL(hostRackUrl), Charset.forName("UTF-8")));
-                LOG.info("Host-rack information ".concat(json.toString()));
-                for(Object key: json.keySet()){
-                    String keyStr = (String)key;
-                    JSONArray value = json.getJSONArray(keyStr);
-                    if(!hostRack.containsKey(keyStr)) {
-                        hostRack.put(keyStr, new LinkedList<>());
-                    }
-                    for(Object o: value){
-                        hostRack.get(keyStr).add((String)o);
-                    }
-                }
-            }catch(Exception e){
-                LOG.info("Error when reading Host-Rack information: " + e.toString());
-            }
-            return hostRack;
-        }
-        public Map<String, Map<String, Integer>> readHostHostDistance(){
-            Map<String, Map<String, Integer>> hostHostDistance = new HashMap<>();
-            try{
-                LOG.info("Reading Host-Host information from ".concat(hostHostUrl));
-                JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-                LOG.debug("Host-Host information ".concat(json.toString()));
-                for(Object key: json.keySet()){
-                    String keyStr = (String)key;
-                    JSONObject values = json.getJSONObject(keyStr);
-                    if(!hostHostDistance.containsKey(keyStr)){
-                        hostHostDistance.put(keyStr, new HashMap<>());
-                    }
-                    for(Object value: values.keySet()){
-                        hostHostDistance.get(keyStr).put((String)value, values.getInt((String)value));
-                    }
-                }
-            }catch(Exception e){
-                LOG.info("Error when reading Host-Host information: " + e.toString());
-            }
-            return hostHostDistance;
-        }
-        public Map<String, String> readPartitionLeaderDistance(){
-            Map<String, String> taskHostDistance = new HashMap<>();
-            try{
-                LOG.info("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
-                JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-                LOG.debug("PartitionLeader-Host information ".concat(json.toString()));
-                for(Object key: json.keySet()){
-                    String keyStr = (String)key;
-                    String value = json.getString(keyStr);
-                    taskHostDistance.put(keyStr, value);
-                }
-            }catch(Exception e){
-                LOG.info("Error when reading Host-Host information: " + e.toString());
-            }
-            return taskHostDistance;
-        }
-        /*public Map<String, String> readContainerHost(){
-            Map<String, String> containerHost = new HashMap<>();
-            try{
-                LOG.info("Reading Container-Host information from ".concat(containerHostUrl));
-                JSONObject json = new JSONObject(IOUtils.toString(new URL(containerHostUrl), Charset.forName("UTF-8")));
-                LOG.info("Container-Host information ".concat(json.toString()));
-                for(Object key: json.keySet()){
-                    String keyStr = (String)key;
-                    String value = json.getString(keyStr);
-                    //TODO translate YARN container ID to our container ID
-                    containerHost.put(keyStr.substring(keyStr.length()-6, keyStr.length()),value);
-                }
-            }catch(Exception e){
-                LOG.info("Error: "+e.toString());
-            }
-            return containerHost;
-        }*/
 
-    }
+
     private ConsistentHashing consistentHashing;
     private LocalityDistance locality;
     private WebReader webReader;
     private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
+    private Map<String, String> partitionTask = null;
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
+    private Map<String, Long> taskBacklogs = null;
+    private Map<String, Double> taskProcessingSpeed = null;
+    private Map<String, Long> containerBacklogs = null;
+    private Map<String, Double> containerProcessingSpeed = null;
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
@@ -254,7 +48,8 @@ public class MixedLocalityManager {
     private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
     private final int LOCALITY_RETRY_TIMES = 1;
-    public MixedLocalityManager(){
+    private KafkaOffsetRetriever kafkaOffsetRetriever = null;
+    public MixedLoadBalanceManager(){
         config = null;
         consistentHashing = new ConsistentHashing();
         locality = new LocalityDistance();
@@ -271,8 +66,12 @@ public class MixedLocalityManager {
         unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
     }
+    /*
+        TODO:
+        Generate initial JobModel in here.
+     */
     public void initial(JobModel jobModel, Config config){
-        LOG.info("MixedLocalityManager is initializing");
+        LOG.info("MixedLoadBalanceManager is initializing");
         getHostRack();
         this.config = config;
         oldJobModel = jobModel;
@@ -483,7 +282,13 @@ public class MixedLocalityManager {
         return newJobModel;
     }
     /*
+        TODO: add a task level unprocessed message information.
+     */
+
+
+    /*
         Check whether the job model is still overloaded.
+
      */
     public boolean checkOverload(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel tryJobModel){
         Map<String, Long> unprocessedContainer = new HashMap<>();
@@ -623,12 +428,90 @@ public class MixedLocalityManager {
         consistentHashing.addVN(containerId, vnCoordinate);
     }
     private int getNumberOfVirtualNodes(String containerId) {
-        return consistentHashing.coord.get(containerId).size();
+        return consistentHashing.getVNnumbers(containerId);
     }
     public double distance(String t1, String t2){
         double dis = p1*consistentHashing.distance(t1,t2)+p2*locality.distance(t1,t2);
         LOG.info("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
+    }
+
+    /*
+        Using kafka-consumer-groups command to run
+     */
+    public void retrieveBacklog(){
+        Map<String, Long> partitionBacklog = kafkaRetriever.retrieveBacklog();
+        taskBacklogs.clear();
+        containerBacklogs.clear();
+        for(Map.Entry<String, Long> entry: partitionBacklog.entrySet()){
+            String partition = entry.getKey();
+            long backlog = entry.getValue();
+            String task = partitionTask.get(partition);
+            taskBacklogs.put(task, backlog);
+            String container = taskContainer.get(task);
+            if(containerBacklogs.containsKey(container)){
+                backlog += containerBacklogs.get(container);
+            }
+            containerBacklogs.put(container, backlog);
+        }
+    }
+    public void retrieveProcessingSpeed(){
+        Map<String, Double> partitionProcessingSpeed = kafkaRetriever.retrieveSpeed();
+        taskProcessingSpeed.clear();
+        containerProcessingSpeed.clear();
+        for(Map.Entry<String, Double> entry: partitionProcessingSpeed.entrySet()){
+            String partition = entry.getKey();
+            double speed = entry.getValue();
+            String task = partitionTask.get(partition);
+            taskProcessingSpeed.put(task, speed);
+            String container = taskContainer.get(task);
+            if(containerProcessingSpeed.containsKey(container)){
+                speed += containerProcessingSpeed.get(container);
+            }
+            containerProcessingSpeed.put(container, speed);
+        }
+    }
+    /*
+       TODO: update all metrics and check if load is balance.
+       Return false if not balance
+    */
+    /*
+        Update taskContainer and partitionTask
+     */
+    private void updateFromJobModel(JobModel jobModel){
+        taskContainer.clear();
+        partitionTask.clear();
+        for(ContainerModel containerModel: jobModel.getContainers().values()){
+            String container = containerModel.getProcessorId();
+            for(TaskModel taskModel: containerModel.getTasks().values()){
+                String task = taskModel.getTaskName().getTaskName();
+                taskContainer.put(task, container);
+                for(SystemStreamPartition partition: taskModel.getSystemStreamPartitions()){
+                    String partitionId = String.valueOf(partition.getPartition().getPartitionId());
+                    partitionTask.put(partitionId, task);
+                }
+            }
+        }
+    }
+    public boolean checkLoad(){
+        updateFromJobModel(oldJobModel);
+        retrieveBacklog(); //Update backlog
+        retrieveProcessingSpeed(); //Update processing speed
+        for(String containerId: taskContainer.values()){
+            if(!containerBacklogs.containsKey(containerId)){
+                LOG.info("Cannot retrieve container "+containerId+" backlog information");
+            }else if(!containerProcessingSpeed.containsKey(containerId)){
+                LOG.info("Cannot retrieve container "+containerId+" processing speed information");
+            }else {
+                long backlog = containerBacklogs.get(containerId);
+                double processSpeed = containerProcessingSpeed.get(containerId);
+                if (backlog / ((double) processSpeed) > threshold) {
+                    LOG.info("Container " + containerId + "Exceed threshold, backlog: " + backlog + ", processing speed: " + processSpeed);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
     /*public double getUtil(String processorId){
         return utilizationServer.getUtilization(processorId);

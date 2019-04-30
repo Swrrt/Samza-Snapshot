@@ -228,7 +228,7 @@ public class YarnApplicationMaster {
     }
     private JobModel reBalance(JobModel jobModel){
         log.info("Rebalancing the JobModel");
-        jobModel = leaderJobCoordinator.testingRebalance();
+        jobModel = leaderJobCoordinator.testingRebalance(jobModel);
         ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
         try {
             log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));

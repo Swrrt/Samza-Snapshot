@@ -20,14 +20,10 @@ package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.samza.RMI.UtilizationServer;
-import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
@@ -48,6 +44,7 @@ import org.apache.samza.runtime.ProcessorIdGenerator;
 import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
+import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +80,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private final ZkBarrierForVersionUpgrade barrier;
     private final ZkJobCoordinatorMetrics metrics;
     private final Map<String, MetricsReporter> reporters;
-    private MixedLocalityManager mixedLocalityManager;
+    private MixedLoadBalanceManager mixedLoadBalanceManager;
     private StreamMetadataCache streamMetadataCache = null;
     private ScheduleAfterDebounceTime debounceTimer = null;
     private JobModel newJobModel = null;
@@ -96,7 +93,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
-        this.mixedLocalityManager = new MixedLocalityManager();
+        this.mixedLoadBalanceManager = new MixedLoadBalanceManager();
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
         this.zkUtils = zkUtils;
@@ -125,7 +122,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
-        mixedLocalityManager.initial(newJobModel, config);
+        mixedLoadBalanceManager.initial(newJobModel, config);
     }
     @Override
     public JobModel getJobModel(){
@@ -391,12 +388,12 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         onProcessorChange(currentProcessors);
     }
     public JobModel testingGenerateNewJobModel(List<String> processors){
-        // Generate new Job Model using MixedLocalityManager
-        return mixedLocalityManager.generateNewJobModel(processors);
+        // Generate new Job Model using MixedLoadBalanceManager
+        return mixedLoadBalanceManager.generateNewJobModel(processors);
         // return generateNewJobModel(processors);
     }
     public JobModel testingRebalance(){
-        return mixedLocalityManager.rebalanceJobModel();
+        return mixedLoadBalanceManager.rebalanceJobModel();
     }
     @VisibleForTesting
     public ZkUtils getZkUtils() {

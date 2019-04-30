@@ -1,4 +1,4 @@
-package org.apache.samza.RMI;
+package org.apache.samza.zk.MixedLoadBalancer.RMI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

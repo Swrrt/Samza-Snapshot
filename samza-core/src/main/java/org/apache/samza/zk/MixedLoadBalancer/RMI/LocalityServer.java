@@ -1,13 +1,10 @@
-package org.apache.samza.RMI;
-import org.apache.samza.RMI.UtilizationMessage;
-import org.apache.samza.zk.FollowerJobCoordinator;
+package org.apache.samza.zk.MixedLoadBalancer.RMI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LocalityServer {
