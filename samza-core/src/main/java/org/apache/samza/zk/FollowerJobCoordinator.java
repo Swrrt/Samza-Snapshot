@@ -99,7 +99,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private boolean hasCreatedChangeLogStreams = false;
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
-    private JVMMonitor jvmMonitor = null;
+    //private JVMMonitor jvmMonitor = null;
     private LocalityClient localityClient = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
@@ -123,7 +123,8 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
-        jvmMonitor = new JVMMonitor();
+        //
+        // jvmMonitor = new JVMMonitor();
         this.localityClient = new LocalityClient();
     }
     // In YARN mode, we have containerId
@@ -149,7 +150,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
-        jvmMonitor = new JVMMonitor();
+        //jvmMonitor = new JVMMonitor();
         this.localityClient = new LocalityClient();
     }
 
@@ -159,7 +160,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
-        jvmMonitor.start(getLeaderAddr(), processorId);
+        //jvmMonitor.start(getLeaderAddr(), processorId);
         localityClient.sendLocality(processorId, getHostName());
     }
     private String getHostName() {
@@ -187,7 +188,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if (coordinatorListener != null) {
             coordinatorListener.onCoordinatorStop();
         }
-        jvmMonitor.stop();
+        //jvmMonitor.stop();
     }
 
     private void startMetrics() {

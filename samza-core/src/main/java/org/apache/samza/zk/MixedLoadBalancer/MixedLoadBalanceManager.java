@@ -42,7 +42,7 @@ public class MixedLoadBalanceManager {
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double p1, p2;   // Weight parameter for Chord and Locality
-    private UtilizationServer utilizationServer = null;
+    //private UtilizationServer utilizationServer = null;
     private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
     private final int LOCALITY_RETRY_TIMES = 1;
@@ -60,7 +60,7 @@ public class MixedLoadBalanceManager {
         defaultVNs = 10;
         p1 = 1;
         p2 = 0;
-        utilizationServer = new UtilizationServer();
+        //utilizationServer = new UtilizationServer();
         unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
         kafkaOffsetRetriever = new KafkaOffsetRetriever();
@@ -88,7 +88,7 @@ public class MixedLoadBalanceManager {
         unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
         threshold = config.getDouble("balance.threshold", 10.0);
         unprocessedMessageMonitor.start();
-        utilizationServer.start();
+        //utilizationServer.start();
         localityServer.start();
     }
     // Read container-host mapping from web
@@ -200,11 +200,11 @@ public class MixedLoadBalanceManager {
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
         LOG.info("Generating new job model...");
-        LOG.info("Containers: "+ consistentHashing.coord.keySet());
-        LOG.info("Tasks: "+tasks.toString());
+        LOG.info("Containers: "+ taskContainer.values());
+        LOG.info("Tasks: "+ taskContainer.keySet());
         Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
-        for(String container:this.consistentHashing.coord.keySet()){
+        for(String container: taskContainer.values()){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             containerTasks.put(processor, new LinkedList<>());
@@ -213,7 +213,7 @@ public class MixedLoadBalanceManager {
             //Find the closest container for each task
             String minContainer = null;
             double min = 0;
-            for (String container: this.consistentHashing.coord.keySet()){
+            for (String container: taskContainer.values()){
                 LOG.info("Calculate distance between task-"+task.getKey()+" container-"+container);
                 double dis = distance(task.getKey(), container);
                 if(minContainer == null || dis<min){
@@ -224,7 +224,7 @@ public class MixedLoadBalanceManager {
             //containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
             containerTasks.get(minContainer).add(task.getValue());
         }
-        for(String container:this.consistentHashing.coord.keySet()){
+        for(String container: taskContainer.values()){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             Map<TaskName, TaskModel> tasks = new HashMap<>();
@@ -246,13 +246,13 @@ public class MixedLoadBalanceManager {
         for(String processor: processors){
             containers.add(processor);
             //Insert new container
-            if(!this.consistentHashing.coord.containsKey(processor)){
+            if(!taskContainer.values().contains(processor)){
                 insertContainer(processor);
 
             }
         }
         //Remove containers no longer exist
-        for(String container: this.consistentHashing.coord.keySet()){
+        for(String container: taskContainer.values()){
             if(!containers.contains(container)){
                 removeContainer(container);
             }
