@@ -487,7 +487,7 @@ public class MixedLoadBalanceManager {
                 String task = taskModel.getTaskName().getTaskName();
                 taskContainer.put(task, container);
                 for(SystemStreamPartition partition: taskModel.getSystemStreamPartitions()){
-                    String partitionId = String.valueOf(partition.getPartition().getPartitionId());
+                    int partitionId = partition.getPartition().getPartitionId();
                     partitionTask.put(partitionId, task);
                 }
             }
