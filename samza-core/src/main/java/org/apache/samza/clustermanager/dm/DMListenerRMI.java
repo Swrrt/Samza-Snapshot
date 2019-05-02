@@ -9,7 +9,6 @@ import java.rmi.registry.LocateRegistry;
 
 public class DMListenerRMI implements DMListener, Runnable {
     private YarnApplicationMaster jc;
-
     @Override
     public void registerToDM() {
 

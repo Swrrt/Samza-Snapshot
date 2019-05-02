@@ -181,10 +181,10 @@ public class YarnApplicationMaster {
 
             boolean isInterrupted = false;
             //For testing
-            int loadbalanceCounter = 0, scalingCounter = 0;
-            JobModel jobModel = jobModelManager.jobModel();
+            //int loadbalanceCounter = 0, scalingCounter = 0;
+            //JobModel jobModel = jobModelManager.jobModel();
             //Publish new JobModel when all Containers are ready
-            log.info("JobConfig is :", config);
+            //log.info("JobConfig is :", config);
             /*Thread.sleep(200000);
             leaderJobCoordinator.publishJobModel(jobModel);*/
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
@@ -233,15 +233,27 @@ public class YarnApplicationMaster {
         containerProcessManager.requestOneMore();
         return jobModel;
     }
-    private JobModel reBalance(JobModel jobModel){
-        log.info("Rebalancing the JobModel");
-        jobModel = leaderJobCoordinator.testingRebalance();
-        ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
-        try {
-            log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
-        }catch (Exception e){
+
+    /*
+        Enforce job model which comes from DM
+     */
+    public void enforceJobModel(JobModel jobModel){
+        leaderJobCoordinator.publishJobModel(jobModel);
+    }
+
+    /*
+       Scale and enforce job model according to DM
+    */
+    public void scaleToN(int n, JobModel jobModel){
+        if(n < numberOfContainers){
+            //TODO: scale in
+            log.info("Scale in is not implemented. Do nothing");
+            return ;
         }
-        return jobModel;
+        log.info("Requesting more containers");
+        int numberToScaleOut = numberOfContainers - n;
+        for(int i = 0; i < numberToScaleOut; i++)containerProcessManager.requestOneMore();
+        leaderJobCoordinator.publishJobModel(jobModel);
     }
 
     private JobModel scaleDownByOne(JobModel jobModel){
