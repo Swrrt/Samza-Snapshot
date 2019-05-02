@@ -24,6 +24,8 @@ import java.util.*;
 
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
+import org.apache.samza.clustermanager.dm.DMListener;
+import org.apache.samza.clustermanager.dm.DMListenerRMI;
 import org.apache.samza.config.*;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
@@ -172,6 +174,11 @@ public class YarnApplicationMaster {
             containerProcessManager.start();
             partitionMonitor.start();
 
+            // init and start the listener
+            DMListener listener = new DMListenerRMI();
+            listener.setYarnApplicationMaster(this);
+            listener.startListener();
+
             boolean isInterrupted = false;
             //For testing
             int loadbalanceCounter = 0, scalingCounter = 0;
@@ -182,20 +189,20 @@ public class YarnApplicationMaster {
             leaderJobCoordinator.publishJobModel(jobModel);*/
             while (!containerProcessManager.shouldShutdown() && !checkAndThrowException() && !isInterrupted) {
                 try {
-                    loadbalanceCounter++;
-                    scalingCounter++;
+                    // loadbalanceCounter++;
+                    // scalingCounter++;
                     Thread.sleep(jobCoordinatorSleepInterval);
-                    if(config.getBoolean("job.loadbalance.on", false) && loadbalanceCounter == config.getInt("job.loadbalance.interval", 120)){
-                        loadbalanceCounter = 0;
-                        jobModel = reBalance(jobModel);
-                        leaderJobCoordinator.publishJobModel(jobModel);
-                    }
+                    // if(config.getBoolean("job.loadbalance.on", false) && loadbalanceCounter == config.getInt("job.loadbalance.interval", 120)){
+                    //     loadbalanceCounter = 0;
+                    //     jobModel = reBalance(jobModel);
+                    //     leaderJobCoordinator.publishJobModel(jobModel);
+                    // }
 
-                    if(config.getBoolean("job.scaling.on", false) && scalingCounter == config.getInt("job.scaling.interval", 240)){
-                        //scalingCounter = 0;
-                        jobModel = scaleUpByOne(jobModel);
-                        leaderJobCoordinator.publishJobModel(jobModel);
-                    }
+                    // if(config.getBoolean("job.scaling.on", false) && scalingCounter == config.getInt("job.scaling.interval", 240)){
+                    //     //scalingCounter = 0;
+                    //     jobModel = scaleUpByOne(jobModel);
+                    //     leaderJobCoordinator.publishJobModel(jobModel);
+                    // }
                 } catch (InterruptedException e) {
                     isInterrupted = true;
                     log.error("Interrupted in AM loop {} ", e);
@@ -209,6 +216,7 @@ public class YarnApplicationMaster {
             onShutDown();
         }
     }
+    
     /* For testing */
     private JobModel scaleUpByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
@@ -235,6 +243,7 @@ public class YarnApplicationMaster {
         }
         return jobModel;
     }
+
     private JobModel scaleDownByOne(JobModel jobModel){
         List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
         processors.remove(0);
