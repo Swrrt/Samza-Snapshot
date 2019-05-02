@@ -147,7 +147,6 @@ public class YarnApplicationMaster {
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
-
     }
 
     /**

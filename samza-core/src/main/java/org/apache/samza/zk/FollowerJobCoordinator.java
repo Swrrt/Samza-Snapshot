@@ -19,6 +19,9 @@
 package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -28,6 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.samza.zk.MixedLoadBalancer.RMI.LocalityClient;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
@@ -48,6 +53,7 @@ import org.apache.samza.runtime.ProcessorIdGenerator;
 import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
+import org.apache.samza.zk.MixedLoadBalancer.JVMMonitor;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +100,8 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
 
+    //private JVMMonitor jvmMonitor = null;
+    private LocalityClient localityClient = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
 
@@ -116,6 +124,35 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
+        //
+        // jvmMonitor = new JVMMonitor();
+        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
+    }
+    // In YARN mode, we have containerId
+    FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, String containerId) {
+        this.config = config;
+
+        this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
+
+        this.processorId = containerId;
+        this.zkUtils = zkUtils;
+        // setup a listener for a session state change
+        // we are mostly interested in "session closed" and "new session created" events
+        zkUtils.getZkClient().subscribeStateChanges(new ZkSessionStateChangedListener());
+        this.zkController = new FollowerZkControllerImpl(processorId, zkUtils, this);
+        this.barrier =  new ZkBarrierForVersionUpgrade(
+                zkUtils.getKeyBuilder().getJobModelVersionBarrierPrefix(),
+                zkUtils,
+                new ZkBarrierListenerImpl());
+        this.debounceTimeMs = new JobConfig(config).getDebounceTimeMs();
+        this.reporters = MetricsReporterLoader.getMetricsReporters(new MetricsConfig(config), processorId);
+        debounceTimer = new ScheduleAfterDebounceTime();
+        debounceTimer.setScheduledTaskCallback(throwable -> {
+            LOG.error("Received exception from in JobCoordinator Processing!", throwable);
+            stop();
+        });
+        //jvmMonitor = new JVMMonitor();
+        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
     }
 
     @Override
@@ -124,6 +161,19 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
+        //jvmMonitor.start(getLeaderAddr(), processorId);
+        localityClient.sendLocality(processorId, getHostName());
+    }
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOG.error("Failed to fetch hostname of the processor", e);
+            throw new SamzaException(e);
+        }
+    }
+    public String getLeaderAddr(){
+        return ((FollowerZkControllerImpl) zkController).getLeaderAddr();
     }
 
     @Override
@@ -140,6 +190,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if (coordinatorListener != null) {
             coordinatorListener.onCoordinatorStop();
         }
+        //jvmMonitor.stop();
     }
 
     private void startMetrics() {

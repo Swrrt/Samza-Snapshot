@@ -44,6 +44,7 @@ import org.apache.samza.runtime.ProcessorIdGenerator;
 import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
+import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private final ZkJobCoordinatorMetrics metrics;
     private final Map<String, MetricsReporter> reporters;
 
+    //private MixedLoadBalanceManager mixedLoadBalanceManager;
     private StreamMetadataCache streamMetadataCache = null;
     private ScheduleAfterDebounceTime debounceTimer = null;
     private JobModel newJobModel = null;
@@ -91,6 +93,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private Map<String, String> containerToProcessorMap = null;
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
+        //this.mixedLoadBalanceManager = new MixedLoadBalanceManager();
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
         this.zkUtils = zkUtils;
@@ -118,6 +121,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
+        //mixedLoadBalanceManager.initial(newJobModel, config);
     }
     @Override
     public JobModel getJobModel(){
@@ -384,6 +388,13 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     public JobModel testingGenerateNewJobModel(List<String> processors){
         return generateNewJobModel(processors);
 
+        // Generate new Job Model using MixedLoadBalanceManager
+        //return mixedLoadBalanceManager.generateNewJobModel(processors);
+        return generateNewJobModel(processors);
+    }
+    public JobModel testingRebalance(){
+        return null;
+        //return mixedLoadBalanceManager.rebalanceJobModel();
     }
     @VisibleForTesting
     public ZkUtils getZkUtils() {
