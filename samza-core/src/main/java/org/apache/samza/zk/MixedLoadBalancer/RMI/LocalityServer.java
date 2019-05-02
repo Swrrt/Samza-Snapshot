@@ -17,7 +17,7 @@ public class LocalityServer {
         LOG.info("Locality Monitor starting...");
         try{
             Registry registry = LocateRegistry.createRegistry(8881);
-            registry.rebind("myLocality", new UtilizationMessageImpl(locality));
+            registry.rebind("myLocality", new LocalityMessageImpl(locality));
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
         }

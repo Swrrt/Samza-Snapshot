@@ -19,15 +19,14 @@ import java.util.Properties;
 public class KafkaOffsetRetriever {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
     private Properties properties;
-    private String groupId, topic;
+    private String topic;
     private Map<Integer, Double> speed;
     private Map<Integer, Long> commited;
     long lastTime = 0;
     private double delta = 0.5; //Parameter to smooth processing speed
-    public void initial(Config config, String groupName, String topic_name){
+    public void initial(Config config, String topic_name){
         properties = new Properties();
         properties.putAll(config);
-        groupId =  groupName;
         topic = topic_name;
         speed = new HashMap<>();
         commited = new HashMap<>();
@@ -36,13 +35,15 @@ public class KafkaOffsetRetriever {
     public Map<Integer, Long> retrieveBacklog(){
         AdminClient adminClient = AdminClient.create(properties);
         KafkaConsumer consumer = new KafkaConsumer(properties);
-        Map<TopicPartition, OffsetAndMetadata> commitedOffset = null;
+        Map<TopicPartition, OffsetAndMetadata> commitedOffset = new HashMap<>();
         Map<TopicPartition, Long> endOffset;
         Map<Integer, Long> backlog = new HashMap<>();
-        try{
-            commitedOffset = adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get();
-        }catch (Exception e){
-            LOG.info("Exception when retrieve offsets from Kafka: " + e);
+        for(int groupId = 0; groupId < 100; groupId++) {  //modify groupId range in KafkaSystemFactory.getConsumer()
+            try {
+                commitedOffset.putAll(adminClient.listConsumerGroupOffsets(String.valueOf(groupId)).partitionsToOffsetAndMetadata().get());
+            } catch (Exception e) {
+                LOG.info("Exception when retrieve offsets from Kafka: " + e);
+            }
         }
         endOffset = consumer.endOffsets(commitedOffset.keySet());
         for(TopicPartition topicPartition: endOffset.keySet()){
@@ -57,10 +58,12 @@ public class KafkaOffsetRetriever {
         KafkaConsumer consumer = new KafkaConsumer(properties);
         Map<TopicPartition, OffsetAndMetadata> commitedOffset = null;
         Map<TopicPartition, Long> endOffset;
-        try{
-            commitedOffset = adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get();
-        }catch (Exception e){
-            LOG.info("Exception when retrieve offsets from Kafka: " + e);
+        for(int groupId = 0; groupId < 100; groupId++) {
+            try {
+                commitedOffset = adminClient.listConsumerGroupOffsets(String.valueOf(groupId)).partitionsToOffsetAndMetadata().get();
+            } catch (Exception e) {
+                LOG.info("Exception when retrieve offsets from Kafka: " + e);
+            }
         }
         endOffset = consumer.endOffsets(commitedOffset.keySet());
         long time = System.currentTimeMillis();

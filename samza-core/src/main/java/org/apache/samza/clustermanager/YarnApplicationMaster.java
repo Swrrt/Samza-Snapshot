@@ -145,7 +145,6 @@ public class YarnApplicationMaster {
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
-
     }
 
     /**
@@ -228,7 +227,7 @@ public class YarnApplicationMaster {
     }
     private JobModel reBalance(JobModel jobModel){
         log.info("Rebalancing the JobModel");
-        jobModel = leaderJobCoordinator.testingRebalance(jobModel);
+        jobModel = leaderJobCoordinator.testingRebalance();
         ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
         try {
             log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));

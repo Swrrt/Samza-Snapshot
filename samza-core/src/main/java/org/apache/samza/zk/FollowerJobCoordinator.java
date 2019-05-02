@@ -125,7 +125,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         });
         //
         // jvmMonitor = new JVMMonitor();
-        this.localityClient = new LocalityClient();
+        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
     }
     // In YARN mode, we have containerId
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, String containerId) {
@@ -151,7 +151,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
         //jvmMonitor = new JVMMonitor();
-        this.localityClient = new LocalityClient();
+        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
     }
 
     @Override

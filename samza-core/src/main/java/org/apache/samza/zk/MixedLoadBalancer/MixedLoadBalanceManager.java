@@ -4,7 +4,6 @@ import com.google.common.hash.Hashing;
 
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.zk.MixedLoadBalancer.RMI.LocalityServer;
-import org.apache.samza.zk.MixedLoadBalancer.RMI.UtilizationServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;
@@ -13,21 +12,15 @@ import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
-import org.json.*;
-import org.apache.commons.io.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.nio.charset.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MixedLoadBalanceManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
     private double threshold;
     //TODO: reorganize all classes and tables;
     private ConsistentHashing consistentHashing;
-    private LocalityDistance locality;
+    private LocalityDistance locality;  //TODO: update Locality part.
     private WebReader webReader;
     private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
@@ -41,7 +34,7 @@ public class MixedLoadBalanceManager {
     private Map<String, Double> containerProcessingSpeed = null;
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
-    private final double p1, p2;   // Weight parameter for Chord and Locality
+    private final double localityWeight;   // Weight parameter for Chord and Locality
     //private UtilizationServer utilizationServer = null;
     private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
@@ -58,8 +51,7 @@ public class MixedLoadBalanceManager {
         tasks = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 10;
-        p1 = 1;
-        p2 = 0;
+        localityWeight = 0;
         //utilizationServer = new UtilizationServer();
         unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
@@ -73,7 +65,12 @@ public class MixedLoadBalanceManager {
         LOG.info("MixedLoadBalanceManager is initializing");
         getHostRack();
         this.config = config;
-        kafkaOffsetRetriever.initial(config.subset("system.kafka"), , config.get("job.loadbalance.inputtopic")); //TODO: need consumer Group ID and input topic name
+        /*
+            We need group id to read offset information.
+            Group id is generated randomly in SamzaContainer(KafkaSystemFactory.getConsumer())
+            So we need a way to catch them.
+         */
+        kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
         oldJobModel = jobModel;
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
@@ -92,9 +89,9 @@ public class MixedLoadBalanceManager {
         localityServer.start();
     }
     // Read container-host mapping from web
-    private Map<String, String> getContainerHost() {
+    /*private Map<String, String> getContainerHost() {
         return localityServer.getLocalityMap();
-    }
+    }*/
     // Read host-rack-cluster mapping from web
     private Map<String, List<String>> getHostRack(){
         LOG.info("Reading Host-Server-Rack-Cluster information from web");
@@ -102,16 +99,9 @@ public class MixedLoadBalanceManager {
         LOG.info("Host-Server information:" + hostRack.toString());
         return hostRack;
     }
-    /*private void updateContainerHost(){
-        //TODO: add a time interval between consecutive reading
-        LOG.info("Reading Container-Host information");
-        if(true) {
-            containerHost.putAll(getContainerHost());
-        }
-    }*/
     private String getContainerHost(String container){
         //TODO: If the container is not here, wait for it?
-        int retry = 0;
+        int retry = 2; //Number of times to retry
         while(localityServer.getLocality(container) == null && retry > 0 ){
             retry--;
             try{
@@ -119,7 +109,10 @@ public class MixedLoadBalanceManager {
             }catch (Exception e){
             }
         }
-        if(localityServer.getLocality(container) == null) return hostRack.keySet().iterator().next();
+        if(localityServer.getLocality(container) == null) {
+            LOG.info("Cannot get locality information of container " + container);
+            return hostRack.keySet().iterator().next();
+        }
         return localityServer.getLocality(container);
         /*if(containerHost.containsKey(container))return containerHost.get(container);
         else {
@@ -175,26 +168,6 @@ public class MixedLoadBalanceManager {
             consistentHashing.insert(task.getKey(), 1);
             locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
-    }
-    private String getProcessorID(String ContainerID){
-        return ContainerID.substring(ContainerID.length()-6,ContainerID.length());
-        //Translate processor ID to Container ID;
-        /*int retry = 10;
-        while(retry >= 0){
-            updateContainerHost();
-            Set<String> containers = containerHost.keySet();
-            LOG.info("containerID from webReader: "+containers.toString());
-            for(String container: containers){
-                int length = container.length();
-                if(container.substring(length - 6,length).equals(processor)) return container;
-            }
-            LOG.info("Cannot find the containerID correspond to processor:"+ processor);
-            try{
-                Thread.sleep(3000);
-            }catch (Exception e){
-            }
-        }
-        return processor;*/
     }
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
@@ -400,7 +373,6 @@ public class MixedLoadBalanceManager {
         Return true to scale up.
      */
     public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel){
-        //TODO
         /*
         Calculate VNs according to UnprocessedMessages and current processing Speed
         */
@@ -419,11 +391,12 @@ public class MixedLoadBalanceManager {
                 TODO:
                 scaling out
                 Return null for scaling out
-             */
-            return null;
+
+            */
         }
         return tryJobModel;
     }
+    //Add virtual node to containerId to coordinate vn.
     private void addVNs(String containerId, int vnCoordinate) {
         consistentHashing.addVN(containerId, vnCoordinate);
     }
@@ -431,7 +404,7 @@ public class MixedLoadBalanceManager {
         return consistentHashing.getVNnumbers(containerId);
     }
     public double distance(String t1, String t2){
-        double dis = p1*consistentHashing.distance(t1,t2)+p2*locality.distance(t1,t2);
+        double dis = consistentHashing.distance(t1,t2)+localityWeight*locality.distance(t1,t2);
         LOG.info("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
     }
@@ -493,6 +466,9 @@ public class MixedLoadBalanceManager {
             }
         }
     }
+    /*
+        Check whether if all containers are not exceed threshold.
+     */
     public boolean checkLoad(){
         updateFromJobModel(oldJobModel);
         retrieveBacklog(); //Update backlog

@@ -17,7 +17,7 @@ public class LocalityClient{
         this.port = port;
     }
     public void sendLocality(String processorId, String host){
-        LOG.info("Sending locality information...");
+        LOG.info("Sending locality information to " + leaderAddress +":"+ port +" ...");
         try{
             Registry registry = LocateRegistry.getRegistry(leaderAddress, port);
             LocalityMessage impl = (LocalityMessage) registry.lookup("myLocality");
