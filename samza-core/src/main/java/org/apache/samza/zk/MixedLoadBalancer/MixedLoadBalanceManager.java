@@ -2,7 +2,10 @@ package org.apache.samza.zk.MixedLoadBalancer;
 
 import com.google.common.hash.Hashing;
 
+import org.apache.samza.coordinator.JobModelManager;
+import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
+import org.apache.samza.util.Util;
 import org.apache.samza.zk.MixedLoadBalancer.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
@@ -14,7 +17,7 @@ import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+//Need to bind
 public class MixedLoadBalanceManager {
     private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
     private double threshold;
@@ -60,6 +63,16 @@ public class MixedLoadBalanceManager {
     /*
         TODO:
         Generate initial JobModel in here.
+     */
+    public void initial(Config config){
+        //Generate initial job model according to
+        Config coordinatorSystemConfig = Util.buildCoordinatorStreamConfig(config);
+        JobModelManager jobModelManager = JobModelManager.apply(coordinatorSystemConfig, new MetricsRegistryMap());
+        oldJobModel = jobModelManager.jobModel();
+        initial(oldJobModel, config);
+    }
+    /*
+        initial
      */
     public void initial(JobModel jobModel, Config config){
         LOG.info("MixedLoadBalanceManager is initializing");

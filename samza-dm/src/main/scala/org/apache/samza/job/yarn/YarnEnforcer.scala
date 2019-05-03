@@ -40,7 +40,7 @@ class YarnEnforcer(config: Config, hadoopConfig: Configuration) extends StreamJo
   var appId: Option[ApplicationId] = None
   val yarnConfig = new YarnConfig(config)
   val logger = LoggerFactory.getLogger(this.getClass)
-
+  var amAddres = "";
   def submit: YarnEnforcer = {
     try {
       val cmdExec = buildAmCmd()
@@ -75,7 +75,6 @@ class YarnEnforcer(config: Config, hadoopConfig: Configuration) extends StreamJo
         client.cleanupStagingDir
         throw e
     }
-
     this
   }
 
@@ -194,6 +193,5 @@ class YarnEnforcer(config: Config, hadoopConfig: Configuration) extends StreamJo
     * update schema
     */
   override def updateSchema(allocation: Allocation): Unit = {
-
   }
 }

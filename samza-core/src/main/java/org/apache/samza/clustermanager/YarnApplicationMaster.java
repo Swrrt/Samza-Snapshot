@@ -119,6 +119,8 @@ public class YarnApplicationMaster {
      */
     private final LeaderJobCoordinator leaderJobCoordinator;
 
+    private DMListener listener;
+    private int numberOfContainers;
     /**
      *
      * Creates a new ClusterBasedJobCoordinator instance from a config. Invoke run() to actually
@@ -147,6 +149,7 @@ public class YarnApplicationMaster {
         // build a container process Manager
 
         containerProcessManager = new ScalingContainerProcessManager(config, state, metrics);
+        numberOfContainers = jobModelManager.jobModel().getContainers().size();
     }
 
     /**
@@ -175,7 +178,7 @@ public class YarnApplicationMaster {
             partitionMonitor.start();
 
             // init and start the listener
-            DMListener listener = new DMListenerRMI();
+            listener = new DMListenerRMI();
             listener.setYarnApplicationMaster(this);
             listener.startListener();
 
@@ -238,6 +241,10 @@ public class YarnApplicationMaster {
         Enforce job model which comes from DM
      */
     public void enforceJobModel(JobModel jobModel){
+        if(numberOfContainers != jobModel.getContainers().size()){
+            log.info("New job model's parallelism is not equal to old one");
+        }
+        numberOfContainers = jobModel.getContainers().size();
         leaderJobCoordinator.publishJobModel(jobModel);
     }
 
@@ -254,6 +261,7 @@ public class YarnApplicationMaster {
         int numberToScaleOut = numberOfContainers - n;
         for(int i = 0; i < numberToScaleOut; i++)containerProcessManager.requestOneMore();
         leaderJobCoordinator.publishJobModel(jobModel);
+        numberOfContainers = n;
     }
 
     private JobModel scaleDownByOne(JobModel jobModel){
