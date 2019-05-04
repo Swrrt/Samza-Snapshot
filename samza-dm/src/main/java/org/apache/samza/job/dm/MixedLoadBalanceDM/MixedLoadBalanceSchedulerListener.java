@@ -1,19 +1,19 @@
-package org.apache.samza.job.dm;
+package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.samza.config.Config;
-import org.apache.samza.coordinator.JobModelManager;
-import org.apache.samza.metrics.MetricsRegistryMap;
-import org.apache.samza.util.Util;
+import org.apache.samza.job.dm.DMScheduler;
+import org.apache.samza.job.dm.DMSchedulerListener;
+import org.apache.samza.job.dm.StageReport;
 import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
 
 import java.util.Arrays;
 import java.util.Properties;
 
 public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
-    DMScheduler scheduler;
+    MixedLoadBalanceScheduler scheduler;
     Config config;
     MixedLoadBalanceManager loadBalanceManager;
     @Override
@@ -39,21 +39,27 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
         System.out.println("Subscribing to kafka metrics stream: " + metricsTopicName);
 
         while (true) {
-            ConsumerRecords<String, String> records = consumer.poll(10000);
+            try{
+                Thread.sleep(10000);
+            }catch (Exception e){
+            }
+            /*ConsumerRecords<String, String> records = consumer.poll(10000);
             for (ConsumerRecord<String, String> record : records) {
                 // print the offset,key and value for the consumer records.
 //                System.out.printf("offset = %d, key = %s, value = %s\n", record.offset(), record.key(), record.value());
                 StageReport report = new StageReport(record.value());
                 scheduler.updateStage(report);
-            }
+            }*/
+            System.out.printf("Try to rebalance");
+            scheduler.updateJobModel();
         }
 
     }
 
     @Override
     public void setScheduler(DMScheduler scheduler) {
-        this.scheduler = scheduler;
-        this.loadBalanceManager = ((MixedLoadBalanceScheduler)scheduler).balanceManager;
+        this.scheduler = (MixedLoadBalanceScheduler)scheduler;
+        this.loadBalanceManager = this.scheduler.balanceManager;
     }
     @Override
     public void setConfig(Config config) {

@@ -224,6 +224,13 @@ public class MixedLoadBalanceManager {
         LOG.info("New job model:" + oldJobModel.toString());
         return oldJobModel;
     }
+    public JobModel scaleUpByNumber(int change){
+        int currentSize = oldJobModel.getContainers().size();
+        for(int i=0;i<change; i++){
+            insertContainer(String.format("%06d", currentSize + 2 + i));
+        }
+        return generateJobModel();
+    }
     // Generate new Job Model based on new processors list
     public JobModel generateNewJobModel(List<String> processors){
         Set<String> containers = new HashSet<>();

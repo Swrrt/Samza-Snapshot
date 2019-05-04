@@ -1,8 +1,17 @@
-package org.apache.samza.job.dm;
+package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
+import org.apache.commons.logging.Log;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.samza.clustermanager.dm.DMListenerEnforcer;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.DMDispatcherConfig;
+import org.apache.samza.config.DMSchedulerConfig;
+import org.apache.samza.job.ApplicationStatus;
+import org.apache.samza.job.dm.Allocation;
+import org.apache.samza.job.dm.DMDispatcher;
+import org.apache.samza.job.dm.Enforcer;
+import org.apache.samza.job.dm.EnforcerFactory;
+import org.apache.samza.job.model.JobModel;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -12,10 +21,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.logging.Logger;
 
+
 //import org.apache.xmlrpc.*;
 
-public class DefaultDispatcher implements DMDispatcher {
-    private static final Logger LOG = Logger.getLogger(DefaultDispatcher.class.getName());
+public class MixedLoadBalanceDispatcher implements DMDispatcher {
+    private static final Logger LOG = Logger.getLogger(MixedLoadBalanceDispatcher.class.getName());
 
     private ConcurrentMap<String, Enforcer> enforcers;
     private ConcurrentMap<String, String> enforcerURL;
@@ -57,14 +67,13 @@ public class DefaultDispatcher implements DMDispatcher {
 
     @Override
     public void enforceSchema(Allocation allocation) {
-        // TODO: apply schema to the Enforcer;
-        LOG.info("dispatcher enforce schema");
+    }
 
-        // implementation for RMI based
+    public void updateJobModel(Allocation allocation, JobModel jobModel){
         try {
             String url = enforcerURL.get(allocation.getStageID());
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
-            //enforcer.enforceSchema(allocation.getParallelism());
+            enforcer.rebalance(jobModel);
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (NotBoundException e) {
@@ -72,11 +81,19 @@ public class DefaultDispatcher implements DMDispatcher {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-        // -----------------------------
-
-//        String stageId = allocation.getStageID();
-//        Enforcer enf = getEnforcer(stageId);
-//        enf.updateSchema(allocation);
+    }
+    public void changeParallelism(Allocation allocation, int parallelism, JobModel jobModel){
+        try {
+            String url = enforcerURL.get(allocation.getStageID());
+            DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
+            enforcer.changeParallelism(parallelism, jobModel);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        } catch (NotBoundException e) {
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -93,5 +110,6 @@ public class DefaultDispatcher implements DMDispatcher {
         // TODO: update the Enforcer URL for later use of updateing paralellism
         enforcerURL.put(name, url);
     }
+
 
 }

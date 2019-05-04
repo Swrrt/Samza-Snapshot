@@ -1,16 +1,18 @@
-package org.apache.samza.job.dm;
+package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
         import org.apache.hadoop.yarn.api.records.Resource;
         import org.apache.samza.config.Config;
         import org.apache.samza.config.DMDispatcherConfig;
         import org.apache.samza.config.DMSchedulerConfig;
+        import org.apache.samza.job.dm.*;
+        import org.apache.samza.job.model.JobModel;
         import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
 
         import java.util.concurrent.ConcurrentMap;
         import java.util.concurrent.ConcurrentSkipListMap;
         import java.util.logging.Logger;
 
-public class MixedLoadBalanceScheduler implements DMScheduler{
+public class MixedLoadBalanceScheduler implements DMScheduler {
     MixedLoadBalanceManager balanceManager;
     private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 
@@ -19,7 +21,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler{
 
     private ConcurrentMap<String, Stage> stages;
 
-    private DMDispatcher dispatcher;
+    private MixedLoadBalanceDispatcher dispatcher;
 
     private DMSchedulingPolicy policy = new DefaultSchedulingPolicy();
 
@@ -33,8 +35,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler{
         this.schedulerConfig = schedulerConfig;
         this.stages = new ConcurrentSkipListMap<>();
 
-        DMDispatcherConfig dispatcherConfig = new DMDispatcherConfig(config);
-        this.dispatcher = getDispatcher(dispatcherConfig.getDispatcherClass());
+        this.dispatcher = new MixedLoadBalanceDispatcher();
         this.dispatcher.init(config);
 
         balanceManager = new MixedLoadBalanceManager();
@@ -54,19 +55,10 @@ public class MixedLoadBalanceScheduler implements DMScheduler{
     @Override
     public void createListener(DMScheduler scheduler) {
         LOG.info("starting listener in scheduler");
-        String listenerClass = this.schedulerConfig.getSchedulerListenerClass();
-        try {
-            DMSchedulerListener listener = (DMSchedulerListener) Class.forName(listenerClass).newInstance();
-            listener.setScheduler(this);
-            listener.setConfig(config);
-            listener.startListener();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        MixedLoadBalanceSchedulerListener listener = new MixedLoadBalanceSchedulerListener();
+        listener.setScheduler(this);
+        listener.setConfig(config);
+        listener.startListener();
     }
 
     @Override
@@ -99,7 +91,6 @@ public class MixedLoadBalanceScheduler implements DMScheduler{
 
     @Override
     public void dispatch(Allocation allocation) {
-        dispatcher.enforceSchema(allocation);
     }
 
     @Override
@@ -137,8 +128,21 @@ public class MixedLoadBalanceScheduler implements DMScheduler{
 
             prevTime = report.getTime();
         }
+    }
+    public void updateJobModel(){
         if(!balanceManager.checkLoad()){
-            balanceManager.rebalanceJobModel();
+            //Rebalance the JobModel
+            JobModel newJobModel = balanceManager.rebalanceJobModel();
+            if(newJobModel == null){
+                //need to scale
+                System.out.printf("Need to scale up");
+                newJobModel = balanceManager.scaleUpByNumber(1);
+                dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
+            }else {
+                System.out.printf("New Job Model is:\n" + newJobModel.toString());
+                //Dispatch the new JobModel
+                dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
+            }
         }
     }
 }
