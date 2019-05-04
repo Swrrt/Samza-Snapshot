@@ -16,7 +16,6 @@ public class LocalityDistance {
     private Map<String, ArrayList<String>> taskCoord; //position of task's partition
 
     public LocalityDistance() {
-        //TODO: Update to our new model
         nlayer = 5;
         cost = new long[nlayer];
         cost[0] = 1;

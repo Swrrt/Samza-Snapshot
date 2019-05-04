@@ -80,7 +80,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private final ZkBarrierForVersionUpgrade barrier;
     private final ZkJobCoordinatorMetrics metrics;
     private final Map<String, MetricsReporter> reporters;
-    //private MixedLoadBalanceManager mixedLoadBalanceManager;
+    private MixedLoadBalanceManager mixedLoadBalanceManager;
     private StreamMetadataCache streamMetadataCache = null;
     private ScheduleAfterDebounceTime debounceTimer = null;
     private JobModel newJobModel = null;
@@ -93,7 +93,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
-        //this.mixedLoadBalanceManager = new MixedLoadBalanceManager();
+        this.mixedLoadBalanceManager = new MixedLoadBalanceManager();
         this.metrics = new ZkJobCoordinatorMetrics(metricsRegistry);
         this.processorId = createProcessorId(config);
         this.zkUtils = zkUtils;
@@ -122,7 +122,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
-        //mixedLoadBalanceManager.initial(newJobModel, config);
+        mixedLoadBalanceManager.initial(newJobModel, config);
     }
     @Override
     public JobModel getJobModel(){
@@ -389,12 +389,11 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     }
     public JobModel testingGenerateNewJobModel(List<String> processors){
         // Generate new Job Model using MixedLoadBalanceManager
-        //return mixedLoadBalanceManager.generateNewJobModel(processors);
-        return generateNewJobModel(processors);
+        return mixedLoadBalanceManager.generateNewJobModel(processors);
+        // return generateNewJobModel(processors);
     }
     public JobModel testingRebalance(){
-        return null;
-        //return mixedLoadBalanceManager.rebalanceJobModel();
+        return mixedLoadBalanceManager.rebalanceJobModel();
     }
     @VisibleForTesting
     public ZkUtils getZkUtils() {

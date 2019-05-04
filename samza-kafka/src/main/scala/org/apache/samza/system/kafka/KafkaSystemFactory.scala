@@ -52,9 +52,8 @@ class KafkaSystemFactory extends SystemFactory with Logging {
     // Kind of goofy to need a producer config for consumers, but we need metadata.
     val producerConfig = config.getKafkaSystemProducerConfig(systemName, clientId)
     val bootstrapServers = producerConfig.bootsrapServers
-    //val consumerConfig = config.getKafkaSystemConsumerConfig(systemName, clientId)
-    //Generate groupID in a small range [0..99] instead UUID.
-    val consumerConfig = config.getKafkaSystemConsumerConfig(systemName, clientId, String.valueOf(util.Random.nextInt(100)));
+    val consumerConfig = config.getKafkaSystemConsumerConfig(systemName, clientId)
+
     val timeout = consumerConfig.socketTimeoutMs
     val bufferSize = consumerConfig.socketReceiveBufferBytes
     val fetchSize = new StreamFetchSizes(consumerConfig.fetchMessageMaxBytes, config.getFetchMessageMaxBytesTopics(systemName))
