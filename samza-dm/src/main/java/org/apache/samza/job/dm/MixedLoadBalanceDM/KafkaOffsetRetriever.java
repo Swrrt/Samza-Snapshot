@@ -1,6 +1,5 @@
-package org.apache.samza.zk.MixedLoadBalancer;
+package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import kafka.security.auth.Topic;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;

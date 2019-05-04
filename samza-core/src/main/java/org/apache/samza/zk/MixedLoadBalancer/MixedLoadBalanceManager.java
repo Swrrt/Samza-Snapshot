@@ -1,8 +1,7 @@
 package org.apache.samza.zk.MixedLoadBalancer;
 
-import com.google.common.hash.Hashing;
-
 import org.apache.samza.coordinator.JobModelManager;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.KafkaOffsetRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
