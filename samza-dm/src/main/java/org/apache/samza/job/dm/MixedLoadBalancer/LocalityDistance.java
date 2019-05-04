@@ -1,4 +1,4 @@
-package org.apache.samza.zk.MixedLoadBalancer;
+package org.apache.samza.job.dm.MixedLoadBalancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

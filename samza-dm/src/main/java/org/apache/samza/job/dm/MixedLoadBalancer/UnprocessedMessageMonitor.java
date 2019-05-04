@@ -1,4 +1,4 @@
-package org.apache.samza.zk.MixedLoadBalancer;
+package org.apache.samza.job.dm.MixedLoadBalancer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

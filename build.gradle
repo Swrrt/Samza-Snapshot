@@ -180,7 +180,6 @@ project(":samza-core_$scalaVersion") {
     compile "org.slf4j:slf4j-api:$slf4jVersion"
     compile "org.apache.kafka:kafka_$scalaVersion:$kafkaVersion"
     compile "org.apache.kafka:kafka-clients:$kafkaVersion"
-    compile project(":samza-dm_$scalaVersion")
     testCompile project(":samza-api").sourceSets.test.output
     testCompile "junit:junit:$junitVersion"
     testCompile "org.mockito:mockito-core:$mockitoVersion"

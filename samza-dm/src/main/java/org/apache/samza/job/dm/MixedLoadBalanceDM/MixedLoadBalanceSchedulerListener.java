@@ -1,13 +1,10 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.samza.config.Config;
 import org.apache.samza.job.dm.DMScheduler;
 import org.apache.samza.job.dm.DMSchedulerListener;
-import org.apache.samza.job.dm.StageReport;
-import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
 
 import java.util.Arrays;
 import java.util.Properties;

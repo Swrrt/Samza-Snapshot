@@ -1,11 +1,11 @@
-package org.apache.samza.zk.MixedLoadBalancer;
+package org.apache.samza.job.dm.MixedLoadBalancer;
 
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.KafkaOffsetRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
-import org.apache.samza.zk.MixedLoadBalancer.RMI.LocalityServer;
+import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;

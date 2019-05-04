@@ -2,11 +2,10 @@ package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
         import org.apache.hadoop.yarn.api.records.Resource;
         import org.apache.samza.config.Config;
-        import org.apache.samza.config.DMDispatcherConfig;
         import org.apache.samza.config.DMSchedulerConfig;
         import org.apache.samza.job.dm.*;
         import org.apache.samza.job.model.JobModel;
-        import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
+        import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
 
         import java.util.concurrent.ConcurrentMap;
         import java.util.concurrent.ConcurrentSkipListMap;

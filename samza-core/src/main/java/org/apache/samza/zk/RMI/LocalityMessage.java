@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.samza.zk.MixedLoadBalancer.RMI;
+package org.apache.samza.zk.RMI;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

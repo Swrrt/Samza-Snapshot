@@ -44,7 +44,7 @@ import org.apache.samza.runtime.ProcessorIdGenerator;
 import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
-import org.apache.samza.zk.MixedLoadBalancer.MixedLoadBalanceManager;
+//import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

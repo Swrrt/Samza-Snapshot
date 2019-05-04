@@ -1,4 +1,4 @@
-package org.apache.samza.zk.MixedLoadBalancer.RMI;
+package org.apache.samza.zk.RMI;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
