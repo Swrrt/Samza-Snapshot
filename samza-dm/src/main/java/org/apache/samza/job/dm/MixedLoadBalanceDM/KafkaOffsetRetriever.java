@@ -16,7 +16,7 @@ import java.util.Properties;
     Retrieve kafka offset information from console.
  */
 public class KafkaOffsetRetriever {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
     private Properties properties;
     private String topic;
     private Map<Integer, Double> speed;
@@ -44,7 +44,7 @@ public class KafkaOffsetRetriever {
             try {
                 commitedOffset.putAll(adminClient.listConsumerGroupOffsets(String.valueOf(groupId)).partitionsToOffsetAndMetadata().get());
             } catch (Exception e) {
-                LOG.info("Exception when retrieve offsets from Kafka: " + e);
+                writeLog("Exception when retrieve offsets from Kafka: " + e);
             }
         }
         endOffset = consumer.endOffsets(commitedOffset.keySet());
@@ -66,7 +66,7 @@ public class KafkaOffsetRetriever {
             try {
                 commitedOffset = adminClient.listConsumerGroupOffsets(String.valueOf(groupId)).partitionsToOffsetAndMetadata().get();
             } catch (Exception e) {
-                LOG.info("Exception when retrieve offsets from Kafka: " + e);
+                writeLog("Exception when retrieve offsets from Kafka: " + e);
             }
         }
         endOffset = consumer.endOffsets(commitedOffset.keySet());
@@ -89,5 +89,8 @@ public class KafkaOffsetRetriever {
         }
         lastTime = time;
         return speed;
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 }

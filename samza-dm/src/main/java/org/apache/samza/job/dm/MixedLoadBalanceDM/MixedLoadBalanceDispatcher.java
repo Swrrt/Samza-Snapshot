@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 //import org.apache.xmlrpc.*;
 
 public class MixedLoadBalanceDispatcher implements DMDispatcher {
-    private static final Logger LOG = Logger.getLogger(MixedLoadBalanceDispatcher.class.getName());
+    //private static final Logger LOG = Logger.getLogger(MixedLoadBalanceDispatcher.class.getName());
 
     private ConcurrentMap<String, Enforcer> enforcers;
     private ConcurrentMap<String, String> enforcerURL;
@@ -42,7 +42,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
 
     @Override
     public EnforcerFactory getEnforcerFactory(String stage) {
-        LOG.info("dispatcher getenforcerfactory");
+        writeLog("dispatcher getenforcerfactory");
         String EnforcerFactoryClass = "YarnJobFactory";
         if (config.containsKey("dm.enforcerfactory." + stage)) {
             EnforcerFactoryClass = config.get("dm.enforcerfactory." + stage, "YarnEnforcerFactory");
@@ -98,7 +98,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
 
     @Override
     public void submitApplication(Allocation allocation) {
-        LOG.info("dispatcher submit application");
+        writeLog("dispatcher submit application");
         String stageId = allocation.getStageID();
         EnforcerFactory enfFac = getEnforcerFactory(stageId);
         Enforcer enf = enfFac.getEnforcer(config);
@@ -110,6 +110,8 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
         // TODO: update the Enforcer URL for later use of updateing paralellism
         enforcerURL.put(name, url);
     }
-
+    private void writeLog(String log){
+        System.out.println(log);
+    }
 
 }

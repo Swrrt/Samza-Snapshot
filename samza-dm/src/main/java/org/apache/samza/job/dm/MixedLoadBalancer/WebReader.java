@@ -33,9 +33,9 @@ public class WebReader {
     public Map<String, List<String>> readHostRack() {
         Map<String, List<String>> hostRack = new HashMap<>();
         try {
-            System.out.println("Reading Host-Rack information from ".concat(hostRackUrl));
+            writeLog("Reading Host-Rack information from ".concat(hostRackUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostRackUrl), Charset.forName("UTF-8")));
-            System.out.println("Host-rack information ".concat(json.toString()));
+            writeLog("Host-rack information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 JSONArray value = json.getJSONArray(keyStr);
@@ -47,7 +47,7 @@ public class WebReader {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error when reading Host-Rack information: " + e.toString());
+            writeLog("Error when reading Host-Rack information: " + e.toString());
         }
         return hostRack;
     }
@@ -55,9 +55,9 @@ public class WebReader {
     public Map<String, Map<String, Integer>> readHostHostDistance() {
         Map<String, Map<String, Integer>> hostHostDistance = new HashMap<>();
         try {
-            System.out.println("Reading Host-Host information from ".concat(hostHostUrl));
+            writeLog("Reading Host-Host information from ".concat(hostHostUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-            System.out.println("Host-Host information ".concat(json.toString()));
+            writeLog("Host-Host information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 JSONObject values = json.getJSONObject(keyStr);
@@ -69,7 +69,7 @@ public class WebReader {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error when reading Host-Host information: " + e.toString());
+            writeLog("Error when reading Host-Host information: " + e.toString());
         }
         return hostHostDistance;
     }
@@ -77,25 +77,28 @@ public class WebReader {
     public Map<String, String> readPartitionLeaderDistance() {
         Map<String, String> taskHostDistance = new HashMap<>();
         try {
-            System.out.println("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
+            writeLog("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-            System.out.println("PartitionLeader-Host information ".concat(json.toString()));
+            writeLog("PartitionLeader-Host information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 String value = json.getString(keyStr);
                 taskHostDistance.put(keyStr, value);
             }
         } catch (Exception e) {
-            System.out.println("Error when reading Host-Host information: " + e.toString());
+            writeLog("Error when reading Host-Host information: " + e.toString());
         }
         return taskHostDistance;
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
         /*public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();
             try{
-                System.out.println("Reading Container-Host information from ".concat(containerHostUrl));
+                writeLog("Reading Container-Host information from ".concat(containerHostUrl));
                 JSONObject json = new JSONObject(IOUtils.toString(new URL(containerHostUrl), Charset.forName("UTF-8")));
-                System.out.println("Container-Host information ".concat(json.toString()));
+                writeLog("Container-Host information ".concat(json.toString()));
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
@@ -103,7 +106,7 @@ public class WebReader {
                     containerHost.put(keyStr.substring(keyStr.length()-6, keyStr.length()),value);
                 }
             }catch(Exception e){
-                System.out.println("Error: "+e.toString());
+                writeLog("Error: "+e.toString());
             }
             return containerHost;
         }*/

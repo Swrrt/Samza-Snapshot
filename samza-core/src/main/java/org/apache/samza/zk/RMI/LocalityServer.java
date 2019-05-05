@@ -8,31 +8,34 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LocalityServer {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalityServer.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(LocalityServer.class);
     ConcurrentHashMap<String, String> locality = null;
     public LocalityServer(){
         locality = new ConcurrentHashMap<>();
     }
     public void start(){
-        LOG.info("Locality Monitor starting...");
+        writeLog("Locality Monitor starting...");
         try{
             Registry registry = LocateRegistry.createRegistry(8881);
             registry.rebind("myLocality", new LocalityMessageImpl(locality));
         }catch (Exception e){
-            LOG.info("Excpetion happened: " + e.toString());
+            writeLog("Excpetion happened: " + e.toString());
         }
-        LOG.info("Locality Monitor started");
+        writeLog("Locality Monitor started");
     }
     public HashMap getLocalityMap(){
         //Copy the utilization, in order to seclude local and remote resource
         HashMap<String, String> temp = new HashMap<>();
         temp.putAll(locality);
-        LOG.info("Got Loilicaty map: "+temp.toString());
+        writeLog("Got Loilicaty map: "+temp.toString());
         // TODO: need to be atomic?
         locality.clear();
         return temp;
     }
     public String getLocality(String processorId){
         return locality.get(processorId);
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 }

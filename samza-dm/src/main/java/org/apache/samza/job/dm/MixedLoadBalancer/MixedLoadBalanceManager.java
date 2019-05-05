@@ -40,7 +40,7 @@ public class MixedLoadBalanceManager {
     //private UtilizationServer utilizationServer = null;
     //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
-    private final int LOCALITY_RETRY_TIMES = 1;
+    //private final int LOCALITY_RETRY_TIMES = 1;
     private KafkaOffsetRetriever kafkaOffsetRetriever = null;
     public MixedLoadBalanceManager(){
         config = null;
@@ -513,6 +513,6 @@ public class MixedLoadBalanceManager {
         return utilizationServer.getAndRemoveUtilizationMap();
     }*/
     private void writeLog(String log){
-        writeLog(log);
+        System.out.println(log);
     }
 }

@@ -26,7 +26,7 @@ public class LocalityDistance {
 
     // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
     public void insert(String Id, List<String> items, Integer amount) {
-        System.out.println("Inserting to locality list container " + Id + " :" + items.toString());
+        writeLog("Inserting to locality list container " + Id + " :" + items.toString());
         if (coord.containsKey(Id)) {
             coord.remove(Id);
         }
@@ -45,17 +45,20 @@ public class LocalityDistance {
 
     public long distance(String cid1, String cid2) {
         long sum = 0;
-        System.out.println("Calculating Locality distance between " + cid1 + " " + cid2);
-        System.out.println("Locality items " + coord.toString());
+        writeLog("Calculating Locality distance between " + cid1 + " " + cid2);
+        writeLog("Locality items " + coord.toString());
         ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
-        System.out.println("Locality items " + v1.toString() + "      " + v2.toString());
+        writeLog("Locality items " + v1.toString() + "      " + v2.toString());
         for (int i = 0; i < nlayer - 1; i++) {
             if (!v1.get(i).equals(v2.get(i))) {
                 sum += cost[i];
             }
         }
-        System.out.println("Distance " + sum);
+        writeLog("Distance " + sum);
         return sum * Integer.parseInt(v1.get(nlayer - 1)) * Integer.parseInt(v2.get(nlayer - 1));
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 
 }

@@ -62,7 +62,7 @@ public class ConsistentHashing {
         Add a VN to container
      */
     public void addVN(String containerId, int vn) {
-        System.out.println("Add Virtual Node at position: " + vn + " to container " + containerId);
+        writeLog("Add Virtual Node at position: " + vn + " to container " + containerId);
         coord.get(containerId).add(vn);
     }
 
@@ -70,24 +70,24 @@ public class ConsistentHashing {
         Remove a VN from container.
      */
     public int removeVN(String containerId) {
-        System.out.println("Remove Virtual Node from to container " + containerId);
+        writeLog("Remove Virtual Node from to container " + containerId);
         int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(containerId).size());
         return coord.get(containerId).remove(randomNum);
     }
 
     public void simpleBalance(String maxContainer, String minContainer) {
-        System.out.println("Move virtual node of " + maxContainer + " to " + minContainer);
+        writeLog("Move virtual node of " + maxContainer + " to " + minContainer);
         if (coord.get(maxContainer).size() > 1) {
             int vn = removeVN(maxContainer);
-            System.out.println("Move the VN at position: " + vn);
+            writeLog("Move the VN at position: " + vn);
             addVN(minContainer, vn);
-        } else System.out.println(maxContainer + " only has 1 VN. No movement");
+        } else writeLog(maxContainer + " only has 1 VN. No movement");
 
     }
 
     public int distance(String itemX, String itemY) {
-        System.out.println("Calculate load distance between " + itemX + "  " + itemY);
-        System.out.println("load items " + coord.toString());
+        writeLog("Calculate load distance between " + itemX + "  " + itemY);
+        writeLog("load items " + coord.toString());
         int min = Length + 1000;
         int x = taskCoord.get(itemX);
         LinkedList<Integer> y = coord.get(itemY);
@@ -98,7 +98,10 @@ public class ConsistentHashing {
                 min = t;
             }
         }
-        System.out.println("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
+        writeLog("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
         return min;
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 }

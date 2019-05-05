@@ -13,7 +13,7 @@ package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
 public class MixedLoadBalanceScheduler implements DMScheduler {
     MixedLoadBalanceManager balanceManager;
-    private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
+    //private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 
     private Config config;
     private DMSchedulerConfig schedulerConfig;
@@ -53,7 +53,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     @Override
     public void createListener(DMScheduler scheduler) {
-        LOG.info("starting listener in scheduler");
+        writeLog("starting listener in scheduler");
         MixedLoadBalanceSchedulerListener listener = new MixedLoadBalanceSchedulerListener();
         listener.setScheduler(this);
         listener.setConfig(config);
@@ -62,7 +62,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     @Override
     public void submitApplication() {
-        LOG.info("scheduler submit application");
+        writeLog("scheduler submit application");
         // Use default schema to launch the application
         Allocation defaultAllocation = getDefaultAllocation(config.get("job.name"));
         dispatcher.submitApplication(defaultAllocation);
@@ -74,7 +74,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     @Override
     public DMDispatcher getDispatcher(String DMDispatcherClass) {
-        LOG.info("scheduler getdispatcher");
+        writeLog("scheduler getdispatcher");
         DMDispatcher dispatcher = null;
         try {
             dispatcher = (DMDispatcher) Class.forName(DMDispatcherClass).newInstance();
@@ -94,10 +94,10 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     @Override
     public void updateStage(StageReport report) {
-        if (report.getType().equals("ApplicationMaster")) {
-            LOG.info("update application master ip address");
+        /*if (report.getType().equals("ApplicationMaster")) {
+            writeLog("update application master ip address");
             if (!stages.containsKey(report.getName())) {
-                LOG.info("creating new stage for application master");
+                writeLog("creating new stage for application master");
                 stages.put(report.getName(), new Stage());
             }
             Stage curr = stages.get(report.getName());
@@ -115,7 +115,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                     report.setThroughput((report.getThroughput() - prev) / 5);
                 }
 
-                System.out.println("Throughput:" + report.getThroughput() + "  " + "runningcontainers: " + curr.getRunningContainers());
+                writeLog("Throughput:" + report.getThroughput() + "  " + "runningcontainers: " + curr.getRunningContainers());
 
                 prev = temp;
                 Allocation result = this.policy.allocate(curr, report);
@@ -126,7 +126,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             }
 
             prevTime = report.getTime();
-        }
+        }*/
     }
     public void updateJobModel(){
         if(!balanceManager.checkLoad()){
@@ -143,5 +143,25 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
             }
         }
+    }
+
+    // Update leader's address from kafka metric topic
+    public boolean updateLeader(StageReport report){
+        if (report.getType().equals("ApplicationMaster")) {
+            writeLog("update application master ip address");
+            if (!stages.containsKey(report.getName())) {
+                writeLog("creating new stage for application master");
+                stages.put(report.getName(), new Stage());
+            }
+            Stage curr = stages.get(report.getName());
+            if (report.getRunningContainers() != 0) curr.setRunningContainers(report.getRunningContainers());
+            stages.put(report.getName(), curr);
+            this.dispatcher.updateEnforcerURL(report.getName(), report.getHost()+ ":1999");
+            return true;
+        }
+        return false;
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 }

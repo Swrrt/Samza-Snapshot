@@ -1,10 +1,13 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.samza.config.Config;
 import org.apache.samza.job.dm.DMScheduler;
 import org.apache.samza.job.dm.DMSchedulerListener;
 import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.apache.samza.job.dm.StageReport;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -13,8 +16,10 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
     MixedLoadBalanceScheduler scheduler;
     Config config;
     MixedLoadBalanceManager loadBalanceManager;
+    boolean leaderComes;
     @Override
     public void startListener() {
+        writeLog("Start load-balancer scheduler listener");
 
         String metricsTopicName = config.get("metrics.reporter.snapshot.stream", "kafka.metrics").substring(6);
 //        String metricsTopicName = "metrics";
@@ -33,24 +38,33 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
 
         consumer.subscribe(Arrays.asList(metricsTopicName));
 
-        System.out.println("Subscribing to kafka metrics stream: " + metricsTopicName);
-
+        writeLog("Subscribing to kafka metrics stream: " + metricsTopicName);
+        leaderComes = false;
         while (true) {
             try{
                 Thread.sleep(10000);
             }catch (Exception e){
             }
-            /*ConsumerRecords<String, String> records = consumer.poll(10000);
-            for (ConsumerRecord<String, String> record : records) {
-                // print the offset,key and value for the consumer records.
-//                System.out.printf("offset = %d, key = %s, value = %s\n", record.offset(), record.key(), record.value());
-                StageReport report = new StageReport(record.value());
-                scheduler.updateStage(report);
-            }*/
-            System.out.printf("Try to rebalance");
-            scheduler.updateJobModel();
-        }
 
+            // Try to find AM's IP address
+            if(!leaderComes) {
+                ConsumerRecords<String, String> records = consumer.poll(10000);
+                for (ConsumerRecord<String, String> record : records) {
+                    StageReport report = new StageReport(record.value());
+                    if (scheduler.updateLeader(report)) {
+                        leaderComes = true;
+                        break;
+                    }
+                    ;
+                }
+            }
+
+            //Try to rebalance periodically
+            if(leaderComes) {
+                writeLog("Try to rebalance");
+                scheduler.updateJobModel();
+            }
+        }
     }
 
     @Override
@@ -61,5 +75,8 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
     @Override
     public void setConfig(Config config) {
         this.config = config;
+    }
+    private void writeLog(String log){
+        System.out.println(log);
     }
 }
