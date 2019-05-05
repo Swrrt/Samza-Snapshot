@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public class WebReader {
-    private static final Logger LOG = LoggerFactory.getLogger(WebReader.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(WebReader.class);
     String hostRackUrl;
     String hostHostUrl;
 
@@ -33,9 +33,9 @@ public class WebReader {
     public Map<String, List<String>> readHostRack() {
         Map<String, List<String>> hostRack = new HashMap<>();
         try {
-            LOG.info("Reading Host-Rack information from ".concat(hostRackUrl));
+            System.out.println("Reading Host-Rack information from ".concat(hostRackUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostRackUrl), Charset.forName("UTF-8")));
-            LOG.info("Host-rack information ".concat(json.toString()));
+            System.out.println("Host-rack information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 JSONArray value = json.getJSONArray(keyStr);
@@ -47,7 +47,7 @@ public class WebReader {
                 }
             }
         } catch (Exception e) {
-            LOG.info("Error when reading Host-Rack information: " + e.toString());
+            System.out.println("Error when reading Host-Rack information: " + e.toString());
         }
         return hostRack;
     }
@@ -55,9 +55,9 @@ public class WebReader {
     public Map<String, Map<String, Integer>> readHostHostDistance() {
         Map<String, Map<String, Integer>> hostHostDistance = new HashMap<>();
         try {
-            LOG.info("Reading Host-Host information from ".concat(hostHostUrl));
+            System.out.println("Reading Host-Host information from ".concat(hostHostUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-            LOG.debug("Host-Host information ".concat(json.toString()));
+            System.out.println("Host-Host information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 JSONObject values = json.getJSONObject(keyStr);
@@ -69,7 +69,7 @@ public class WebReader {
                 }
             }
         } catch (Exception e) {
-            LOG.info("Error when reading Host-Host information: " + e.toString());
+            System.out.println("Error when reading Host-Host information: " + e.toString());
         }
         return hostHostDistance;
     }
@@ -77,25 +77,25 @@ public class WebReader {
     public Map<String, String> readPartitionLeaderDistance() {
         Map<String, String> taskHostDistance = new HashMap<>();
         try {
-            LOG.info("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
+            System.out.println("Reading PartitionLeader-Host information from ".concat(hostHostUrl));
             JSONObject json = new JSONObject(IOUtils.toString(new URL(hostHostUrl), Charset.forName("UTF-8")));
-            LOG.debug("PartitionLeader-Host information ".concat(json.toString()));
+            System.out.println("PartitionLeader-Host information ".concat(json.toString()));
             for (Object key : json.keySet()) {
                 String keyStr = (String) key;
                 String value = json.getString(keyStr);
                 taskHostDistance.put(keyStr, value);
             }
         } catch (Exception e) {
-            LOG.info("Error when reading Host-Host information: " + e.toString());
+            System.out.println("Error when reading Host-Host information: " + e.toString());
         }
         return taskHostDistance;
     }
         /*public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();
             try{
-                LOG.info("Reading Container-Host information from ".concat(containerHostUrl));
+                System.out.println("Reading Container-Host information from ".concat(containerHostUrl));
                 JSONObject json = new JSONObject(IOUtils.toString(new URL(containerHostUrl), Charset.forName("UTF-8")));
-                LOG.info("Container-Host information ".concat(json.toString()));
+                System.out.println("Container-Host information ".concat(json.toString()));
                 for(Object key: json.keySet()){
                     String keyStr = (String)key;
                     String value = json.getString(keyStr);
@@ -103,7 +103,7 @@ public class WebReader {
                     containerHost.put(keyStr.substring(keyStr.length()-6, keyStr.length()),value);
                 }
             }catch(Exception e){
-                LOG.info("Error: "+e.toString());
+                System.out.println("Error: "+e.toString());
             }
             return containerHost;
         }*/

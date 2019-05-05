@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 
 //TODO: use Kafka information (offset) to monitor processing speed
 public class UnprocessedMessageMonitor {
-    private static final Logger LOG = LoggerFactory.getLogger(UnprocessedMessageMonitor.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(UnprocessedMessageMonitor.class);
     private KafkaConsumer<String,String> consumer;
     private String topic;
     private ExecutorService executor;
@@ -38,7 +38,7 @@ public class UnprocessedMessageMonitor {
     public void init(String brokers, String topic, String appName) {
         Properties props = createConsumerConfig(brokers, appName);
         this.appName = appName;
-        //LOG.info("The App Name is: "+appName);
+        //System.out.println("The App Name is: "+appName);
         consumer = new KafkaConsumer<>(props);
         this.topic = topic;
     }
@@ -49,10 +49,10 @@ public class UnprocessedMessageMonitor {
             executor.shutdown();
     }
     public void removeContainer(String containerId){
-        LOG.info("Remove container: "+containerId);
+        System.out.println("Remove container: "+containerId);
         if(unprocessedMessages.contains(containerId)){
             unprocessedMessages.remove(containerId);
-        }else LOG.info("Does not contain container: "+containerId);
+        }else System.out.println("Does not contain container: "+containerId);
         if(processedEnv.contains(containerId)){
             processedEnv.remove(containerId);
             processedTime.remove(containerId);
@@ -75,7 +75,7 @@ public class UnprocessedMessageMonitor {
         return ret;
     }
     private void run() {
-        LOG.info("start running!");
+        System.out.println("start running!");
         consumer.subscribe(Collections.singletonList(this.topic));
         while(true){
             try {
@@ -83,7 +83,7 @@ public class UnprocessedMessageMonitor {
                 for (ConsumerRecord<String, String> record : records) {
                     // sent kafka msg by http
                     // System.out.println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset());
-                    //LOG.info("Received metrics:"+record);
+                    //System.out.println("Received metrics:"+record);
                     parseProcessEnvelopes(record.value());
                     parseUnprocessedMessages(record.value());
                 }
@@ -133,9 +133,9 @@ public class UnprocessedMessageMonitor {
     private void parseUnprocessedMessages(String record){
         JSONObject json = new JSONObject(record);
         //System.out.println(json);
-        //LOG.info("Json: "+json.toString());
+        //System.out.println("Json: "+json.toString());
         if(json.getJSONObject("header").getString("job-name").equals(appName) && json.getJSONObject("header").getString("container-name").contains("samza-container")){
-            //LOG.info("!!!!\n"+json.getJSONObject("metrics")+"!!!!\n");
+            //System.out.println("!!!!\n"+json.getJSONObject("metrics")+"!!!!\n");
             //System.out.println("!!!!!!\n"+json.getJSONObject("metrics")+"!!!!!!\n");
             if(json.getJSONObject("metrics").has("org.apache.samza.system.SystemConsumersMetrics")) {
                 String containerId = json.getJSONObject("header").getString("container-name");
@@ -143,7 +143,7 @@ public class UnprocessedMessageMonitor {
                         getJSONObject("org.apache.samza.system.SystemConsumersMetrics").
                         getLong("unprocessed-messages");
                 unprocessedMessages.put(containerId, unprocessedMessage);
-                //LOG.info("UnprocessedMessages information: "+ containerId +" ," + unprocessedMessage);
+                //System.out.println("UnprocessedMessages information: "+ containerId +" ," + unprocessedMessage);
             }
         }
     }
@@ -168,18 +168,18 @@ public class UnprocessedMessageMonitor {
         return props;
     }
     public void start(){
-        LOG.info("Start new Unprocessed Messages Monitor");
+        System.out.println("Start new Unprocessed Messages Monitor");
         if(t==null){
             t = new Thread(this::run, "Unprocessed Messages Monitor");
             t.start();
         }
     }
     public void stop(){
-        LOG.info("Stop Unprocessed Messages Monitor");
+        System.out.println("Stop Unprocessed Messages Monitor");
         try{
             if(t!=null)t.join();
         }catch(Exception e){
-            LOG.error(e.toString());
+            System.out.println(e.toString());
         }
     }
     /*

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LocalityDistance {
-    private static final Logger LOG = LoggerFactory.getLogger(LocalityDistance.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(LocalityDistance.class);
     private long[] cost;
     private final int nlayer;
     private Map<String, ArrayList<String>> coord;
@@ -26,7 +26,7 @@ public class LocalityDistance {
 
     // Id, Locality list (cluster, rack, server, container), Amount of state (1 for container)
     public void insert(String Id, List<String> items, Integer amount) {
-        LOG.info("Inserting to locality list container " + Id + " :" + items.toString());
+        System.out.println("Inserting to locality list container " + Id + " :" + items.toString());
         if (coord.containsKey(Id)) {
             coord.remove(Id);
         }
@@ -45,16 +45,16 @@ public class LocalityDistance {
 
     public long distance(String cid1, String cid2) {
         long sum = 0;
-        LOG.info("Calculating Locality distance between " + cid1 + " " + cid2);
-        LOG.info("Locality items " + coord.toString());
+        System.out.println("Calculating Locality distance between " + cid1 + " " + cid2);
+        System.out.println("Locality items " + coord.toString());
         ArrayList<String> v1 = coord.get(cid1), v2 = coord.get(cid2);
-        LOG.info("Locality items " + v1.toString() + "      " + v2.toString());
+        System.out.println("Locality items " + v1.toString() + "      " + v2.toString());
         for (int i = 0; i < nlayer - 1; i++) {
             if (!v1.get(i).equals(v2.get(i))) {
                 sum += cost[i];
             }
         }
-        LOG.info("Distance " + sum);
+        System.out.println("Distance " + sum);
         return sum * Integer.parseInt(v1.get(nlayer - 1)) * Integer.parseInt(v2.get(nlayer - 1));
     }
 

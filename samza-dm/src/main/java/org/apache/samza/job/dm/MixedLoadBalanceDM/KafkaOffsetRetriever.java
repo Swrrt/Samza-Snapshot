@@ -31,6 +31,9 @@ public class KafkaOffsetRetriever {
         commited = new HashMap<>();
         lastTime = System.currentTimeMillis();
     }
+    // Access Kafka server
+    // Need kafka 2.2.0 server
+    // Return a partitionId-backlog map
     public Map<Integer, Long> retrieveBacklog(){
         AdminClient adminClient = AdminClient.create(properties);
         KafkaConsumer consumer = new KafkaConsumer(properties);
@@ -52,6 +55,8 @@ public class KafkaOffsetRetriever {
         }
         return backlog;
     }
+    // Access Kafka server
+    // Return a containerId-processSpeed map
     public Map<Integer, Double> retrieveSpeed(){
         AdminClient adminClient = AdminClient.create(properties);
         KafkaConsumer consumer = new KafkaConsumer(properties);

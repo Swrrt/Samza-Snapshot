@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ConsistentHashing {
-    private static final Logger LOG = LoggerFactory.getLogger(ConsistentHashing.class);
+    //private static final Logger LOG = LoggerFactory.getLogger(ConsistentHashing.class);
     private int Length;
     private Map<String, LinkedList<Integer>> coord;
     private Map<String, Integer> taskCoord;
@@ -62,7 +62,7 @@ public class ConsistentHashing {
         Add a VN to container
      */
     public void addVN(String containerId, int vn) {
-        LOG.info("Add Virtual Node at position: " + vn + " to container " + containerId);
+        System.out.println("Add Virtual Node at position: " + vn + " to container " + containerId);
         coord.get(containerId).add(vn);
     }
 
@@ -70,24 +70,24 @@ public class ConsistentHashing {
         Remove a VN from container.
      */
     public int removeVN(String containerId) {
-        LOG.info("Remove Virtual Node from to container " + containerId);
+        System.out.println("Remove Virtual Node from to container " + containerId);
         int randomNum = ThreadLocalRandom.current().nextInt(0, coord.get(containerId).size());
         return coord.get(containerId).remove(randomNum);
     }
 
     public void simpleBalance(String maxContainer, String minContainer) {
-        LOG.info("Move virtual node of " + maxContainer + " to " + minContainer);
+        System.out.println("Move virtual node of " + maxContainer + " to " + minContainer);
         if (coord.get(maxContainer).size() > 1) {
             int vn = removeVN(maxContainer);
-            LOG.info("Move the VN at position: " + vn);
+            System.out.println("Move the VN at position: " + vn);
             addVN(minContainer, vn);
-        } else LOG.info(maxContainer + " only has 1 VN. No movement");
+        } else System.out.println(maxContainer + " only has 1 VN. No movement");
 
     }
 
     public int distance(String itemX, String itemY) {
-        LOG.info("Calculate load distance between " + itemX + "  " + itemY);
-        LOG.info("load items " + coord.toString());
+        System.out.println("Calculate load distance between " + itemX + "  " + itemY);
+        System.out.println("load items " + coord.toString());
         int min = Length + 1000;
         int x = taskCoord.get(itemX);
         LinkedList<Integer> y = coord.get(itemY);
@@ -98,7 +98,7 @@ public class ConsistentHashing {
                 min = t;
             }
         }
-        LOG.info("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
+        System.out.println("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
         return min;
     }
 }
