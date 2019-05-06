@@ -125,7 +125,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         });
         //
         // jvmMonitor = new JVMMonitor();
-        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
+        if(config.getBoolean("job.loadbalance.on", false)) {
+            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "")));
+        }
     }
     // In YARN mode, we have containerId
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, String containerId) {
@@ -151,7 +153,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
         //jvmMonitor = new JVMMonitor();
-        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address", ""), Integer.parseInt(config.get("containerlocalityserver.port", "8881")));
+        if(config.getBoolean("job.loadbalance.on", false)) {
+            this.localityClient = new LocalityClient(config.get("containerlocalityserver.address", ""), Integer.parseInt(config.get("containerlocalityserver.port", "8881")));
+        }
     }
 
     @Override
@@ -161,7 +165,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
         //jvmMonitor.start(getLeaderAddr(), processorId);
-        localityClient.sendLocality(processorId, getHostName());
+        if(config.getBoolean("job.loadbalance.on", false)) {
+            localityClient.sendLocality(processorId, getHostName());
+        }
     }
     private String getHostName() {
         try {

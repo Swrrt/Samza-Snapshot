@@ -385,19 +385,8 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     /* For testing */
     public void publishJobModel(JobModel jobModel){
         newJobModel = jobModel;
-        //Add leader address to config for followers
-        newJobModel.getConfig().put("containerlocalityserver.address", getAMAddress());
-
         LOG.info("New JobModel comes into Leader!");
         onProcessorChange(currentProcessors);
-    }
-    private String getAMAddress(){
-        String address = "localhost";
-        try{
-            address = Inet4Address.getLocalHost().getHostAddress().toString();
-        }catch (Exception e){
-        }
-        return address;
     }
     public JobModel testingGenerateNewJobModel(List<String> processors){
         // Generate new Job Model using MixedLoadBalanceManager
