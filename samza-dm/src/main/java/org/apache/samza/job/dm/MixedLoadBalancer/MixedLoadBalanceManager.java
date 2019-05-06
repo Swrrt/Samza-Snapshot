@@ -84,16 +84,18 @@ public class MixedLoadBalanceManager {
          */
         kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
         oldJobModel = jobModel;
+        updateFromJobModel(jobModel);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
                 //Create new tasks model!
                 tasks.put(taskModel.getKey().getTaskName(), new TaskModel(taskModel.getValue().getTaskName(),taskModel.getValue().getSystemStreamPartitions(),taskModel.getValue().getChangelogPartition()));
-                taskContainer.put(taskModel.getKey().getTaskName(), containerModel.getProcessorId());
             }
-            insertContainer(containerModel.getProcessorId());
         }
         writeLog("Task Models:" + tasks.toString());
         setTasks(tasks);
+        for(ContainerModel containerModel: jobModel.getContainers().values()){
+            insertContainer(containerModel.getProcessorId());
+        }
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
         threshold = config.getDouble("job.loadbalance.threshold", 10.0);
         //unprocessedMessageMonitor.start();
