@@ -43,7 +43,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
     @Override
     public EnforcerFactory getEnforcerFactory(String stage) {
         writeLog("dispatcher getenforcerfactory");
-        String EnforcerFactoryClass = "YarnJobEnforcerFactory";
+        String EnforcerFactoryClass = "YarnEnforcerFactory";
         if (config.containsKey("dm.enforcerfactory." + stage)) {
             EnforcerFactoryClass = config.get("dm.enforcerfactory." + stage, "YarnEnforcerFactory");
         }
