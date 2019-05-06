@@ -20,6 +20,7 @@ package org.apache.samza.clustermanager;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.net.Inet4Address;
 import java.util.*;
 
 import org.apache.samza.SamzaException;
@@ -176,7 +177,7 @@ public class YarnApplicationMaster {
             leaderJobCoordinator.start();
             containerProcessManager.start();
             partitionMonitor.start();
-
+            jobModelManager.jobModel().getConfig().put("containerlocalityserver.address", getAMAddress());
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {
                 listener = new DMListenerRMI();
@@ -240,6 +241,14 @@ public class YarnApplicationMaster {
         return jobModel;
     }
 
+    private String getAMAddress(){
+      String address = "localhost";
+      try{
+          address = Inet4Address.getLocalHost().getHostAddress().toString();
+      }catch (Exception e){
+      }
+      return address;
+    }
     /*
         Enforce job model which comes from DM
      */
