@@ -1,6 +1,8 @@
 package org.apache.samza.clustermanager.dm;
 
 import org.apache.samza.clustermanager.YarnApplicationMaster;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -8,6 +10,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 
 public class DMListenerRMI implements DMListener, Runnable {
+    private static final Logger log = LoggerFactory.getLogger(DMListenerRMI.class);
     private YarnApplicationMaster jc;
     @Override
     public void registerToDM() {
@@ -41,6 +44,6 @@ public class DMListenerRMI implements DMListener, Runnable {
         }
 
 
-        System.out.println("RMI server starts up");
+        log.info("RMI server starts up");
     }
 }

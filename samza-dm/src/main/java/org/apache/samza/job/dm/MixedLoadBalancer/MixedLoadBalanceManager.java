@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 //Need to bind
 public class MixedLoadBalanceManager {
     //private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
+    private final int LOCALITY_RETRY_TIMES = 2;
     private double threshold;
     //TODO: reorganize all classes and tables;
     private ConsistentHashing consistentHashing;
@@ -115,8 +116,11 @@ public class MixedLoadBalanceManager {
         return hostRack;
     }
     private String getContainerHost(String container){
+        return getContainerHost(container, LOCALITY_RETRY_TIMES);
+    }
+    private String getContainerHost(String container, int retryTimes){
         //TODO: If the container is not here, wait for it?
-        int retry = 2; //Number of times to retry
+        int retry = retryTimes; //Number of times to retry
         while(localityServer.getLocality(container) == null && retry > 0 ){
             retry--;
             try{

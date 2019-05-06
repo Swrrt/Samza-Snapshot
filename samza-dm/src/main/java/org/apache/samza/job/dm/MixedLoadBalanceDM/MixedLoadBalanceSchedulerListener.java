@@ -45,12 +45,13 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
                 Thread.sleep(10000);
             }catch (Exception e){
             }
-
+            writeLog("Try to retrieve report");
             // Try to find AM's IP address
             if(!leaderComes) {
                 ConsumerRecords<String, String> records = consumer.poll(10000);
                 for (ConsumerRecord<String, String> record : records) {
                     StageReport report = new StageReport(record.value());
+                    writeLog("Reports: " + report.toString());
                     if (scheduler.updateLeader(report)) {
                         leaderComes = true;
                         break;
