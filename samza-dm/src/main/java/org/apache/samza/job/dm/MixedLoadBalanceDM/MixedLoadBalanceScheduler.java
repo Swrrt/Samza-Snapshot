@@ -78,7 +78,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     @Override
     public DMDispatcher getDispatcher(String DMDispatcherClass) {
-        writeLog("scheduler getdispatcher");
+        writeLog("scheduler get dispatcher");
         DMDispatcher dispatcher = null;
         try {
             dispatcher = (DMDispatcher) Class.forName(DMDispatcherClass).newInstance();

@@ -178,10 +178,13 @@ public class YarnApplicationMaster {
             partitionMonitor.start();
 
             // init and start the listener
-            listener = new DMListenerRMI();
-            listener.setYarnApplicationMaster(this);
-            listener.startListener();
-
+            if(config.getBoolean("job.loadbalance.on",false)) {
+                listener = new DMListenerRMI();
+                listener.setYarnApplicationMaster(this);
+                listener.startListener();
+            }else{
+                leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
+            }
             boolean isInterrupted = false;
             //For testing
             //int loadbalanceCounter = 0, scalingCounter = 0;
