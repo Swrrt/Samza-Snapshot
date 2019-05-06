@@ -47,6 +47,7 @@ public class MixedLoadBalanceManager {
         consistentHashing = new ConsistentHashing();
         locality = new LocalityDistance();
         webReader = new WebReader();
+        partitionTask = new HashMap<>();
         taskContainer = new HashMap<>();
         //containerHost = new HashMap<>();
         hostRack = new HashMap<>();
