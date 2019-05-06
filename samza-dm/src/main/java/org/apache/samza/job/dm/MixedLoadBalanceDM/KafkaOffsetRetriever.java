@@ -35,6 +35,7 @@ public class KafkaOffsetRetriever {
     // Need kafka 2.2.0 server
     // Return a partitionId-backlog map
     public Map<Integer, Long> retrieveBacklog(){
+        writeLog("Retrieving backlog from Kafka");
         AdminClient adminClient = AdminClient.create(properties);
         KafkaConsumer consumer = new KafkaConsumer(properties);
         Map<TopicPartition, OffsetAndMetadata> commitedOffset = new HashMap<>();
@@ -53,11 +54,13 @@ public class KafkaOffsetRetriever {
                 backlog.put(topicPartition.partition(),endOffset.get(topicPartition) - commitedOffset.get(topicPartition).offset());
             }
         }
+        writeLog("Retrieved backlog information: " + backlog.toString());
         return backlog;
     }
     // Access Kafka server
     // Return a containerId-processSpeed map
     public Map<Integer, Double> retrieveSpeed(){
+        writeLog("Retrieving speed information from Kafka");
         AdminClient adminClient = AdminClient.create(properties);
         KafkaConsumer consumer = new KafkaConsumer(properties);
         Map<TopicPartition, OffsetAndMetadata> commitedOffset = null;
@@ -88,9 +91,10 @@ public class KafkaOffsetRetriever {
             }
         }
         lastTime = time;
+        writeLog("Retrieved speed information: " + speed.toString());
         return speed;
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("KafkaOffsetRetriever: " + log);
     }
 }

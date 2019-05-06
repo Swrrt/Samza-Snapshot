@@ -51,6 +51,10 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
         return new Allocation(stageId);
     }
 
+    public Allocation getDefaultAllocation(String stageId, String parallelism) {
+        return new Allocation(stageId, Integer.valueOf(parallelism));
+    }
+
     @Override
     public void createListener(DMScheduler scheduler) {
         writeLog("starting listener in scheduler");
@@ -64,7 +68,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     public void submitApplication() {
         writeLog("scheduler submit application");
         // Use default schema to launch the application
-        Allocation defaultAllocation = getDefaultAllocation(config.get("job.name"));
+        Allocation defaultAllocation = getDefaultAllocation(config.get("job.name"), config.get("job.container.count","1"));
         dispatcher.submitApplication(defaultAllocation);
 
         // for kafka listener
@@ -162,6 +166,6 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
         return false;
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("MixedLoadBalanceScheduler: " + log);
     }
 }

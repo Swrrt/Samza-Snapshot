@@ -91,7 +91,7 @@ public class WebReader {
         return taskHostDistance;
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("WebReader: " + log);
     }
         /*public Map<String, String> readContainerHost(){
             Map<String, String> containerHost = new HashMap<>();

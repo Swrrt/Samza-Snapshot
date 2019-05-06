@@ -95,7 +95,7 @@ public class MixedLoadBalanceManager {
         writeLog("Task Models:" + tasks.toString());
         setTasks(tasks);
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
-        threshold = config.getDouble("balance.threshold", 10.0);
+        threshold = config.getDouble("job.loadbalance.threshold", 10.0);
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
         localityServer.start();
@@ -498,7 +498,7 @@ public class MixedLoadBalanceManager {
             }else {
                 long backlog = containerBacklogs.get(containerId);
                 double processSpeed = containerProcessingSpeed.get(containerId);
-                if (backlog / ((double) processSpeed) > threshold) {
+                if (backlog / processSpeed > threshold) {
                     writeLog("Container " + containerId + "Exceed threshold, backlog: " + backlog + ", processing speed: " + processSpeed);
                     return false;
                 }
@@ -513,6 +513,6 @@ public class MixedLoadBalanceManager {
         return utilizationServer.getAndRemoveUtilizationMap();
     }*/
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("MixedLoadBalanceManager: " + log);
     }
 }

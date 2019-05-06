@@ -58,7 +58,7 @@ public class LocalityDistance {
         return sum * Integer.parseInt(v1.get(nlayer - 1)) * Integer.parseInt(v2.get(nlayer - 1));
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("LocalityDistance: " + log);
     }
 
 }

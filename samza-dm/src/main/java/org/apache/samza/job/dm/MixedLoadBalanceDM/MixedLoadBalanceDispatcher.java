@@ -111,7 +111,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
         enforcerURL.put(name, url);
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("MixedLoadBalanceDispatcher: " + log);
     }
 
 }

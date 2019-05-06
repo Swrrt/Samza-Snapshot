@@ -102,6 +102,6 @@ public class ConsistentHashing {
         return min;
     }
     private void writeLog(String log){
-        System.out.println(log);
+        System.out.println("ConsistentHashing: " + log);
     }
 }
