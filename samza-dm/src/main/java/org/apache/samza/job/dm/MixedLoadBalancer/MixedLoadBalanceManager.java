@@ -151,7 +151,7 @@ public class MixedLoadBalanceManager {
         //updateContainerHost();
         getHostRack();
         String container = taskContainer.get(item);
-        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container))).clone();
+        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container, 0))).clone();
         itemLocality.add(0,container);
         writeLog("Find Task " + item + " in " + itemLocality.toString());
         return itemLocality;
