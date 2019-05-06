@@ -151,7 +151,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             stop();
         });
         //jvmMonitor = new JVMMonitor();
-        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address",""), Integer.parseInt(config.get("containerlocalityserver.port","")));
+        this.localityClient = new LocalityClient(config.get("containerlocalityserver.address", ""), Integer.parseInt(config.get("containerlocalityserver.port", "8881")));
     }
 
     @Override
