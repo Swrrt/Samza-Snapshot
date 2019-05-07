@@ -152,6 +152,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     // Update leader's address from kafka metric topic
     public boolean updateLeader(ConsumerRecord<String, String> record){
+        balanceManager.updateMetrics(record);
         StageReport report = new StageReport(record.value());
         if (report.getType().equals("ApplicationMaster")) {
             writeLog("update application master ip address");
