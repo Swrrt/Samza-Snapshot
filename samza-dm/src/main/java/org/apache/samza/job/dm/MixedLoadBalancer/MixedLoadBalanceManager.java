@@ -64,6 +64,8 @@ public class MixedLoadBalanceManager {
         localityServer = new LocalityServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         metricsRetriever = new MetricsLagRetriever();
+        taskProcessingSpeed = new HashMap<>();
+        taskBacklogs = new HashMap<>();
     }
     /*
         TODO:
@@ -498,6 +500,7 @@ public class MixedLoadBalanceManager {
         Check whether if all containers are not exceed threshold.
      */
     public boolean checkLoad(){
+        writeLog("Check if all containers are not overload");
         updateFromJobModel(oldJobModel);
         retrieveBacklog(); //Update backlog
         retrieveProcessingSpeed(); //Update processing speed
@@ -523,8 +526,18 @@ public class MixedLoadBalanceManager {
     public HashMap getUtilMap(){
         return utilizationServer.getAndRemoveUtilizationMap();
     }*/
+
     public void updateMetrics(ConsumerRecord<String, String> record){
         metricsRetriever.update(record);
+    }
+
+    public boolean readyToRebalance(){
+        if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size()){
+            writeLog("Ready to rebalance");
+            return true;
+        }
+        writeLog("Not ready to rebalance, backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size());
+        return false;
     }
     private void writeLog(String log){
         System.out.println("MixedLoadBalanceManager: " + log);
