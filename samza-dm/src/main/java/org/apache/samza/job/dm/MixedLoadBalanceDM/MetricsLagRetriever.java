@@ -36,24 +36,27 @@ public class MetricsLagRetriever {
     public void update(ConsumerRecord<String, String> record){
         JSONObject json = new JSONObject(record.value());
         //writeLog("What happened: " + json);
+
         try {
             if (!isOurApp(json, app)) return;
             writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
-            JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
-
-            //If KafkaSystemConsumerMetrics is here, we get lag information
             if (kafkaMetrics != null) {
-                writeLog("kafkaMetrics: " + kafkaMetrics);
+                //If KafkaSystemConsumerMetrics is here, we get lag information
+                //writeLog("kafkaMetrics: " + kafkaMetrics);
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
                 writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklog(partition, kafkaMetrics);
                 }
             }
-
-            //If TaskInstanceMetrics is here, we get processing speed
+        }catch (Exception e) {
+            writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
+        }
+        try{
+            JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
             if (taskMetrics != null) {
+                //If TaskInstanceMetrics is here, we get processing speed
                 writeLog("taskMetrics: " + taskMetrics);
                 String taskName = json.getJSONObject("header").getString("source");
                 //Need to get correct Task name
@@ -84,7 +87,7 @@ public class MetricsLagRetriever {
                 }
             }
         }catch (Exception e){
-            writeLog("Error when parse metrics: "+ e);
+            writeLog("Error when parse taskMetrics: "+ e);
         }
     }
 
@@ -109,6 +112,7 @@ public class MetricsLagRetriever {
         //Find all patterns in string
         while(i != -1){
             i = string.indexOf(pattern, i);
+            writeLog("Find pattern at: "+ i);
             if(i != -1){
                 int j = string.indexOf(']', i + len); //Right bracket
                 partitions.add(Integer.valueOf(string.substring(i + len, j)));
