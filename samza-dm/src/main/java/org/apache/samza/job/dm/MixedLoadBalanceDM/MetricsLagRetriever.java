@@ -35,11 +35,11 @@ public class MetricsLagRetriever {
     //Update metrics from record
     public void update(ConsumerRecord<String, String> record){
         JSONObject json = new JSONObject(record.value());
-        writeLog("What happened: " + json);
+        //writeLog("What happened: " + json);
         try {
             if (!isOurApp(json, app)) return;
             writeLog("Our apps's record");
-            String kafkaMetrics = json.getJSONObject("metrics").getString("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics");
+            String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
             JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.TaskInstanceMetrics");
 
             //If KafkaSystemConsumerMetrics is here, we get lag information
@@ -84,7 +84,7 @@ public class MetricsLagRetriever {
                 }
             }
         }catch (Exception e){
-            writeLog("Error when parse metrics: "+ e.toString());
+            writeLog("Error when parse metrics: "+ e.getStackTrace().toString());
         }
     }
 
