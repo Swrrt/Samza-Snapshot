@@ -35,7 +35,7 @@ public class MetricsLagRetriever {
     //Update metrics from record
     public void update(ConsumerRecord<String, String> record){
         JSONObject json = new JSONObject(record.value());
-
+        writeLog("What happened: " + json);
         try {
             if (!isOurApp(json, app)) return;
             writeLog("Our apps's record");
