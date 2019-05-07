@@ -48,11 +48,10 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             writeLog("Try to retrieve report");
             ConsumerRecords<String, String> records = consumer.poll(10000);
             for (ConsumerRecord<String, String> record : records) {
-
+                loadBalanceManager.updateMetrics(record);
                // writeLog("Reports: " + record.toString());
                 if (scheduler.updateLeader(record)) {
                     leaderComes = true;
-                    break;
                 }
             }
 
