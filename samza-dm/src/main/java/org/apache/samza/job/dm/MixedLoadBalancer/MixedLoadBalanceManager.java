@@ -532,6 +532,8 @@ public class MixedLoadBalanceManager {
     }
 
     public boolean readyToRebalance(){
+        retrieveBacklog();
+        retrieveProcessingSpeed();
         if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size()){
             writeLog("Ready to rebalance");
             return true;

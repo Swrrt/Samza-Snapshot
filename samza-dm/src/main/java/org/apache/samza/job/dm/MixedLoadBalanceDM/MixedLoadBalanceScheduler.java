@@ -134,7 +134,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
         }*/
     }
     public void updateJobModel(){
-        if(balanceManager.readyToRebalance() && !balanceManager.checkLoad()){
+        if(balanceManager.readyToRebalance()){
             //Rebalance the JobModel
             JobModel newJobModel = balanceManager.rebalanceJobModel();
             if(newJobModel == null){

@@ -92,7 +92,7 @@ public class MetricsLagRetriever {
     }
 
     private long getLag(int partition, String kafkaMetric){
-        String pattern = "\"kafka-"+topic.toLowerCase()+"-"+partition+"messages-behind-high-watermark\":";
+        String pattern = "kafka-"+topic.toLowerCase()+"-"+partition+"-messages-behind-high-watermark\":";
         int i = kafkaMetric.indexOf(pattern);
         int j = kafkaMetric.indexOf(',', i);
         return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
@@ -112,7 +112,7 @@ public class MetricsLagRetriever {
         //Find all patterns in string
         while(i != -1){
             i = string.indexOf(pattern, i);
-            writeLog("Find pattern at: "+ i);
+            //writeLog("Find pattern at: "+ i);
             if(i != -1){
                 int j = string.indexOf(']', i + len); //Right bracket
                 partitions.add(Integer.valueOf(string.substring(i + len, j)));
