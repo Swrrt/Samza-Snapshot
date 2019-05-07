@@ -38,13 +38,15 @@ public class MetricsLagRetriever {
 
         try {
             if (!isOurApp(json, app)) return;
-
+            writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getString("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics");
             JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.TaskInstanceMetrics");
 
             //If KafkaSystemConsumerMetrics is here, we get lag information
             if (kafkaMetrics != null) {
+                writeLog("kafkaMetrics: " + kafkaMetrics);
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
+                writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklog(partition, kafkaMetrics);
                 }
@@ -52,6 +54,7 @@ public class MetricsLagRetriever {
 
             //If TaskInstanceMetrics is here, we get processing speed
             if (taskMetrics != null) {
+                writeLog("taskMetrics: " + taskMetrics);
                 String taskName = json.getJSONObject("header").getString("source");
                 //Need to get correct Task name
                 taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
@@ -145,6 +148,6 @@ public class MetricsLagRetriever {
         return speed;
     }
     private void writeLog(String log){
-        System.out.println("KafkaOffsetRetriever: " + log);
+        System.out.println("MetricsLagRetriever: " + log);
     }
 }
