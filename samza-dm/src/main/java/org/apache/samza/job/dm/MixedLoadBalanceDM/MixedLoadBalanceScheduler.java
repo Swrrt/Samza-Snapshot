@@ -1,6 +1,7 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
         import org.apache.hadoop.yarn.api.records.Resource;
+        import org.apache.kafka.clients.consumer.ConsumerRecord;
         import org.apache.samza.config.Config;
         import org.apache.samza.config.DMSchedulerConfig;
         import org.apache.samza.job.dm.*;
@@ -150,7 +151,9 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     }
 
     // Update leader's address from kafka metric topic
-    public boolean updateLeader(StageReport report){
+    public boolean updateLeader(ConsumerRecord<String, String> record){
+        balanceManager.updateMetrics(record);
+        StageReport report = new StageReport(record.value());
         if (report.getType().equals("ApplicationMaster")) {
             writeLog("update application master ip address");
             if (!stages.containsKey(report.getName())) {

@@ -1,7 +1,9 @@
 package org.apache.samza.job.dm.MixedLoadBalancer;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.KafkaOffsetRetriever;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.MetricsLagRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
@@ -42,7 +44,8 @@ public class MixedLoadBalanceManager {
     //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
     //private final int LOCALITY_RETRY_TIMES = 1;
-    private KafkaOffsetRetriever kafkaOffsetRetriever = null;
+    //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
+    private MetricsLagRetriever metricsRetriever = null;
     public MixedLoadBalanceManager(){
         config = null;
         consistentHashing = new ConsistentHashing();
@@ -59,7 +62,8 @@ public class MixedLoadBalanceManager {
         //utilizationServer = new UtilizationServer();
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
-        kafkaOffsetRetriever = new KafkaOffsetRetriever();
+        //kafkaOffsetRetriever = new KafkaOffsetRetriever();
+        metricsRetriever = new MetricsLagRetriever();
     }
     /*
         TODO:
@@ -84,7 +88,8 @@ public class MixedLoadBalanceManager {
             Group id is generated randomly in SamzaContainer(KafkaSystemFactory.getConsumer())
             So we need a way to catch them.
          */
-        kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
+        metricsRetriever.initial(config.get("job.name"), config.get("job.loadbalance.inputtopic"));
+        //kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
         oldJobModel = jobModel;
         updateFromJobModel(jobModel);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
@@ -437,7 +442,7 @@ public class MixedLoadBalanceManager {
         Using kafka-consumer-groups command to run
      */
     public void retrieveBacklog(){
-        Map<Integer, Long> partitionBacklog = kafkaOffsetRetriever.retrieveBacklog();
+        Map<Integer, Long> partitionBacklog = metricsRetriever.retrieveBacklog();//kafkaOffsetRetriever.retrieveBacklog();
         taskBacklogs.clear();
         containerBacklogs.clear();
         for(Map.Entry<Integer, Long> entry: partitionBacklog.entrySet()){
@@ -453,13 +458,12 @@ public class MixedLoadBalanceManager {
         }
     }
     public void retrieveProcessingSpeed(){
-        Map<Integer, Double> partitionProcessingSpeed = kafkaOffsetRetriever.retrieveSpeed();
+        Map<String, Double> taskProcessingSpeed = metricsRetriever.retrieveSpeed();
         taskProcessingSpeed.clear();
         containerProcessingSpeed.clear();
-        for(Map.Entry<Integer, Double> entry: partitionProcessingSpeed.entrySet()){
-            Integer partition = entry.getKey();
+        for(Map.Entry<String, Double> entry: taskProcessingSpeed.entrySet()){
+            String task = entry.getKey();
             double speed = entry.getValue();
-            String task = partitionTask.get(partition);
             taskProcessingSpeed.put(task, speed);
             String container = taskContainer.get(task);
             if(containerProcessingSpeed.containsKey(container)){
@@ -519,6 +523,9 @@ public class MixedLoadBalanceManager {
     public HashMap getUtilMap(){
         return utilizationServer.getAndRemoveUtilizationMap();
     }*/
+    public void updateMetrics(ConsumerRecord<String, String> record){
+        metricsRetriever.update(record);
+    }
     private void writeLog(String log){
         System.out.println("MixedLoadBalanceManager: " + log);
     }

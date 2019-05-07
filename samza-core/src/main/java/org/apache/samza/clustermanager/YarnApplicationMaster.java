@@ -184,7 +184,7 @@ public class YarnApplicationMaster {
                 listener.setYarnApplicationMaster(this);
                 listener.startListener();
             }else{
-                Thread.sleep(100000);
+                Thread.sleep(200000);
                 leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
             }
             boolean isInterrupted = false;

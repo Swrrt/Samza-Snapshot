@@ -14,6 +14,8 @@ import java.util.Properties;
 
 /*
     Retrieve kafka offset information from console.
+
+    !!! Currently not in use, since we cannot have multiple version of Kafka in one project
  */
 public class KafkaOffsetRetriever {
     //private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
