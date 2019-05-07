@@ -24,7 +24,7 @@ public class MetricsLagRetriever {
     private ConcurrentMap<String, Long> time, processed;
     private ConcurrentMap<Integer, Long> backlog;
     private double delta = 0.5; //Parameter to smooth processing speed
-    public void initial(String topic_name, String appName){
+    public void initial(String appName, String topic_name){
         topic = topic_name;
         app = appName;
         speed = new ConcurrentHashMap<>();
