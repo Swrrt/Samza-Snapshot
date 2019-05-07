@@ -66,6 +66,8 @@ public class MixedLoadBalanceManager {
         metricsRetriever = new MetricsLagRetriever();
         taskProcessingSpeed = new HashMap<>();
         taskBacklogs = new HashMap<>();
+        containerBacklogs = new HashMap<>();
+        containerProcessingSpeed = new HashMap<>();
     }
     /*
         TODO:
