@@ -463,7 +463,6 @@ public class MixedLoadBalanceManager {
     }
     public void retrieveProcessingSpeed(){
         Map<String, Double> taskProcessingSpeed = metricsRetriever.retrieveSpeed();
-        taskProcessingSpeed.clear();
         containerProcessingSpeed.clear();
         for(Map.Entry<String, Double> entry: taskProcessingSpeed.entrySet()){
             String task = entry.getKey();
