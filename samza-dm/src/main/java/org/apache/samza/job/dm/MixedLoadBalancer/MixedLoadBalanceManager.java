@@ -279,7 +279,7 @@ public class MixedLoadBalanceManager {
             Already retrieved in checkLoad()
          */
 
-        JobModel newJobModel = generateNewJobModel(taskBacklogs, taskProcessingSpeed, oldJobModel);
+        JobModel newJobModel = generateNewJobModel(taskBacklogs, containerProcessingSpeed, oldJobModel);
         // If scaling is needed
         if(newJobModel == null){
             writeLog("Cannot rebalance load, need to scale out");
@@ -462,9 +462,10 @@ public class MixedLoadBalanceManager {
         }
     }
     public void retrieveProcessingSpeed(){
-        Map<String, Double> taskProcessingSpeed = metricsRetriever.retrieveSpeed();
+        taskProcessingSpeed.clear();
         containerProcessingSpeed.clear();
-        for(Map.Entry<String, Double> entry: taskProcessingSpeed.entrySet()){
+        Map<String, Double> retrieved =  metricsRetriever.retrieveSpeed();
+        for(Map.Entry<String, Double> entry: retrieved.entrySet()){
             String task = entry.getKey();
             double speed = entry.getValue();
             taskProcessingSpeed.put(task, speed);
