@@ -40,7 +40,7 @@ public class MetricsLagRetriever {
             if (!isOurApp(json, app)) return;
             writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
-            JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.TaskInstanceMetrics");
+            JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
 
             //If KafkaSystemConsumerMetrics is here, we get lag information
             if (kafkaMetrics != null) {
@@ -84,7 +84,7 @@ public class MetricsLagRetriever {
                 }
             }
         }catch (Exception e){
-            writeLog("Error when parse metrics: "+ e.getStackTrace().toString());
+            writeLog("Error when parse metrics: "+ e);
         }
     }
 
