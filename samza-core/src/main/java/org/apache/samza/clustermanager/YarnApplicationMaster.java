@@ -136,7 +136,9 @@ public class YarnApplicationMaster {
 
         //build a JobModelReader and perform partition assignments.
         jobModelManager = buildJobModelManager(coordinatorSystemConfig, metrics);
+        log.info("coordiantor system config: " + coordinatorSystemConfig);
         config = jobModelManager.jobModel().getConfig();
+        log.info("job model mangaer config: " + config);
         hasDurableStores = new StorageConfig(config).hasDurableStores();
         state = new SamzaApplicationState(jobModelManager);
 
@@ -180,10 +182,12 @@ public class YarnApplicationMaster {
 
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {
+                log.info("Load Balance mode is on, start listening to decision maker");
                 listener = new DMListenerRMI();
                 listener.setYarnApplicationMaster(this);
                 listener.startListener();
             }else{
+                log.info("Load Balance mode is off, use default job model");
                 Thread.sleep(200000);
                 leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
             }

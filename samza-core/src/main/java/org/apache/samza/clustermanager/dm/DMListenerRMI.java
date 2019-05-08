@@ -32,6 +32,7 @@ public class DMListenerRMI implements DMListener, Runnable {
 
     @Override
     public void run() {
+        log.info("Starting RMI server");
         try {
             DMListenerEnforcer enforcer = new DMListenerEnforcerRMIImpl(jc);
             LocateRegistry.createRegistry(1999);
