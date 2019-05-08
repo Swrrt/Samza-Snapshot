@@ -7,6 +7,7 @@ package org.apache.samza.job.dm.MixedLoadBalanceDM;
         import org.apache.samza.job.dm.*;
         import org.apache.samza.job.model.JobModel;
         import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+        import org.json.JSONObject;
 
         import java.util.concurrent.ConcurrentMap;
         import java.util.concurrent.ConcurrentSkipListMap;
@@ -154,17 +155,22 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     public boolean updateLeader(ConsumerRecord<String, String> record){
         balanceManager.updateMetrics(record);
         StageReport report = new StageReport(record.value());
-        if (report.getType().equals("ApplicationMaster")) {
-            writeLog("update application master ip address");
-            if (!stages.containsKey(report.getName())) {
-                writeLog("creating new stage for application master");
-                stages.put(report.getName(), new Stage());
+        try {
+            JSONObject json = new JSONObject(record.value());
+            if (json.getJSONObject("header").getString("job-name").equals(config.get("job.name")) && report.getType().equals("ApplicationMaster")) {
+                writeLog("update application master ip address");
+                if (!stages.containsKey(report.getName())) {
+                    writeLog("creating new stage for application master");
+                    stages.put(report.getName(), new Stage());
+                }
+                Stage curr = stages.get(report.getName());
+                if (report.getRunningContainers() != 0) curr.setRunningContainers(report.getRunningContainers());
+                stages.put(report.getName(), curr);
+                this.dispatcher.updateEnforcerURL(report.getName(), report.getHost() + ":1999");
+                return true;
             }
-            Stage curr = stages.get(report.getName());
-            if (report.getRunningContainers() != 0) curr.setRunningContainers(report.getRunningContainers());
-            stages.put(report.getName(), curr);
-            this.dispatcher.updateEnforcerURL(report.getName(), report.getHost()+ ":1999");
-            return true;
+        }catch (Exception e){
+            writeLog("Error when parse json");
         }
         return false;
     }
