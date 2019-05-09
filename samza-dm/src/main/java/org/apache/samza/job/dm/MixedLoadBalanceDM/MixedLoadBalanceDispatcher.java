@@ -73,7 +73,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
         try {
             String url = enforcerURL.get(allocation.getStageID());
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
-            enforcer.rebalance(jobModel);
+            enforcer.rebalance(JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (NotBoundException e) {
@@ -86,7 +86,7 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
         try {
             String url = enforcerURL.get(allocation.getStageID());
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
-            enforcer.changeParallelism(parallelism, jobModel);
+            enforcer.changeParallelism(parallelism, JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (NotBoundException e) {

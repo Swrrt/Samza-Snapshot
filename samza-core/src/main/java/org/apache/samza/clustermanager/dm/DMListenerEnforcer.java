@@ -10,8 +10,8 @@ public interface DMListenerEnforcer extends Remote {
     /**
      * Enforce the schema/parallelism sent by the dispatcher
      */
-    void changeParallelism(int parallelism, JobModel jobModel) throws RemoteException;
+    void changeParallelism(int parallelism, String jobModelString) throws RemoteException;
 
-    void rebalance(JobModel jobModel) throws RemoteException;
+    void rebalance(String jobModelString) throws RemoteException;
 
 }

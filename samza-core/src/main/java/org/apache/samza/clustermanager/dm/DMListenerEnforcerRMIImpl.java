@@ -17,14 +17,14 @@ public class DMListenerEnforcerRMIImpl extends UnicastRemoteObject implements DM
     }
 
     @Override
-    public void changeParallelism(int parallelism, JobModel jobModel) throws RemoteException {
+    public void changeParallelism(int parallelism, String jobModelString) throws RemoteException {
         log.info("Receiving parallelism: " + parallelism);
-        jc.scaleToN(parallelism, jobModel);
+        jc.scaleToN(parallelism, JobModelDeserializer.deserializeJobModel(jobModelString));
     }
 
     @Override
-    public void rebalance(JobModel jobModel) throws RemoteException {
+    public void rebalance(String jobModelString) throws RemoteException {
         log.info("rebalancing to JobModel");
-        jc.enforceJobModel(jobModel);
+        jc.enforceJobModel(JobModelDeserializer.deserializeJobModel(jobModelString));
     }
 }
