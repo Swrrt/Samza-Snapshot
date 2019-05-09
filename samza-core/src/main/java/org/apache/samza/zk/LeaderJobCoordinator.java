@@ -110,11 +110,13 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         this.reporters = MetricsReporterLoader.getMetricsReporters(new MetricsConfig(config), processorId);
         //
         newJobModel = jobModel;
+        currentProcessors = new LinkedList<>();
         debounceTimer = new ScheduleAfterDebounceTime();
         debounceTimer.setScheduledTaskCallback(throwable -> {
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
+
     }
 
     @Override
@@ -186,6 +188,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
             if (!jobModel.getContainers().keySet().contains(currentProcessorIds.get(0))){
                 /* Remapping the ProcessorsID */
+                LOG.info("Need to map processorID to job model");
                 if(containerToProcessorMap == null){
                     containerToProcessorMap = new HashMap<String, String>();
                 }
@@ -209,6 +212,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
                     models.put(containerToProcessorMap.get(container.getProcessorId()),new ContainerModel(containerToProcessorMap.get(container.getProcessorId()),container.getContainerId(),container.getTasks()));
                 }
                 jobModel = new JobModel(jobModel.getConfig(),models);
+                LOG.info("JobModel after remapping: " + jobModel);
             }
 
             if (!hasCreatedChangeLogStreams) {
