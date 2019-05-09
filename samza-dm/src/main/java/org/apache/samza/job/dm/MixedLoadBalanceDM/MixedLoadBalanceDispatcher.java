@@ -99,10 +99,6 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
     @Override
     public void submitApplication(Allocation allocation) {
         writeLog("dispatcher submit application");
-        //
-        writeLog("Write coordinate stream");
-
-        //
         String stageId = allocation.getStageID();
         EnforcerFactory enfFac = getEnforcerFactory(stageId);
         Enforcer enf = enfFac.getEnforcer(config);
