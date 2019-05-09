@@ -54,6 +54,7 @@ public class MetricsLagRetriever {
             writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
         }
         try{
+            if (!isOurApp(json, app)) return;
             JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
             if (taskMetrics != null) {
                 //If TaskInstanceMetrics is here, we get processing speed
@@ -80,7 +81,7 @@ public class MetricsLagRetriever {
 
                 double newSpeed = delta * lastSpeed;
                 if (currentTime > lastTime) {
-                    newSpeed += (1 - delta) * ((double) currentProcessed - lastProcessed) / (currentTime - lastTime);
+                    newSpeed += (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
                 }
                 if (newSpeed > -1e-9) {
                     speed.put(taskName, newSpeed);

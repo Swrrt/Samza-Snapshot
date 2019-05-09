@@ -147,6 +147,7 @@ public class MixedLoadBalanceManager {
             return containerHost.values().iterator().next();
         }*/
     }
+
     // Construct the container-(container, host, rack cluster) mapping
     private List<String> getContainerLocality(String item){
         //updateContainerHost();
@@ -155,6 +156,7 @@ public class MixedLoadBalanceManager {
         itemLocality.add(0,item);
         return itemLocality;
     }
+
     // Construct the task-(container, host, rack cluster) mapping
     private List<String> getTaskLocality(String item){
         //updateContainerHost();
@@ -165,6 +167,7 @@ public class MixedLoadBalanceManager {
         writeLog("Find Task " + item + " in " + itemLocality.toString());
         return itemLocality;
     }
+
     private Map<String, String> getTaskContainer(JobModel jobModel){
         Map<String, ContainerModel> containers = jobModel.getContainers();
         Map<String, String> taskContainer = new HashMap<>();
@@ -175,6 +178,7 @@ public class MixedLoadBalanceManager {
         }
         return taskContainer;
     }
+
     // New Container comes in;
     private void insertContainer(String container){
         //TODO
@@ -182,6 +186,7 @@ public class MixedLoadBalanceManager {
         consistentHashing.insert(container, defaultVNs);
         locality.insert(container, getContainerLocality(container), 1);
     }
+
     // Container left
     private void removeContainer(String container){
         //TODO
@@ -197,6 +202,8 @@ public class MixedLoadBalanceManager {
             locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
     }
+
+    // Generate job model based on current vn and locality information
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
@@ -369,8 +376,8 @@ public class MixedLoadBalanceManager {
         /*
             Move virtual nodes from most overloaded container
          */
-        double perVN = max / getNumberOfVirtualNodes(maxContainer.substring(16));
-        double unprocVN = unprocessedContainer.get(maxContainer) / getNumberOfVirtualNodes(maxContainer.substring(16));
+        double perVN = max / getNumberOfVirtualNodes(maxContainer);
+        double unprocVN = unprocessedContainer.get(maxContainer) / getNumberOfVirtualNodes(maxContainer);
         if (max < threshold - 1e-9) {
             writeLog("No need to move");
             return oldJobModel;
