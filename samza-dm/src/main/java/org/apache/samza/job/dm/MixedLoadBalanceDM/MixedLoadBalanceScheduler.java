@@ -20,7 +20,6 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     private Config config;
     private DMSchedulerConfig schedulerConfig;
 
-    private ConcurrentMap<String, Stage> stages;
 
     private MixedLoadBalanceDispatcher dispatcher;
 
@@ -34,7 +33,6 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     public void init(Config config, DMSchedulerConfig schedulerConfig) {
         this.config = config;
         this.schedulerConfig = schedulerConfig;
-        this.stages = new ConcurrentSkipListMap<>();
 
         this.dispatcher = new MixedLoadBalanceDispatcher();
         this.dispatcher.init(config);
@@ -154,19 +152,14 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     // Update leader's address from kafka metric topic
     public boolean updateLeader(ConsumerRecord<String, String> record){
         balanceManager.updateMetrics(record);
-        StageReport report = new StageReport(record.value());
         try {
             JSONObject json = new JSONObject(record.value());
-            if (json.getJSONObject("header").getString("job-name").equals(config.get("job.name")) && report.getType().equals("ApplicationMaster")) {
-                writeLog("update application master ip address");
-                if (!stages.containsKey(report.getName())) {
-                    writeLog("creating new stage for application master");
-                    stages.put(report.getName(), new Stage());
-                }
-                Stage curr = stages.get(report.getName());
-                if (report.getRunningContainers() != 0) curr.setRunningContainers(report.getRunningContainers());
-                stages.put(report.getName(), curr);
-                this.dispatcher.updateEnforcerURL(report.getName(), report.getHost() + ":1999");
+            String jobName = json.getJSONObject("header").getString("job-name");
+            String containerName = json.getJSONObject("header").getString("container-name");
+            String host = json.getJSONObject("header").getString("host");
+            if (jobName.equals(config.get("job.name")) && containerName.equals("ApplicationMaster")) {
+                writeLog("New application master ip: " + host);
+                this.dispatcher.updateEnforcerURL(jobName,  host + ":1999");
                 return true;
             }
         }catch (Exception e){
