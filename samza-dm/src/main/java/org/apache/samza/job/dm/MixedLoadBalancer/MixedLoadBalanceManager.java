@@ -543,6 +543,9 @@ public class MixedLoadBalanceManager {
         writeLog("Not ready to rebalance, backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size());
         return false;
     }
+    public JobModel getOldJobModel(){
+        return oldJobModel;
+    }
     private void writeLog(String log){
         System.out.println("MixedLoadBalanceManager: " + log);
     }
