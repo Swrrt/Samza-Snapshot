@@ -11,6 +11,7 @@ import org.apache.samza.job.dm.StageReport;
 
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.UUID;
 
 public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
     MixedLoadBalanceScheduler scheduler;
@@ -25,7 +26,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
 //        String metricsTopicName = "metrics";
         Properties props = new Properties();
         props.put("bootstrap.servers", config.get("systems.kafka.producer.bootstrap.servers"));
-        props.put("group.id", "test");
+        props.put("group.id", "test" + UUID.randomUUID());
         props.put("enable.auto.commit", "true");
         props.put("auto.commit.interval.ms", "1000");
         props.put("session.timeout.ms", "30000");

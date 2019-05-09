@@ -36,7 +36,9 @@ public class ConsistentHashing {
     // Generate hash value for strings
     private int generateHash(String item) {
         //Using SHA-1 Hashing
-        return Hashing.sha1().hashString(item, Charsets.UTF_8).asInt() % Length;
+        int hash = Hashing.sha1().hashString(item, Charsets.UTF_8).asInt() % Length; //Could be negative
+        if(hash < Length) hash += Length;
+        return hash;
     }
 
     //Generate Virtual Node id

@@ -2,6 +2,7 @@ package org.apache.samza.job.dm.MixedLoadBalancer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.KafkaOffsetRetriever;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.MetricsLagRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
@@ -27,7 +28,7 @@ public class MixedLoadBalanceManager {
     private ConsistentHashing consistentHashing;
     //private LocalityDistance locality;  //TODO: update Locality part.
     private WebReader webReader;
-    private Map<String,List<String>> hostRack = null;
+    //private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
     private Map<Integer, String> partitionTask = null;
@@ -54,7 +55,7 @@ public class MixedLoadBalanceManager {
         partitionTask = new HashMap<>();
         taskContainer = new HashMap<>();
         //containerHost = new HashMap<>();
-        hostRack = new HashMap<>();
+        //hostRack = new HashMap<>();
         tasks = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 10;
@@ -84,7 +85,7 @@ public class MixedLoadBalanceManager {
      */
     public void initial(JobModel jobModel, Config config){
         writeLog("MixedLoadBalanceManager is initializing");
-        getHostRack();
+       // getHostRack();
         this.config = config;
         /*
             We need group id to read offset information.
@@ -117,7 +118,7 @@ public class MixedLoadBalanceManager {
         return localityServer.getLocalityMap();
     }*/
     // Read host-rack-cluster mapping from web
-    private Map<String, List<String>> getHostRack(){
+    /*private Map<String, List<String>> getHostRack(){
         writeLog("Reading Host-Server-Rack-Cluster information from web");
         hostRack.putAll(webReader.readHostRack());
         writeLog("Host-Server information:" + hostRack.toString());
@@ -125,8 +126,8 @@ public class MixedLoadBalanceManager {
     }
     private String getContainerHost(String container){
         return getContainerHost(container, LOCALITY_RETRY_TIMES);
-    }
-    private String getContainerHost(String container, int retryTimes){
+    }*/
+    /*private String getContainerHost(String container, int retryTimes){
         //TODO: If the container is not here, wait for it?
         int retry = retryTimes; //Number of times to retry
         while(localityServer.getLocality(container) == null && retry > 0 ){
@@ -144,20 +145,20 @@ public class MixedLoadBalanceManager {
         /*if(containerHost.containsKey(container))return containerHost.get(container);
         else {
             return containerHost.values().iterator().next();
-        }*/
-    }
+        }
+    }*/
 
     // Construct the container-(container, host, rack cluster) mapping
-    private List<String> getContainerLocality(String item){
+    /*private List<String> getContainerLocality(String item){
         //updateContainerHost();
         getHostRack();
         List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(item))).clone();
         itemLocality.add(0,item);
         return itemLocality;
-    }
+    }*/
 
     // Construct the task-(container, host, rack cluster) mapping
-    private List<String> getTaskLocality(String item){
+    /*private List<String> getTaskLocality(String item){
         //updateContainerHost();
         getHostRack();
         String container = taskContainer.get(item);
@@ -165,7 +166,7 @@ public class MixedLoadBalanceManager {
         itemLocality.add(0,container);
         writeLog("Find Task " + item + " in " + itemLocality.toString());
         return itemLocality;
-    }
+    }*/
 
     private Map<String, String> getTaskContainer(JobModel jobModel){
         Map<String, ContainerModel> containers = jobModel.getContainers();
@@ -196,10 +197,10 @@ public class MixedLoadBalanceManager {
     // Initial all tasks at the beginning;
     public void setTasks(Map<String, TaskModel> tasks){
         consistentHashing.initTasks(tasks);
-        for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
+        /*for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             consistentHashing.insert(task.getKey(), 1);
             //locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
-        }
+        }*/
     }
 
     // Generate job model based on current vn and locality information
@@ -242,7 +243,8 @@ public class MixedLoadBalanceManager {
         }
         oldJobModel = new JobModel(config, containers);
         taskContainer = getTaskContainer(oldJobModel);
-        writeLog("New job model:" + oldJobModel.toString());
+        JobModelDemonstrator.demoJobModel(oldJobModel);
+        //writeLog("New job model:" + oldJobModel.toString());
         return oldJobModel;
     }
     public JobModel scaleUpByNumber(int change){
