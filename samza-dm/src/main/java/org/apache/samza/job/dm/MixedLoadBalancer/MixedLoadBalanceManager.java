@@ -521,6 +521,7 @@ public class MixedLoadBalanceManager {
             }else {
                 long backlog = containerBacklogs.get(containerId);
                 double processSpeed = containerProcessingSpeed.get(containerId);
+                writeLog("Container " + containerId + " backlog: " + backlog + " processing speed: " + processSpeed);
                 if (backlog / processSpeed > threshold) {
                     writeLog("Container " + containerId + "Exceed threshold, backlog: " + backlog + ", processing speed: " + processSpeed);
                     return false;
