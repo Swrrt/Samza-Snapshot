@@ -25,7 +25,7 @@ public class MixedLoadBalanceManager {
     private double threshold;
     //TODO: reorganize all classes and tables;
     private ConsistentHashing consistentHashing;
-    private LocalityDistance locality;  //TODO: update Locality part.
+    //private LocalityDistance locality;  //TODO: update Locality part.
     private WebReader webReader;
     private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
@@ -39,7 +39,7 @@ public class MixedLoadBalanceManager {
     private Map<String, Double> containerProcessingSpeed = null;
     private Config config;
     private final int defaultVNs;  // Default number of VNs for new coming containers
-    private final double localityWeight;   // Weight parameter for Chord and Locality
+    private final double localityWeight = 0;   // Weight parameter for Chord and Locality
     //private UtilizationServer utilizationServer = null;
     //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
@@ -49,7 +49,7 @@ public class MixedLoadBalanceManager {
     public MixedLoadBalanceManager(){
         config = null;
         consistentHashing = new ConsistentHashing();
-        locality = new LocalityDistance();
+        //locality = new LocalityDistance();
         webReader = new WebReader();
         partitionTask = new HashMap<>();
         taskContainer = new HashMap<>();
@@ -58,7 +58,6 @@ public class MixedLoadBalanceManager {
         tasks = new HashMap<>();
         oldJobModel = null;
         defaultVNs = 10;
-        localityWeight = 0;
         //utilizationServer = new UtilizationServer();
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
@@ -102,7 +101,7 @@ public class MixedLoadBalanceManager {
                 tasks.put(taskModel.getKey().getTaskName(), new TaskModel(taskModel.getValue().getTaskName(),taskModel.getValue().getSystemStreamPartitions(),taskModel.getValue().getChangelogPartition()));
             }
         }
-        writeLog("Task Models:" + tasks.toString());
+        //writeLog("Task Models:" + tasks.toString());
         setTasks(tasks);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             insertContainer(containerModel.getProcessorId());
@@ -184,14 +183,14 @@ public class MixedLoadBalanceManager {
         //TODO
         writeLog("Inserting container "+container);
         consistentHashing.insert(container, defaultVNs);
-        locality.insert(container, getContainerLocality(container), 1);
+        //locality.insert(container, getContainerLocality(container), 1);
     }
 
     // Container left
     private void removeContainer(String container){
         //TODO
         consistentHashing.remove(container);
-        locality.remove(container);
+        //locality.remove(container);
     }
 
     // Initial all tasks at the beginning;
@@ -199,7 +198,7 @@ public class MixedLoadBalanceManager {
         consistentHashing.initTasks(tasks);
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             consistentHashing.insert(task.getKey(), 1);
-            locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
+            //locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }
     }
 
@@ -443,8 +442,15 @@ public class MixedLoadBalanceManager {
     private int getNumberOfVirtualNodes(String containerId) {
         return consistentHashing.getVNnumbers(containerId);
     }
+
+    //Return 0 if in the same container, 1 otherwise
+    private double migrationCost(String taskId1, String taskId2){
+        if(taskContainer.get(taskId1).equals(taskContainer.get(taskId2)))return 0;
+        return 1;
+    }
+
     public double distance(String t1, String t2){
-        double dis = consistentHashing.distance(t1,t2)+localityWeight*locality.distance(t1,t2);
+        double dis = consistentHashing.distance(t1,t2)+ localityWeight * (migrationCost(t1, t2)); //locality.distance(t1,t2);
         writeLog("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
     }

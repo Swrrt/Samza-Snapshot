@@ -39,26 +39,26 @@ public class MetricsLagRetriever {
 
         try {
             if (!isOurApp(json, app)) return;
-            writeLog("Our apps's record");
+            //writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
             if (kafkaMetrics != null) {
                 //If KafkaSystemConsumerMetrics is here, we get lag information
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
-                writeLog("Partitions: " + partitions);
+                //writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklog(partition, kafkaMetrics);
                 }
             }
         }catch (Exception e) {
-            writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
+            //writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
         }
         try{
             if (!isOurApp(json, app)) return;
             JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
             if (taskMetrics != null) {
                 //If TaskInstanceMetrics is here, we get processing speed
-                writeLog("taskMetrics: " + taskMetrics);
+                //writeLog("taskMetrics: " + taskMetrics);
                 String taskName = json.getJSONObject("header").getString("source");
                 //Need to get correct Task name
                 taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
@@ -86,11 +86,11 @@ public class MetricsLagRetriever {
                 if (newSpeed > -1e-9) {
                     speed.put(taskName, newSpeed);
                 }
-                writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
+                //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
             }
         }catch (Exception e){
-            writeLog("Error when parse taskMetrics: "+ e);
+            //writeLog("Error when parse taskMetrics: "+ e);
         }
     }
 

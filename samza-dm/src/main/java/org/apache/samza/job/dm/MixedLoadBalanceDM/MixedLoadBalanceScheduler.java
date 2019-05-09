@@ -145,7 +145,8 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 writeLog("No need to rebalance");
             }
             else{
-                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                //writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                //JobModelDemonstrator.demoJobModel(newJobModel);
                 //Dispatch the new JobModel
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
             }
