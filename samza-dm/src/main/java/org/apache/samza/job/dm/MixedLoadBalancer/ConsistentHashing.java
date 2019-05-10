@@ -88,8 +88,8 @@ public class ConsistentHashing {
     }
 
     public int distance(String itemX, String itemY) {
-        writeLog("Calculate load distance between " + itemX + "  " + itemY);
-        writeLog("load items " + coord.toString());
+        //writeLog("Calculate load distance between " + itemX + "  " + itemY);
+        //writeLog("load items " + coord.toString());
         int min = Length + 1000;
         int x = taskCoord.get(itemX);
         LinkedList<Integer> y = coord.get(itemY);
@@ -100,7 +100,7 @@ public class ConsistentHashing {
                 min = t;
             }
         }
-        writeLog("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
+        //writeLog("Calculate load distance between " + itemX + "  " + itemY + " is: " + min);
         return min;
     }
     private void writeLog(String log){
