@@ -181,7 +181,7 @@ public class MixedLoadBalanceManager {
         return taskContainer;
     }
 
-    // New Container comes in;
+    // Initial consisten hashing and locality when new Container comes in
     private void insertContainer(String container){
         //TODO
         writeLog("Inserting container "+container);
@@ -249,13 +249,34 @@ public class MixedLoadBalanceManager {
         //writeLog("New job model:" + oldJobModel.toString());
         return oldJobModel;
     }
-    public JobModel scaleUpByNumber(int change){
-        int currentSize = oldJobModel.getContainers().size();
+
+    // Scale out by change number containers, assign default number of VNs to them and generate new Job Model
+    public JobModel scaleOutByNumber(int change){
+        writeLog("Try to scale out by: " + change);
+        int currentSize = containerIds.size();
         for(int i=0;i<change; i++){
             insertContainer(String.format("%06d", currentSize + 2 + i));
+            containerIds.add(String.format("%06d", currentSize + 2 + i));
         }
         return generateJobModel();
     }
+
+    //Choose first change# containers from containerIds and remove them.
+    public JobModel scaleInByNumber(int change){
+        writeLog("Try to scale in by: " + change);
+        int currentSize = containerIds.size();
+        if(currentSize <= change){
+            writeLog("Only have " + currentSize + " containers, should leave one container");
+            change = currentSize - 1;
+        }
+        for(int i=0;i<change;i++){
+            String containerId = containerIds.iterator().next();
+            removeContainer(containerId);
+            containerIds.remove(containerId);
+        }
+        return generateJobModel();
+    }
+
     // Generate new Job Model based on new processors list
     public JobModel generateNewJobModel(List<String> processors){
         Set<String> containers = new HashSet<>();
@@ -455,7 +476,7 @@ public class MixedLoadBalanceManager {
 
     public double distance(String t1, String t2){
         double dis = consistentHashing.distance(t1,t2)+ localityWeight * (migrationCost(t1, t2)); //locality.distance(t1,t2);
-        writeLog("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
+        //writeLog("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
     }
 

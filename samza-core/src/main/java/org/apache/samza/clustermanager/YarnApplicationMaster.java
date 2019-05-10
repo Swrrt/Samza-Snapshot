@@ -263,11 +263,13 @@ public class YarnApplicationMaster {
     public void scaleToN(int n, JobModel jobModel){
         if(n < numberOfContainers){
             //TODO: scale in
-            log.info("Scale in is not implemented. Do nothing");
+            log.info("Scale in by publishing new JobModel, containers will shutdown by themselves.");
+            leaderJobCoordinator.publishJobModel(jobModel);
+            numberOfContainers = n;
             return ;
         }
-        log.info("Requesting more containers");
         int numberToScaleOut = numberOfContainers - n;
+        log.info("Requesting "+ numberToScaleOut + " containers");
         for(int i = 0; i < numberToScaleOut; i++)containerProcessManager.requestOneMore();
         leaderJobCoordinator.publishJobModel(jobModel);
         numberOfContainers = n;
