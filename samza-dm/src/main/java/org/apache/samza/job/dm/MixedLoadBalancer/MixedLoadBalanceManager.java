@@ -31,6 +31,7 @@ public class MixedLoadBalanceManager {
     //private Map<String,List<String>> hostRack = null;
     //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
+    private Set<String> containerIds = null;
     private Map<Integer, String> partitionTask = null;
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
@@ -54,6 +55,7 @@ public class MixedLoadBalanceManager {
         webReader = new WebReader();
         partitionTask = new HashMap<>();
         taskContainer = new HashMap<>();
+        containerIds = new HashSet<>();
         //containerHost = new HashMap<>();
         //hostRack = new HashMap<>();
         tasks = new HashMap<>();
@@ -208,11 +210,11 @@ public class MixedLoadBalanceManager {
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
         writeLog("Generating new job model...");
-        writeLog("Containers: "+ taskContainer.values());
+        writeLog("Containers: "+ containerIds);
         writeLog("Tasks: "+ taskContainer.keySet());
         Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
-        for(String container: taskContainer.values()){
+        for(String container: containerIds){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             containerTasks.put(processor, new LinkedList<>());
@@ -221,8 +223,8 @@ public class MixedLoadBalanceManager {
             //Find the closest container for each task
             String minContainer = null;
             double min = 0;
-            for (String container: taskContainer.values()){
-                writeLog("Calculate distance between task-"+task.getKey()+" container-"+container);
+            for (String container: containerIds){
+                //writeLog("Calculate distance between task-"+task.getKey()+" container-"+container);
                 double dis = distance(task.getKey(), container);
                 if(minContainer == null || dis<min){
                     minContainer = container;
@@ -232,7 +234,7 @@ public class MixedLoadBalanceManager {
             //containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
             containerTasks.get(minContainer).add(task.getValue());
         }
-        for(String container: taskContainer.values()){
+        for(String container: containerIds){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             Map<TaskName, TaskModel> tasks = new HashMap<>();
@@ -262,13 +264,13 @@ public class MixedLoadBalanceManager {
         for(String processor: processors){
             containers.add(processor);
             //Insert new container
-            if(!taskContainer.values().contains(processor)){
+            if(!containerIds.contains(processor)){
                 insertContainer(processor);
 
             }
         }
         //Remove containers no longer exist
-        for(String container: taskContainer.values()){
+        for(String container: containerIds){
             if(!containers.contains(container)){
                 removeContainer(container);
             }
@@ -500,9 +502,11 @@ public class MixedLoadBalanceManager {
      */
     private void updateFromJobModel(JobModel jobModel){
         taskContainer.clear();
+        containerIds.clear();
         partitionTask.clear();
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             String container = containerModel.getProcessorId();
+            containerIds.add(container);
             for(TaskModel taskModel: containerModel.getTasks().values()){
                 String task = taskModel.getTaskName().getTaskName();
                 taskContainer.put(task, container);
@@ -521,7 +525,7 @@ public class MixedLoadBalanceManager {
         updateFromJobModel(oldJobModel);
         retrieveBacklog(); //Update backlog
         retrieveProcessingSpeed(); //Update processing speed
-        for(String containerId: taskContainer.values()){
+        for(String containerId: containerIds){
             if(!containerBacklogs.containsKey(containerId)){
                 writeLog("Cannot retrieve container "+containerId+" backlog information");
             }else if(!containerProcessingSpeed.containsKey(containerId)){

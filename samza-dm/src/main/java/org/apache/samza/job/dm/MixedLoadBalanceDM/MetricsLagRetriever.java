@@ -87,7 +87,7 @@ public class MetricsLagRetriever {
                     speed.put(taskName, newSpeed);
                 }
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
-                writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
+                //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
             }
         }catch (Exception e){
             //writeLog("Error when parse taskMetrics: "+ e);
