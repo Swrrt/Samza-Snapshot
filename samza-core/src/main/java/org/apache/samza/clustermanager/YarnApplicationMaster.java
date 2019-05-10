@@ -268,7 +268,7 @@ public class YarnApplicationMaster {
             numberOfContainers = n;
             return ;
         }
-        int numberToScaleOut = numberOfContainers - n;
+        int numberToScaleOut = n - numberOfContainers ;
         log.info("Requesting "+ numberToScaleOut + " containers");
         for(int i = 0; i < numberToScaleOut; i++)containerProcessManager.requestOneMore();
         leaderJobCoordinator.publishJobModel(jobModel);
