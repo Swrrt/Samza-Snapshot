@@ -25,7 +25,7 @@ public class MixedLoadBalanceManager {
     private final int LOCALITY_RETRY_TIMES = 2;
     private double threshold;
     //TODO: reorganize all classes and tables;
-    private ConsistentHashing consistentHashing;
+    //private ConsistentHashing consistentHashing;
     //private LocalityDistance locality;  //TODO: update Locality part.
     private WebReader webReader;
     //private Map<String,List<String>> hostRack = null;
@@ -35,12 +35,18 @@ public class MixedLoadBalanceManager {
     private Map<Integer, String> partitionTask = null;
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
-    private Map<String, Long> taskBacklogs = null;
+
+    // Metrics
+    private Map<String, Double> taskArrivalRate = null;
+    private Map<String, Double> taskBacklogs = null;
     private Map<String, Double> taskProcessingSpeed = null;
-    private Map<String, Long> containerBacklogs = null;
+    private Map<String, Double> containerArrivalRate = null;
+    private Map<String, Double> containerBacklogs = null;
     private Map<String, Double> containerProcessingSpeed = null;
+    private Map<String, Double > Z = null;
+
     private Config config;
-    private final int defaultVNs;  // Default number of VNs for new coming containers
+   // private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double localityWeight = 0;   // Weight parameter for Chord and Locality
     //private UtilizationServer utilizationServer = null;
     //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
@@ -50,7 +56,7 @@ public class MixedLoadBalanceManager {
     private MetricsLagRetriever metricsRetriever = null;
     public MixedLoadBalanceManager(){
         config = null;
-        consistentHashing = new ConsistentHashing();
+        //consistentHashing = new ConsistentHashing();
         //locality = new LocalityDistance();
         webReader = new WebReader();
         partitionTask = new HashMap<>();
@@ -60,7 +66,7 @@ public class MixedLoadBalanceManager {
         //hostRack = new HashMap<>();
         tasks = new HashMap<>();
         oldJobModel = null;
-        defaultVNs = 10;
+        //defaultVNs = 10;
         //utilizationServer = new UtilizationServer();
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
@@ -70,6 +76,7 @@ public class MixedLoadBalanceManager {
         taskBacklogs = new HashMap<>();
         containerBacklogs = new HashMap<>();
         containerProcessingSpeed = new HashMap<>();
+        Z = new HashMap<>();
     }
     /*
         TODO:
@@ -185,27 +192,27 @@ public class MixedLoadBalanceManager {
     private void insertContainer(String container){
         //TODO
         writeLog("Inserting container "+container);
-        consistentHashing.insert(container, defaultVNs);
+        //consistentHashing.insert(container, defaultVNs);
         //locality.insert(container, getContainerLocality(container), 1);
     }
 
     // Container left
     private void removeContainer(String container){
         //TODO
-        consistentHashing.remove(container);
+        //consistentHashing.remove(container);
         //locality.remove(container);
     }
 
     // Initial all tasks at the beginning;
     public void setTasks(Map<String, TaskModel> tasks){
-        consistentHashing.initTasks(tasks);
+        //consistentHashing.initTasks(tasks);
         /*for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             consistentHashing.insert(task.getKey(), 1);
             //locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
         }*/
     }
 
-    // Generate job model based on current vn and locality information
+    // Generate JobModel according to taskContainer
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
@@ -219,21 +226,11 @@ public class MixedLoadBalanceManager {
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
             containerTasks.put(processor, new LinkedList<>());
         }
+        //Add taskModel according to taskContainer
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-            //Find the closest container for each task
-            String minContainer = null;
-            double min = 0;
-            for (String container: containerIds){
-                //writeLog("Calculate distance between task-"+task.getKey()+" container-"+container);
-                double dis = distance(task.getKey(), container);
-                if(minContainer == null || dis<min){
-                    minContainer = container;
-                    min = dis;
-                }
-            }
-            //containers.get(minContainer).getTasks().put(new TaskName(task.getKey()),task.getValue());
-            containerTasks.get(minContainer).add(task.getValue());
+            containerTasks.get(taskContainer.get(task.getKey())).add(task.getValue());
         }
+
         for(String container: containerIds){
             String processor = container.substring(container.length()-6, container.length());
             //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
@@ -244,9 +241,8 @@ public class MixedLoadBalanceManager {
             containers.put(processor, new ContainerModel(processor,0, tasks));
         }
         oldJobModel = new JobModel(config, containers);
-        taskContainer = getTaskContainer(oldJobModel);
         JobModelDemonstrator.demoJobModel(oldJobModel);
-        //writeLog("New job model:" + oldJobModel.toString());
+        //writeLog("New job model:" + oldJobModel.toString());*/
         return oldJobModel;
     }
 
@@ -262,7 +258,7 @@ public class MixedLoadBalanceManager {
     }
 
     //Choose first change# containers from containerIds and remove them.
-    public JobModel scaleInByNumber(int change){
+    /*public JobModel scaleInByNumber(int change){
         writeLog("Try to scale in by: " + change);
         int currentSize = containerIds.size();
         if(currentSize <= change){
@@ -275,10 +271,10 @@ public class MixedLoadBalanceManager {
             containerIds.remove(containerId);
         }
         return generateJobModel();
-    }
+    }*/
 
     // Generate new Job Model based on new processors list
-    public JobModel generateNewJobModel(List<String> processors){
+    /*public JobModel generateNewJobModel(List<String> processors){
         Set<String> containers = new HashSet<>();
         //TODO: Translate from processorID to container ID
         writeLog("Generating new job model from processors:" + processors.toString());
@@ -297,7 +293,9 @@ public class MixedLoadBalanceManager {
             }
         }
         return generateJobModel();
-    }
+    }*/
+
+    //Retrieve metrics (arrival rate, backlog, processing speed) and rebalance accordingly.
     public JobModel rebalanceJobModel(){
         writeLog("Try to rebalance load");
         if(checkLoad()){
@@ -310,7 +308,7 @@ public class MixedLoadBalanceManager {
             Already retrieved in checkLoad()
          */
 
-        JobModel newJobModel = generateNewJobModel(taskBacklogs, containerProcessingSpeed, oldJobModel);
+        JobModel newJobModel = generateNewJobModel(taskArrivalRate, taskBacklogs, containerProcessingSpeed, oldJobModel);
         // If scaling is needed
         if(newJobModel == null){
             writeLog("Cannot rebalance load, need to scale out");
@@ -327,12 +325,12 @@ public class MixedLoadBalanceManager {
         Check whether the job model is still overloaded.
 
      */
-    public boolean checkOverload(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel tryJobModel){
+    /*public boolean checkOverload(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel tryJobModel){
         Map<String, Long> unprocessedContainer = new HashMap<>();
-        Map<String, String> taskContainer = getTaskContainer(oldJobModel);
+        Map<String, String> taskContainer = getTaskContainer(tryJobModel);
         /*
          Calculate unprocessed messages for containers
-         */
+
         for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
             String containerId = taskContainer.get(entry.getKey());
             if (!unprocessedContainer.containsKey(containerId)) {
@@ -347,22 +345,25 @@ public class MixedLoadBalanceManager {
             }
         }
         return false;
-    }
-    /*
-        Water filling to move VN from most overloaded container to not overloaded container
-        Minimize max(unproc/proc)
-     */
+    }*/
 
-    public JobModel waterfill(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel) {
+    /*
+        Move one task from most overloaded container to not overloaded container
+        and minimize max delay.
+        TODO: re-write here
+        Based on littles' law and M/G/1 to estimate delay:
+
+    */
+    public Map<String, String> rebalanceByMovingOneTask(Map<String, Double> taskArrivalRate, Map<String, Double> taskBacklogs, Map<String, Double> containerProcessingSpeed, Map<String, String> oldTaskContainer) {
         long totalUnproc = 0;
-        int number = unprocessedMessages.size();
+        int n = oldTaskContainer.size(), m = containerIds.size();
         double totalProc = 0;
         Map<String, Long> unprocessedContainer = new HashMap<>();
-        Map<String, String> taskContainer = getTaskContainer(oldJobModel);
-
+        Map<String, String> newTaskContainer = new HashMap<>();
         /*
          Calculate unprocessed messages for containers
-         */
+        */
+
         for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
             totalUnproc += entry.getValue();
             String containerId = taskContainer.get(entry.getKey());
@@ -428,45 +429,46 @@ public class MixedLoadBalanceManager {
                 }
             addVNs(minContainer, vn);
         }
-        return generateJobModel();
+        return newTaskContainer;
     }
     /*
-        Generate new job model with UnprocessedMessages information.
-        Unprocessed Messages by tasks.
+        Generate new job model with queueing theory.
+        Arrival rate by tasks.
+        Average backlog by tasks.
         Processing Speed by containers.
-        Return true to scale up.
+        Return null to scale up.
      */
-    public JobModel generateNewJobModel(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel oldJobModel){
+    public JobModel generateNewJobModel(Map<String, Double> arrivalRate, Map<String, Double> backlog, Map<String, Double> processingSpeed, JobModel oldJobModel){
         /*
         Calculate VNs according to UnprocessedMessages and current processing Speed
         */
         int iterate_times = 1; // Maximal # of iteration
-        JobModel tryJobModel = oldJobModel;
         for(int times = 0; times < iterate_times; times++){
-            if(!checkOverload(unprocessedMessages, processingSpeed, tryJobModel))break;
-            tryJobModel = waterfill(unprocessedMessages, processingSpeed, tryJobModel);
+            //if(!checkOverload(unprocessedMessages, processingSpeed, tryJobModel))break;
+            taskContainer = rebalanceByMovingOneTask(arrivalRate, backlog, processingSpeed, taskContainer);
         }
+
         /*
             VNs are changed after waterfill()!
          */
-        if(checkOverload(unprocessedMessages, processingSpeed, tryJobModel)){
-            writeLog("Cannot balance the load, need scaling out");
+        //if(checkOverload(unprocessedMessages, processingSpeed, tryJobModel)){
+        //    writeLog("Cannot balance the load, need scaling out");
             /*
                 TODO:
                 scaling out
                 Return null for scaling out
             */
-            return null;
-        }
-        return tryJobModel;
+        //    return null;
+        //}
+        return generateJobModel();
     }
     //Add virtual node to containerId to coordinate vn.
-    private void addVNs(String containerId, int vnCoordinate) {
+    /*private void addVNs(String containerId, int vnCoordinate) {
         consistentHashing.addVN(containerId, vnCoordinate);
-    }
-    private int getNumberOfVirtualNodes(String containerId) {
+    }*/
+    /*private int getNumberOfVirtualNodes(String containerId) {
         return consistentHashing.getVNnumbers(containerId);
-    }
+    }*/
 
     //Return 0 if in the same container, 1 otherwise
     private double migrationCost(String taskId1, String taskId2){
@@ -474,22 +476,22 @@ public class MixedLoadBalanceManager {
         return 1;
     }
 
-    public double distance(String t1, String t2){
+    /*public double distance(String t1, String t2){
         double dis = consistentHashing.distance(t1,t2)+ localityWeight * (migrationCost(t1, t2)); //locality.distance(t1,t2);
         //writeLog("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
-    }
+    }*/
 
     /*
-        Using kafka-consumer-groups command to run
+        Using metrics
      */
-    public void retrieveBacklog(){
-        Map<Integer, Long> partitionBacklog = metricsRetriever.retrieveBacklog();//kafkaOffsetRetriever.retrieveBacklog();
+    public void retrieveAvgBacklog(){
+        Map<Integer, Double> partitionBacklog = metricsRetriever.retrieveAvgBacklog();//kafkaOffsetRetriever.retrieveBacklog();
         taskBacklogs.clear();
         containerBacklogs.clear();
-        for(Map.Entry<Integer, Long> entry: partitionBacklog.entrySet()){
+        for(Map.Entry<Integer, Double> entry: partitionBacklog.entrySet()){
             int partition = entry.getKey();
-            long backlog = entry.getValue();
+            double backlog = entry.getValue();
             String task = partitionTask.get(partition);
             taskBacklogs.put(task, backlog);
             String container = taskContainer.get(task);
@@ -499,10 +501,26 @@ public class MixedLoadBalanceManager {
             containerBacklogs.put(container, backlog);
         }
     }
+    public void retrieveArrivalRate(){
+        Map<Integer, Double> partitionArrivalRate = metricsRetriever.retrieveArrivalRate();//kafkaOffsetRetriever.retrieveBacklog();
+        taskArrivalRate.clear();
+        containerArrivalRate.clear();
+        for(Map.Entry<Integer, Double> entry: partitionArrivalRate.entrySet()){
+            int partition = entry.getKey();
+            double backlog = entry.getValue();
+            String task = partitionTask.get(partition);
+            taskArrivalRate.put(task, backlog);
+            String container = taskContainer.get(task);
+            if(containerArrivalRate.containsKey(container)){
+                backlog += containerArrivalRate.get(container);
+            }
+            containerArrivalRate.put(container, backlog);
+        }
+    }
     public void retrieveProcessingSpeed(){
         taskProcessingSpeed.clear();
         containerProcessingSpeed.clear();
-        Map<String, Double> retrieved =  metricsRetriever.retrieveSpeed();
+        Map<String, Double> retrieved =  metricsRetriever.retrieveProcessingSpeed();
         for(Map.Entry<String, Double> entry: retrieved.entrySet()){
             String task = entry.getKey();
             double speed = entry.getValue();
@@ -514,6 +532,7 @@ public class MixedLoadBalanceManager {
             containerProcessingSpeed.put(container, speed);
         }
     }
+
     /*
        TODO: update all metrics and check if load is balance.
        Return false if not balance
@@ -540,11 +559,15 @@ public class MixedLoadBalanceManager {
     }
     /*
         Check whether if all containers are not exceed threshold.
+        Using little's law here:
+        avgDelay = avgBacklog / avgArrivalRate
+        Return false if avgDelay > threshold
      */
     public boolean checkLoad(){
         writeLog("Check if all containers are not overload");
         updateFromJobModel(oldJobModel);
-        retrieveBacklog(); //Update backlog
+        retrieveAvgBacklog(); //Update backlog
+        retrieveArrivalRate(); //Update arrival rate
         retrieveProcessingSpeed(); //Update processing speed
         for(String containerId: containerIds){
             if(!containerBacklogs.containsKey(containerId)){
@@ -552,11 +575,11 @@ public class MixedLoadBalanceManager {
             }else if(!containerProcessingSpeed.containsKey(containerId)){
                 writeLog("Cannot retrieve container "+containerId+" processing speed information");
             }else {
-                long backlog = containerBacklogs.get(containerId);
-                double processSpeed = containerProcessingSpeed.get(containerId);
-                writeLog("Container " + containerId + " backlog: " + backlog + " processing speed: " + processSpeed);
-                if (backlog / processSpeed > threshold) {
-                    writeLog("Container " + containerId + "Exceed threshold, backlog: " + backlog + ", processing speed: " + processSpeed);
+                double avgBacklog = containerBacklogs.get(containerId);
+                double arrivalRate = containerArrivalRate.get(containerId);
+                //writeLog("Container " + containerId + " average backlog: " + avgBacklog + " average arrival rate: " + arrivalRate);
+                if (avgBacklog / arrivalRate > threshold) {
+                    writeLog("Container " + containerId + "Exceed threshold, average backlog: " + avgBacklog + ", average arrival rate: " + arrivalRate);
                     return false;
                 }
             }
@@ -575,13 +598,14 @@ public class MixedLoadBalanceManager {
     }
 
     public boolean readyToRebalance(){
-        retrieveBacklog();
+        retrieveAvgBacklog();
+        retrieveArrivalRate();
         retrieveProcessingSpeed();
-        if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size()){
+        if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size() && taskArrivalRate.size() == taskContainer.size()){
             writeLog("Ready to rebalance");
             return true;
         }
-        writeLog("Not ready to rebalance, backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size());
+        writeLog("Not ready to rebalance, # of tasks: " + taskContainer.size() + ", backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size() + " arrival rate size: " + taskArrivalRate.size());
         return false;
     }
     public JobModel getOldJobModel(){

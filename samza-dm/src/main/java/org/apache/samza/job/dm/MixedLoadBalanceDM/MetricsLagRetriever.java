@@ -20,17 +20,26 @@ public class MetricsLagRetriever {
     //private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
     private Properties properties;
     private String topic, app;
-    private ConcurrentMap<String, Double> speed;
+    private ConcurrentMap<String, Double> processingSpeed;
+    private ConcurrentMap<Integer, Double> arrivalRate;
+    private ConcurrentMap<Integer, Long> arrivalTime;
     private ConcurrentMap<String, Long> time, processed;
+    private ConcurrentMap<Integer, Long> arrived;
     private ConcurrentMap<Integer, Long> backlog;
-    private double delta = 0.5; //Parameter to smooth processing speed
+    private ConcurrentMap<Integer, Double> avgBacklog;
+    private final double delta = 0.5; //Parameter to smooth processing speed
+    private final double arrivalDelta = 0.5;
     public void initial(String appName, String topic_name){
         topic = topic_name;
         app = appName;
-        speed = new ConcurrentHashMap<>();
+        processingSpeed = new ConcurrentHashMap<>();
+        arrivalRate = new ConcurrentHashMap<>();
+        arrivalTime = new ConcurrentHashMap<>();
         backlog = new ConcurrentHashMap<>();
         time = new ConcurrentHashMap<>();
         processed = new ConcurrentHashMap<>();
+        arrived = new ConcurrentHashMap<>();
+        avgBacklog = new ConcurrentHashMap<>();
     }
     //Update metrics from record
     public void update(ConsumerRecord<String, String> record){
@@ -44,10 +53,11 @@ public class MetricsLagRetriever {
             if (kafkaMetrics != null) {
                 //If KafkaSystemConsumerMetrics is here, we get lag information
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
+                long time = json.getJSONObject("metrics").getLong("time");
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
                 //writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
-                    updateBacklog(partition, kafkaMetrics);
+                    updateBacklogAndArrived(partition, kafkaMetrics, time);
                 }
             }
         }catch (Exception e) {
@@ -75,8 +85,8 @@ public class MetricsLagRetriever {
                 processed.put(taskName, currentProcessed);
 
                 double lastSpeed = 0;
-                if (speed.containsKey(taskName)) {
-                    lastSpeed = speed.get(taskName);
+                if (processingSpeed.containsKey(taskName)) {
+                    lastSpeed = processingSpeed.get(taskName);
                 }
 
                 double newSpeed = delta * lastSpeed;
@@ -84,7 +94,7 @@ public class MetricsLagRetriever {
                     newSpeed += (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
                 }
                 if (newSpeed > -1e-9) {
-                    speed.put(taskName, newSpeed);
+                    processingSpeed.put(taskName, newSpeed);
                 }
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
@@ -92,6 +102,13 @@ public class MetricsLagRetriever {
         }catch (Exception e){
             //writeLog("Error when parse taskMetrics: "+ e);
         }
+    }
+    // # of messages read
+    private long getRead(int partition, String kafkaMetric){
+        String pattern = "kafka-"+topic.toLowerCase()+"-"+partition+"-messages-read\":";
+        int i = kafkaMetric.indexOf(pattern);
+        int j = kafkaMetric.indexOf(',', i);
+        return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
     }
 
     private long getLag(int partition, String kafkaMetric){
@@ -101,9 +118,35 @@ public class MetricsLagRetriever {
         return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
     }
 
-    private void updateBacklog(int partition, String kafkaMetric){
+    private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
         long lag = getLag(partition, kafkaMetric);
+        long fetched = getRead(partition, kafkaMetric);
         backlog.put(partition, lag);
+
+        double lastLag = 0;
+        if(avgBacklog.containsKey(partition)){
+            lastLag = avgBacklog.get(partition);
+        }
+        avgBacklog.put(partition, (1-arrivalDelta)*lastLag + arrivalDelta * lag);
+
+        long lastArrived = 0;
+        if(arrived.containsKey(partition)){
+            lastArrived = arrived.get(partition);
+        }
+        lastArrived = lag + fetched - lastArrived;
+        arrived.put(partition, lag + fetched);
+
+        double lastArrivedRate = 0;
+        if(arrivalRate.containsKey(partition)){
+            lastArrivedRate = arrivalRate.get(partition);
+        }
+        long lastTime = 0;
+        if(arrivalTime.containsKey(partition)){
+            lastTime = arrivalTime.get(partition);
+        }
+        arrivalTime.put(partition, time);
+
+        arrivalRate.put(partition, (1 - arrivalDelta) * lastArrivedRate + arrivalDelta * ((double)lastArrived) * 1000/ (time - lastTime));
     }
 
     //Use metric like this: 'blocking-poll-count-SystemStreamPartition [kafka, StreamBenchInput, 0]
@@ -141,18 +184,26 @@ public class MetricsLagRetriever {
         return false;
     }
 
+    public Map<Integer, Double> retrieveAvgBacklog(){
+        writeLog("Retrieving average backlog information: " + avgBacklog.toString());
+        return avgBacklog;
+    }
+
+    public Map<Integer, Double> retrieveArrivalRate(){
+        writeLog("Retrieved arrival rate information: " + arrivalRate.toString());
+        return arrivalRate;
+    }
+
     //Asynchronous access
     public Map<Integer, Long> retrieveBacklog(){
-        writeLog("Retrieving backlog from Kafka console");
         writeLog("Retrieved backlog information: " + backlog.toString());
         return backlog;
     }
     // Access Kafka server
     // Return a containerId-processSpeed map
-    public Map<String, Double> retrieveSpeed(){
-        writeLog("Retrieving speed information from Kafka console");
-        writeLog("Retrieved speed information: " + speed.toString());
-        return speed;
+    public Map<String, Double> retrieveProcessingSpeed(){
+        writeLog("Retrieved speed information: " + processingSpeed.toString());
+        return processingSpeed;
     }
     private void writeLog(String log){
         System.out.println("MetricsLagRetriever: " + log);
