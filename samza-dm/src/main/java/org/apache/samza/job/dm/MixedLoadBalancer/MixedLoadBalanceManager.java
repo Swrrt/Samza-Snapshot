@@ -355,79 +355,94 @@ public class MixedLoadBalanceManager {
 
     */
     public Map<String, String> rebalanceByMovingOneTask(Map<String, Double> taskArrivalRate, Map<String, Double> taskBacklogs, Map<String, Double> containerProcessingSpeed, Map<String, String> oldTaskContainer) {
-        long totalUnproc = 0;
         int n = oldTaskContainer.size(), m = containerIds.size();
-        double totalProc = 0;
-        Map<String, Long> unprocessedContainer = new HashMap<>();
-        Map<String, String> newTaskContainer = new HashMap<>();
-        /*
-         Calculate unprocessed messages for containers
-        */
+        Map<String, Double> delay = new HashMap<>();
+        Map<String, Double> containerArrivalRate = new HashMap<>();
+        Map<String, Double> containerBacklogs = new HashMap<>();
+        for(String containerId: containerIds){
+            containerArrivalRate.put(containerId, 0.0);
+            containerBacklogs.put(containerId, 0.0);
+        }
+        //Calculate contaienrArrivalRate from taskArrivalRate and taskContainer.
+        for(String taskName: taskContainer.keySet()){
+            String containerId = taskContainer.get(taskName);
 
-        for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
-            totalUnproc += entry.getValue();
-            String containerId = taskContainer.get(entry.getKey());
-            if (!unprocessedContainer.containsKey(containerId)) {
-                unprocessedContainer.put(containerId, 0l);
+            double arrivalRate = taskArrivalRate.get(taskName) + containerArrivalRate.get(containerId);
+            containerArrivalRate.put(containerId, arrivalRate);
+
+            double backlog = taskBacklogs.get(taskName) + containerBacklogs.get(containerId);
+            containerBacklogs.put(containerId, backlog);
+        }
+
+        //Update Z and calculate delay
+        double maxDelay = -1;
+        double maxExceptChoosedDelay = -1;
+        String maxId = "";
+        for(String containerId: containerIds){
+            double backlog = containerBacklogs.get(containerId), arrival = containerArrivalRate.get(containerId), processing = containerProcessingSpeed.get(containerId);
+
+            double de = -1.0; //-1 for no arrival
+            if(arrival > 1e-9){
+                de = backlog/arrival; //If there is arrival
             }
-            unprocessedContainer.put(containerId, unprocessedContainer.get(containerId) + entry.getValue());
-        }
 
-        for (Double x : processingSpeed.values()) {
-            totalProc += x;
-        }
+            delay.put(containerId, de);
 
-        if (totalProc < 1e-9) {
-            writeLog("Total Processing Speed is too low, no change is made");
-            return generateJobModel();
-        }
-        /*
-            Choose most overloaded container
-         */
-        double max = -1;
-        String maxContainer = "";
-        for (Map.Entry<String, Double> entry : processingSpeed.entrySet()) {
-            String keyName = entry.getKey();
-            Double speed = entry.getValue();
-            if (speed > 1e-9 && unprocessedContainer.containsKey(keyName)) {
-                long unprocessed = unprocessedContainer.get(keyName);
-                if (unprocessed / speed > max) {
-                    max = unprocessed / speed;
-                    maxContainer = keyName;
+            //Update Z in processing > arrival and arrival > 0
+            if(arrival> 1e-9 && processing - arrival > 1e-9){
+                Z.put(containerId, de * (processing - arrival)/ arrival);
+            }
+
+            //Choose the maximal delay and which has Z
+            if(de > maxDelay && Z.containsKey(containerId)){
+                if(maxDelay > maxExceptChoosedDelay){
+                    maxExceptChoosedDelay = maxDelay;
                 }
+                maxDelay = de;
+                maxId = containerId;
+            }else if(de > maxExceptChoosedDelay){
+                maxExceptChoosedDelay = de;
             }
         }
-        writeLog("Current max backlog/process container: " + maxContainer);
-        /*
-            Move virtual nodes from most overloaded container
-         */
-        double perVN = max / getNumberOfVirtualNodes(maxContainer);
-        double unprocVN = unprocessedContainer.get(maxContainer) / getNumberOfVirtualNodes(maxContainer);
-        if (max < threshold - 1e-9) {
-            writeLog("No need to move");
-            return oldJobModel;
-        }
-        long moveVNs = (long) Math.ceil((max - threshold) / perVN);
-        /*
-            Choose the container which estimate minimize the backlog/process to put
-            TODO: use real backlog/process
+        // Check if the maximal delay greater than threshold
+        Map<String, String> newTaskContainer = taskContainer;
+        if(maxDelay > threshold){
+            writeLog("Maximal delay: container" + maxId + "exceed threshold: " + maxDelay + ", now re-balance");
+            String migrateTaskId = "", targetContainerId = "";
+            double minimum = 1e15;
+            for (String taskId: taskContainer.keySet())
+                if(maxExceptChoosedDelay < minimum && taskContainer.get(taskId).equals(maxId)){ //Shortcut if already have a best migration
+                    double newArrival = containerArrivalRate.get(maxId) - taskArrivalRate.get(taskId);
+                    double newProcess = containerProcessingSpeed.get(maxId);
+                    if(newArrival < newProcess - 1e-9){
+                        double newDelay = Z.get(maxId) * newArrival / (newProcess - newArrival); //Calculate new delay for source container
+                        if(newDelay < minimum){
+                            for(String containerId: containerIds)
+                                if(!containerId.equals(maxId)){
+                                    double targetArrival = containerArrivalRate.get(containerId) + taskArrivalRate.get(taskId);
+                                    double targetProcess = containerProcessingSpeed.get(containerId);
+                                    if(targetArrival < targetProcess - 1e-9) {
+                                        double targetDelay = Z.get(containerId) * targetArrival / (targetProcess - targetArrival);
+                                        if(targetDelay < minimum){
+                                            minimum = Math.max(Math.max(targetDelay, newDelay), maxExceptChoosedDelay);
+                                            migrateTaskId = taskId;
+                                            targetContainerId = containerId;
+                                            writeLog("Find new migration way: task " + taskId + " to container " + containerId + ", delay " + minimum);
+                                        }
+                                    }
+                                }
 
-        */
-        for (int i = 0; i < moveVNs; i++) {
-            int vn = consistentHashing.removeVN(maxContainer);
-            String minContainer = maxContainer;
-            double min = threshold + 100;
-            for (String container : unprocessedContainer.keySet())
-                if (!container.equals(maxContainer) && processingSpeed.containsKey(container)) {
-                    double proc = processingSpeed.get(container);
-                    double unproc = unprocessedContainer.get(container) + unprocVN;
-                    if (proc > 1e-9 && unproc / proc < min) {
-                        min = unproc / proc;
-                        minContainer = container;
+                        }
                     }
-
                 }
-            addVNs(minContainer, vn);
+            if(migrateTaskId.equals("")){
+                writeLog("Cannot find a available migration");
+            }else{
+                writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
+                newTaskContainer.put(migrateTaskId, targetContainerId);
+            }
+        }else{
+            writeLog("Cannot find available operator to re-balance");
         }
         return newTaskContainer;
     }
