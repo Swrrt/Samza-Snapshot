@@ -72,8 +72,10 @@ public class MixedLoadBalanceManager {
         localityServer = new LocalityServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         metricsRetriever = new MetricsLagRetriever();
+        taskArrivalRate = new HashMap<>();
         taskProcessingSpeed = new HashMap<>();
         taskBacklogs = new HashMap<>();
+        containerArrivalRate = new HashMap<>();
         containerBacklogs = new HashMap<>();
         containerProcessingSpeed = new HashMap<>();
         Z = new HashMap<>();
