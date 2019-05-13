@@ -586,6 +586,7 @@ public class MixedLoadBalanceManager {
         retrieveAvgBacklog(); //Update backlog
         retrieveArrivalRate(); //Update arrival rate
         retrieveProcessingSpeed(); //Update processing speed
+        double maxDelay = -1;
         for(String containerId: containerIds){
             if(!containerBacklogs.containsKey(containerId)){
                 writeLog("Cannot retrieve container "+containerId+" backlog information");
@@ -595,12 +596,18 @@ public class MixedLoadBalanceManager {
                 double avgBacklog = containerBacklogs.get(containerId);
                 double arrivalRate = containerArrivalRate.get(containerId);
                 //writeLog("Container " + containerId + " average backlog: " + avgBacklog + " average arrival rate: " + arrivalRate);
-                if (avgBacklog / arrivalRate > threshold) {
-                    writeLog("Container " + containerId + "Exceed threshold, average backlog: " + avgBacklog + ", average arrival rate: " + arrivalRate);
-                    return false;
+                if(arrivalRate > 1e-9) {
+                    if(avgBacklog / arrivalRate > maxDelay){
+                        maxDelay = avgBacklog / arrivalRate;
+                    }
+                    if (avgBacklog / arrivalRate > threshold) {
+                        writeLog("Container " + containerId + "Exceed threshold, average backlog: " + avgBacklog + ", average arrival rate: " + arrivalRate);
+                        return false;
+                    }
                 }
             }
         }
+        writeLog("Current max delay is: " + maxDelay);
         return true;
     }
     /*public double getUtil(String processorId){

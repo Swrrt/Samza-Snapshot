@@ -55,7 +55,7 @@ public class MetricsLagRetriever {
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
                 long time = json.getJSONObject("header").getLong("time");
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
-                writeLog("Partitions: " + partitions);
+                //writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklogAndArrived(partition, kafkaMetrics, time);
                 }
@@ -160,10 +160,10 @@ public class MetricsLagRetriever {
         String pattern = "[kafka, " + topic +", ";
         int i=0, len = pattern.length();
         //Find all patterns in string
-        writeLog("Kafka metrics: " + string);
+        //writeLog("Kafka metrics: " + string);
         while(i != -1){
             i = string.indexOf(pattern, i);
-            writeLog("Find pattern at: "+ i);
+            //writeLog("Find pattern at: "+ i);
             if(i != -1){
                 int j = string.indexOf(']', i + len); //Right bracket
                 partitions.add(Integer.valueOf(string.substring(i + len, j)));
