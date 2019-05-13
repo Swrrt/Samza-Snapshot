@@ -425,11 +425,11 @@ public class MixedLoadBalanceManager {
                                     double targetProcess = containerProcessingSpeed.get(containerId);
                                     if(targetArrival < targetProcess - 1e-9) {
                                         double targetDelay = Z.get(containerId) * targetArrival / (targetProcess - targetArrival);
-                                        if(targetDelay < minimum){
+                                        if(Math.max(Math.max(targetDelay, newDelay), maxExceptChoosedDelay) < minimum){
                                             minimum = Math.max(Math.max(targetDelay, newDelay), maxExceptChoosedDelay);
                                             migrateTaskId = taskId;
                                             targetContainerId = containerId;
-                                            writeLog("Find new migration way: task " + taskId + " to container " + containerId + ", delay " + minimum);
+                                            writeLog("Find new migration way: task " + taskId + " to container " + containerId + ", new minimal delay " + minimum);
                                         }
                                     }
                                 }
