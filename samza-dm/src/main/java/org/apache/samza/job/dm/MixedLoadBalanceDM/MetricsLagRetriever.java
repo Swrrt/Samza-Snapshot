@@ -53,15 +53,15 @@ public class MetricsLagRetriever {
             if (kafkaMetrics != null) {
                 //If KafkaSystemConsumerMetrics is here, we get lag information
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
-                long time = json.getJSONObject("metrics").getLong("time");
+                long time = json.getJSONObject("header").getLong("time");
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
-                writeLog("Partitions: " + partitions);
+             //   writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklogAndArrived(partition, kafkaMetrics, time);
                 }
             }
         }catch (Exception e) {
-             writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
+            // writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
         }
         try{
             if (!isOurApp(json, app)) return;
