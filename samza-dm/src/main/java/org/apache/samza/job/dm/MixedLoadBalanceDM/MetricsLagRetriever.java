@@ -133,7 +133,10 @@ public class MetricsLagRetriever {
         if(arrived.containsKey(partition)){
             lastArrived = arrived.get(partition);
         }
-        lastArrived = lag + fetched - lastArrived;
+        if(lastArrived > lag + fetched){
+            return ;
+        }
+        double arrivedInPeriod = lag + fetched - lastArrived;
         arrived.put(partition, lag + fetched);
 
         double lastArrivedRate = 0;
@@ -148,7 +151,7 @@ public class MetricsLagRetriever {
 
         double newArrival = lastArrivedRate;
         if(time > lastTime){
-            newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * ((double)lastArrived) * 1000/ (time - lastTime);
+            newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * (arrivedInPeriod) * 1000/ (time - lastTime);
         }
         arrivalRate.put(partition, newArrival);
     }
@@ -209,6 +212,18 @@ public class MetricsLagRetriever {
     public Map<String, Double> retrieveProcessingSpeed(){
         //writeLog("Retrieved speed information: " + processingSpeed.toString());
         return processingSpeed;
+    }
+
+    //Need flush metrics after rebalancing
+    public void flush(){
+        processingSpeed.clear();
+        arrivalRate.clear();
+        arrivalTime.clear();
+        backlog.clear();
+        time.clear();
+        processed.clear();
+        arrived.clear();
+        avgBacklog.clear();
     }
     private void writeLog(String log){
         System.out.println("MetricsLagRetriever: " + log);

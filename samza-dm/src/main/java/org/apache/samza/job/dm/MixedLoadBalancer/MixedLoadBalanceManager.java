@@ -297,6 +297,10 @@ public class MixedLoadBalanceManager {
         return generateJobModel();
     }*/
 
+    public void flushMetrics(){
+        metricsRetriever.flush();
+    }
+
     //Retrieve metrics (arrival rate, backlog, processing speed) and rebalance accordingly.
     public JobModel rebalanceJobModel(){
         writeLog("Try to rebalance load");

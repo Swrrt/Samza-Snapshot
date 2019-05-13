@@ -150,6 +150,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 //JobModelDemonstrator.demoJobModel(newJobModel);
                 //Dispatch the new JobModel
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
+                balanceManager.flushMetrics();
             }
         }
     }
