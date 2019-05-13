@@ -61,7 +61,7 @@ public class MetricsLagRetriever {
                 }
             }
         }catch (Exception e) {
-            writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
+            //writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
         }
         try{
             if (!isOurApp(json, app)) return;
