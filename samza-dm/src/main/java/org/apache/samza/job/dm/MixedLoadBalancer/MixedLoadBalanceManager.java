@@ -517,6 +517,7 @@ public class MixedLoadBalanceManager {
             }
             containerBacklogs.put(container, backlog);
         }
+        writeLog("Average Backlog: " + containerBacklogs);
     }
     public void retrieveArrivalRate(){
         Map<Integer, Double> partitionArrivalRate = metricsRetriever.retrieveArrivalRate();//kafkaOffsetRetriever.retrieveBacklog();
@@ -533,6 +534,7 @@ public class MixedLoadBalanceManager {
             }
             containerArrivalRate.put(container, backlog);
         }
+        writeLog("Arrival Rate: " + containerArrivalRate);
     }
     public void retrieveProcessingSpeed(){
         taskProcessingSpeed.clear();
@@ -548,6 +550,7 @@ public class MixedLoadBalanceManager {
             }
             containerProcessingSpeed.put(container, speed);
         }
+        writeLog("Processing Speed: " + containerProcessingSpeed);
     }
 
     /*

@@ -190,12 +190,12 @@ public class MetricsLagRetriever {
     }
 
     public Map<Integer, Double> retrieveAvgBacklog(){
-        writeLog("Retrieving average backlog information: " + avgBacklog.toString());
+        //writeLog("Retrieving average backlog information: " + avgBacklog.toString());
         return avgBacklog;
     }
 
     public Map<Integer, Double> retrieveArrivalRate(){
-        writeLog("Retrieved arrival rate information: " + arrivalRate.toString());
+        //writeLog("Retrieved arrival rate information: " + arrivalRate.toString());
         return arrivalRate;
     }
 
@@ -207,7 +207,7 @@ public class MetricsLagRetriever {
     // Access Kafka server
     // Return a containerId-processSpeed map
     public Map<String, Double> retrieveProcessingSpeed(){
-        writeLog("Retrieved speed information: " + processingSpeed.toString());
+        //writeLog("Retrieved speed information: " + processingSpeed.toString());
         return processingSpeed;
     }
     private void writeLog(String log){
