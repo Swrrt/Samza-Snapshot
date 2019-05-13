@@ -89,9 +89,9 @@ public class MetricsLagRetriever {
                     lastSpeed = processingSpeed.get(taskName);
                 }
 
-                double newSpeed = delta * lastSpeed;
+                double newSpeed = lastSpeed;
                 if (currentTime > lastTime) {
-                    newSpeed += (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
+                    newSpeed = delta * lastSpeed + (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
                 }
                 if (newSpeed > -1e-9) {
                     processingSpeed.put(taskName, newSpeed);
@@ -146,7 +146,11 @@ public class MetricsLagRetriever {
         }
         arrivalTime.put(partition, time);
 
-        arrivalRate.put(partition, (1 - arrivalDelta) * lastArrivedRate + arrivalDelta * ((double)lastArrived) * 1000/ (time - lastTime));
+        double newArrival = lastArrivedRate;
+        if(time > lastTime){
+            newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * ((double)lastArrived) * 1000/ (time - lastTime);
+        }
+        arrivalRate.put(partition, newArrival);
     }
 
     //Use metric like this: 'blocking-poll-count-SystemStreamPartition [kafka, StreamBenchInput, 0]
