@@ -43,12 +43,8 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
         leaderComes = false;
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 20000);
         while (true) {
-            try{
-                Thread.sleep(5000);
-            }catch (Exception e){
-            }
             writeLog("Try to retrieve report");
-            ConsumerRecords<String, String> records = consumer.poll(5000);
+            ConsumerRecords<String, String> records = consumer.poll(3000);
             for (ConsumerRecord<String, String> record : records) {
 
                // writeLog("Reports: " + record.toString());
