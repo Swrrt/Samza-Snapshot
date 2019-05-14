@@ -164,12 +164,12 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             String containerName = json.getJSONObject("header").getString("container-name");
             String host = json.getJSONObject("header").getString("host");
             if (jobName.equals(config.get("job.name")) && containerName.equals("ApplicationMaster")) {
-                writeLog("New application master ip: " + host);
+                //writeLog("New application master ip: " + host);
                 this.dispatcher.updateEnforcerURL(jobName,  host + ":1999");
                 return true;
             }
         }catch (Exception e){
-            writeLog("Error when parse json");
+            //writeLog("Error when parse json");
         }
         return false;
     }
