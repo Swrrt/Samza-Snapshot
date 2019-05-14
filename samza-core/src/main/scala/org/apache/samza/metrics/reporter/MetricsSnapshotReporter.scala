@@ -57,6 +57,7 @@ class MetricsSnapshotReporter(
   producer: SystemProducer,
   out: SystemStream,
   pollingInterval: Int,
+  pollingIntervalUnit: String,
   jobName: String,
   jobId: String,
   containerName: String,
@@ -80,7 +81,9 @@ class MetricsSnapshotReporter(
 
     info("Starting reporter timer.")
 
-    executor.scheduleWithFixedDelay(this, 0, pollingInterval, TimeUnit.SECONDS)
+    val timeUnit = TimeUnit.valueOf(pollingIntervalUnit)
+
+    executor.scheduleWithFixedDelay(this, 0, pollingInterval, timeUnit)
   }
 
   def register(source: String, registry: ReadableMetricsRegistry) {

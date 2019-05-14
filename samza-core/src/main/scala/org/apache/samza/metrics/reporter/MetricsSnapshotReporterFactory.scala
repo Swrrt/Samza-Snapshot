@@ -35,6 +35,8 @@ import org.apache.samza.metrics.MetricsRegistryMap
 import org.apache.samza.serializers.SerdeFactory
 import org.apache.samza.system.SystemFactory
 
+import scala.concurrent.duration.TimeUnit
+
 class MetricsSnapshotReporterFactory extends MetricsReporterFactory with Logging {
   def getMetricsReporter(name: String, containerName: String, config: Config): MetricsReporter = {
     info("Creating new metrics snapshot reporter.")
@@ -109,11 +111,14 @@ class MetricsSnapshotReporterFactory extends MetricsReporterFactory with Logging
       .getMetricsReporterInterval(name)
       .getOrElse("60").toInt
 
+    val pollingIntervalUnit: String = config.getMetricsReporterIntervalUnit(name).getOrElse("SECONDS");
+
     info("Setting polling interval to %d" format pollingInterval)
     val reporter = new MetricsSnapshotReporter(
       producer,
       systemStream,
       pollingInterval,
+      pollingIntervalUnit,
       jobName,
       jobId,
       containerName,
