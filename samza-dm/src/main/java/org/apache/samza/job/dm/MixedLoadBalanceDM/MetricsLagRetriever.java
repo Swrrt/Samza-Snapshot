@@ -55,7 +55,7 @@ public class MetricsLagRetriever {
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
                 long time = json.getJSONObject("header").getLong("time");
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
-                writeLog("Partitions: " + partitions);
+                if(partitions.size()>0) writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     updateBacklogAndArrived(partition, kafkaMetrics, time);
                 }
