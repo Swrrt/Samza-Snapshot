@@ -57,7 +57,11 @@ public class MetricsLagRetriever {
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
                 if(partitions.size()>0) writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
-                    updateBacklogAndArrived(partition, kafkaMetrics, time);
+                    try{
+                        updateBacklogAndArrived(partition, kafkaMetrics, time);
+                    }catch (Exception e){
+                        writeLog("Partition " + partition +" error: " + e.toString());
+                    }
                 }
             }
         }catch (Exception e) {
