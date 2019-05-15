@@ -643,6 +643,6 @@ public class MixedLoadBalanceManager {
         return oldJobModel;
     }
     private void writeLog(String log){
-        System.out.println("MixedLoadBalanceManager: " + log);
+        System.out.println("MixedLoadBalanceManager, time " + System.currentTimeMillis() +" : " + log);
     }
 }
