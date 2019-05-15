@@ -96,6 +96,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private JobCoordinatorListener coordinatorListener = null;
     private JobModel newJobModel;
     private int debounceTimeMs;
+    private boolean isJobModelChanged = false;
     private boolean hasCreatedChangeLogStreams = false;
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
@@ -280,6 +281,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         {
             LOG.info("pid=" + processorId + ": new JobModel available");
             // get the new job model from ZK
+            JobModel oldJobModel = newJobModel;
             newJobModel = zkUtils.getJobModel(version);
             LOG.info("pid=" + processorId + ": new JobModel available. ver=" + version + "; jm = " + newJobModel);
 
@@ -287,12 +289,17 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
                 LOG.info("New JobModel does not contain pid={}. Stopping this processor. New JobModel: {}",
                         processorId, newJobModel);
                 stop();
-            } else {
+            } else if(oldJobModel != null && newJobModel.getContainers().get(processorId).equals(oldJobModel.getContainers().get(processorId))){ // If this container is not affected, join the barrier
+                LOG.info("New JobModel does not change this container, do nothing");
+                isJobModelChanged = false;
+                barrier.join(version, processorId);
+            }else {
                 // stop current work
                 if (coordinatorListener != null) {
                     coordinatorListener.onJobModelExpired();
                 }
                 // update ZK and wait for all the processors to get this new version
+                isJobModelChanged = true;
                 barrier.join(version, processorId);
             }
         });
@@ -305,7 +312,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         JobModel jobModel = getJobModel();
 
         // start the container with the new model
-        if (coordinatorListener != null) {
+        if(!isJobModelChanged){ // If this container is not affected, do not need to restart samzacontainer
+            LOG.info("Still use old job model, no need to restart");
+        }else if (coordinatorListener != null) {
             coordinatorListener.onNewJobModel(processorId, jobModel);
         }
     }
