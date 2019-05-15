@@ -37,6 +37,10 @@ public class MixedLoadBalanceManager {
     private JobModel oldJobModel;
 
     // Metrics
+    private Map<String, Long> taskArrived = null;
+    private Map<String, Long> containerArrived = null;
+    private Map<String, Long> taskProcessed = null;
+    private Map<String, Long> containerProcessed = null;
     private Map<String, Double> taskArrivalRate = null;
     private Map<String, Double> taskBacklogs = null;
     private Map<String, Double> taskProcessingSpeed = null;
@@ -72,6 +76,10 @@ public class MixedLoadBalanceManager {
         localityServer = new LocalityServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         metricsRetriever = new MetricsLagRetriever();
+        taskArrived = new HashMap<>();
+        containerArrived = new HashMap<>();
+        taskProcessed = new HashMap<>();
+        containerProcessed = new HashMap<>();
         taskArrivalRate = new HashMap<>();
         taskProcessingSpeed = new HashMap<>();
         taskBacklogs = new HashMap<>();
@@ -300,9 +308,13 @@ public class MixedLoadBalanceManager {
         retrieveAvgBacklog();
         retrieveArrivalRate();
         retrieveProcessingSpeed();
-        writeLog("Backlog: " + containerBacklogs);
-        writeLog("Arrival rate: " + containerArrivalRate);
-        writeLog("Processing rate: " + containerProcessingSpeed);
+        retrieveArrived();
+        retrieveProcessed();
+        writeLog("Arrived: " + containerArrived);
+        writeLog("Processed: " + containerProcessed);
+        //writeLog("Backlog: " + containerBacklogs);
+        //writeLog("Arrival rate: " + containerArrivalRate);
+        //writeLog("Processing rate: " + containerProcessingSpeed);
     }
 
     public void flushMetrics(){
@@ -512,6 +524,39 @@ public class MixedLoadBalanceManager {
         return dis;
     }*/
 
+
+    public void retrieveArrived(){
+        Map<Integer, Long> partitionArrived = metricsRetriever.retrieveArrived();
+        taskArrived.clear();
+        containerArrived.clear();
+        for(Map.Entry<Integer, Long> entry: partitionArrived.entrySet()){
+            int partition = entry.getKey();
+            long arrived = entry.getValue();
+            String task = partitionTask.get(partition);
+            taskArrived.put(task, arrived);
+            String container = taskContainer.get(task);
+            if(containerArrived.containsKey(container)){
+                arrived += containerArrived.get(container);
+            }
+            containerArrived.put(container, arrived);
+        }
+    }
+
+    public void retrieveProcessed(){
+        taskProcessed.clear();
+        containerProcessed.clear();
+        Map<String, Long> processed =  metricsRetriever.retrieveProcessed();
+        for(Map.Entry<String, Long> entry: processed.entrySet()){
+            String task = entry.getKey();
+            long processe = entry.getValue();
+            taskProcessed.put(task, processe);
+            String container = taskContainer.get(task);
+            if(containerProcessed.containsKey(container)){
+                processe += containerProcessed.get(container);
+            }
+            containerProcessed.put(container, processe);
+        }
+    }
     /*
         Using metrics
      */

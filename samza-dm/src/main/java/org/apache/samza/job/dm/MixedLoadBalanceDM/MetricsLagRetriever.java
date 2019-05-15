@@ -196,6 +196,14 @@ public class MetricsLagRetriever {
         return false;
     }
 
+    public Map<Integer, Long> retrieveArrived(){
+        return arrived;
+    }
+
+    public Map<String, Long> retrieveProcessed(){
+        return processed;
+    }
+
     public Map<Integer, Double> retrieveAvgBacklog(){
         //writeLog("Retrieving average backlog information: " + avgBacklog.toString());
         return avgBacklog;
@@ -211,6 +219,7 @@ public class MetricsLagRetriever {
         writeLog("Retrieved backlog information: " + backlog.toString());
         return backlog;
     }
+
     // Access Kafka server
     // Return a containerId-processSpeed map
     public Map<String, Double> retrieveProcessingSpeed(){
