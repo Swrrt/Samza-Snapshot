@@ -27,8 +27,8 @@ public class MetricsLagRetriever {
     private ConcurrentMap<Integer, Long> arrived;
     private ConcurrentMap<Integer, Long> backlog;
     private ConcurrentMap<Integer, Double> avgBacklog;
-    private final double delta = 0.5; //Parameter to smooth processing speed
-    private final double arrivalDelta = 0.5;
+    private final double delta = 7.0/8.0; //Parameter to smooth processing speed
+    private final double arrivalDelta = 7.0/8.0;
     public void initial(String appName, String topic_name){
         topic = topic_name;
         app = appName;
@@ -131,7 +131,7 @@ public class MetricsLagRetriever {
         if(avgBacklog.containsKey(partition)){
             lastLag = avgBacklog.get(partition);
         }
-        avgBacklog.put(partition, (1-arrivalDelta)*lastLag + arrivalDelta * lag);
+        avgBacklog.put(partition, (arrivalDelta)*lastLag + (1 - arrivalDelta) * lag);
 
         long lastArrived = 0;
         if(arrived.containsKey(partition)){

@@ -296,8 +296,17 @@ public class MixedLoadBalanceManager {
         }
         return generateJobModel();
     }*/
+    public void showMetrics(){
+        retrieveAvgBacklog();
+        retrieveArrivalRate();
+        retrieveProcessingSpeed();
+        writeLog("Backlog: " + containerBacklogs);
+        writeLog("Arrival rate: " + containerArrivalRate);
+        writeLog("Processing rate: " + containerProcessingSpeed);
+    }
 
     public void flushMetrics(){
+        writeLog("Flushing metrics");
         metricsRetriever.flush();
     }
 

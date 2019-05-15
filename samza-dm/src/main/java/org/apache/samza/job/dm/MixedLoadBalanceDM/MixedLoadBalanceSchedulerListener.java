@@ -54,6 +54,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             if(time - lastReportTime >= reportInterval){
                  lastReportTime = time;
                  writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);
+                 loadBalanceManager.showMetrics();
             }
             for (ConsumerRecord<String, String> record : records) {
 
