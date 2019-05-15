@@ -55,12 +55,12 @@ public class MetricsLagRetriever {
                 //writeLog("kafkaMetrics: " + kafkaMetrics);
                 long time = json.getJSONObject("header").getLong("time");
                 List<Integer> partitions = findPartitions(kafkaMetrics, topic);
-                if(partitions.size()>0) writeLog("Partitions: " + partitions);
+                //if(partitions.size()>0) writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     try{
                         updateBacklogAndArrived(partition, kafkaMetrics, time);
                     }catch (Exception e){
-                        writeLog("Partition " + partition +" error: " + e.toString());
+                        //writeLog("Partition " + partition +" error: " + e.toString());
                     }
                 }
             }
