@@ -67,13 +67,13 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             //Try to rebalance periodically
             if(leaderComes) {
                 long nowTime = System.currentTimeMillis();
-                if(nowTime - lastTime >= rebalanceInterval) {
+                /*if(nowTime - lastTime >= rebalanceInterval) {
                     writeLog("Try to rebalance");
                     scheduler.updateJobModel();
                     lastTime = nowTime;
                 }else{
                     //writeLog("Smaller than rebalanceInterval, wait for next loop");
-                }
+                }*/
             }
         }
     }
