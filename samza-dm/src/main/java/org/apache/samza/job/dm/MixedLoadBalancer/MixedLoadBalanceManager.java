@@ -47,6 +47,7 @@ public class MixedLoadBalanceManager {
     private Map<String, Double> containerArrivalRate = null;
     private Map<String, Double> containerBacklogs = null;
     private Map<String, Double> containerProcessingSpeed = null;
+    private Map<String, Long> containerFlushProcessed = null;
     private Map<String, Double > Z = null;
 
     private Config config;
@@ -86,6 +87,7 @@ public class MixedLoadBalanceManager {
         containerArrivalRate = new HashMap<>();
         containerBacklogs = new HashMap<>();
         containerProcessingSpeed = new HashMap<>();
+        containerFlushProcessed = new HashMap<>();
         Z = new HashMap<>();
     }
     /*
@@ -310,12 +312,14 @@ public class MixedLoadBalanceManager {
         retrieveProcessingSpeed();
         retrieveArrived();
         retrieveProcessed();
+        retrieveFlushProcessed();
         writeLog("Arrived: " + containerArrived);
-        writeLog("Processed: " + containerProcessed);
+        writeLog("Flush Processed: " + containerFlushProcessed);
         //writeLog("Backlog: " + containerBacklogs);
         //writeLog("Arrival rate: " + containerArrivalRate);
         //writeLog("Processing rate: " + containerProcessingSpeed);
     }
+
 
     public void flushMetrics(){
         writeLog("Flushing metrics");
@@ -539,6 +543,20 @@ public class MixedLoadBalanceManager {
                 arrived += containerArrived.get(container);
             }
             containerArrived.put(container, arrived);
+        }
+    }
+
+    public void retrieveFlushProcessed(){
+        containerFlushProcessed.clear();
+        Map<String, Long> processed =  metricsRetriever.retrieveFlushProcessed();
+        for(Map.Entry<String, Long> entry: processed.entrySet()){
+            String task = entry.getKey();
+            long processe = entry.getValue();
+            String container = taskContainer.get(task);
+            if(containerFlushProcessed.containsKey(container)){
+                processe += containerFlushProcessed.get(container);
+            }
+            containerFlushProcessed.put(container, processe);
         }
     }
 

@@ -27,6 +27,7 @@ public class MetricsLagRetriever {
     private ConcurrentMap<Integer, Long> arrived;
     private ConcurrentMap<Integer, Long> backlog;
     private ConcurrentMap<Integer, Double> avgBacklog;
+    private ConcurrentMap<String, Long> flushProcessed;
     private final double delta = 7.0/8.0; //Parameter to smooth processing speed
     private final double arrivalDelta = 7.0/8.0;
     public void initial(String appName, String topic_name){
@@ -40,6 +41,7 @@ public class MetricsLagRetriever {
         processed = new ConcurrentHashMap<>();
         arrived = new ConcurrentHashMap<>();
         avgBacklog = new ConcurrentHashMap<>();
+        flushProcessed = new ConcurrentHashMap<>();
     }
     //Update metrics from record
     public void update(ConsumerRecord<String, String> record){
@@ -86,6 +88,8 @@ public class MetricsLagRetriever {
                     lastTime = time.get(taskName);
                 }
                 time.put(taskName, currentTime);
+
+                flushProcessed.put(taskName, currentProcessed);
                 processed.put(taskName, currentProcessed);
 
                 double lastSpeed = 0;
@@ -199,6 +203,14 @@ public class MetricsLagRetriever {
     public Map<Integer, Long> retrieveArrived(){
         return arrived;
     }
+
+    public Map<String, Long> retrieveFlushProcessed(){
+        Map<String, Long> ret = new HashMap<>();
+        ret.putAll(flushProcessed);
+        flushProcessed.clear();
+        return ret;
+    }
+
 
     public Map<String, Long> retrieveProcessed(){
         return processed;
