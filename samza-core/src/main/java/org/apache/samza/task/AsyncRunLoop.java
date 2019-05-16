@@ -154,7 +154,11 @@ public class AsyncRunLoop implements Runnable, Throttleable {
 
         containerMetrics.chooseNs().update(chooseNs - startNs);
 
+        System.out.println(System.currentTimeMillis() + " :choosed a message");
+
         runTasks(envelope);
+
+        System.out.println(System.currentTimeMillis() + " :processed a message");
 
         long blockNs = clock.nanoTime();
 
