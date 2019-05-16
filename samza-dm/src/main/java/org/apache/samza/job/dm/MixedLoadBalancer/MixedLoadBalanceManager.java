@@ -314,7 +314,7 @@ public class MixedLoadBalanceManager {
         retrieveProcessed();
         retrieveFlushProcessed();
         writeLog("Arrived: " + containerArrived);
-        writeLog("Flush Processed: " + containerFlushProcessed);
+        //writeLog("Flush Processed: " + containerFlushProcessed);
         //writeLog("Backlog: " + containerBacklogs);
         //writeLog("Arrival rate: " + containerArrivalRate);
         //writeLog("Processing rate: " + containerProcessingSpeed);

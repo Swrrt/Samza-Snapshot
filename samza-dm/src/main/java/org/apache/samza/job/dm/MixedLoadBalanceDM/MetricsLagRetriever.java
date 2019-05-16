@@ -85,6 +85,8 @@ public class MetricsLagRetriever {
                 containerId = containerId.substring(containerId.length() - 6);
                 long processed = containerMetrics.getLong("process-envelopes");
                 flushProcessed.put(containerId, processed);
+                System.out.println("MixedLoadBalanceManager, time " + System.currentTimeMillis() +" : " + "Flush Processed: " + flushProcessed);
+                flushProcessed.clear();
             }
         }catch (Exception e){
 
