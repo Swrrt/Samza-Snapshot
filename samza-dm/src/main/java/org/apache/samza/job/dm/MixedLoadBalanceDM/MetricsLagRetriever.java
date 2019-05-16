@@ -71,46 +71,62 @@ public class MetricsLagRetriever {
         }
         try{
             if (!isOurApp(json, app)) return;
-            JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
-            if (taskMetrics != null) {
-                //If TaskInstanceMetrics is here, we get processing speed
-                //writeLog("taskMetrics: " + taskMetrics);
-                String taskName = json.getJSONObject("header").getString("source");
-                //Need to get correct Task name
-                taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
-
-                long currentTime = json.getJSONObject("header").getLong("time");
-                long currentProcessed = taskMetrics.getLong("messages-actually-processed");
-
-                long lastProcessed = 0, lastTime = 0;
-                if (processed.containsKey(taskName)) {
-                    lastProcessed = processed.get(taskName);
-                    lastTime = time.get(taskName);
-                }
-                time.put(taskName, currentTime);
-
-                flushProcessed.put(taskName, currentProcessed);
-                processed.put(taskName, currentProcessed);
-
-                double lastSpeed = 0;
-                if (processingSpeed.containsKey(taskName)) {
-                    lastSpeed = processingSpeed.get(taskName);
-                }
-
-                double newSpeed = lastSpeed;
-                if (currentTime > lastTime) {
-                    newSpeed = delta * lastSpeed + (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
-                }
-                if (newSpeed > -1e-9) {
-                    processingSpeed.put(taskName, newSpeed);
-                }
+            updateProcessed(json);
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
-            }
         }catch (Exception e){
             //writeLog("Error when parse taskMetrics: "+ e);
         }
+        try{
+            if(!isOurApp(json, app)) return ;
+            JSONObject containerMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.SamzaContainerMetrics");
+            if(containerMetrics != null){
+                String containerId = json.getJSONObject("header").getString("source");
+                containerId = containerId.substring(containerId.length() - 6);
+                long processed = containerMetrics.getLong("process-envelopes");
+                flushProcessed.put(containerId, processed);
+            }
+        }catch (Exception e){
+
+        }
     }
+    private void updateProcessed(JSONObject json){
+        //If TaskInstanceMetrics is here, we get processing speed
+        //writeLog("taskMetrics: " + taskMetrics);
+        JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
+        if (taskMetrics != null) {
+            String taskName = json.getJSONObject("header").getString("source");
+            //Need to get correct Task name
+            taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
+
+            long currentTime = json.getJSONObject("header").getLong("time");
+            long currentProcessed = taskMetrics.getLong("messages-actually-processed");
+
+            long lastProcessed = 0, lastTime = 0;
+            if (processed.containsKey(taskName)) {
+                lastProcessed = processed.get(taskName);
+                lastTime = time.get(taskName);
+            }
+            time.put(taskName, currentTime);
+
+
+            processed.put(taskName, currentProcessed);
+
+            double lastSpeed = 0;
+            if (processingSpeed.containsKey(taskName)) {
+                lastSpeed = processingSpeed.get(taskName);
+            }
+
+            double newSpeed = lastSpeed;
+            if (currentTime > lastTime) {
+                newSpeed = delta * lastSpeed + (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
+            }
+            if (newSpeed > -1e-9) {
+                processingSpeed.put(taskName, newSpeed);
+            }
+        }
+    }
+
     // # of messages read
     private long getRead(int partition, String kafkaMetric){
         String pattern = "kafka-"+topic.toLowerCase()+"-"+partition+"-messages-read\":";
@@ -125,6 +141,7 @@ public class MetricsLagRetriever {
         int j = kafkaMetric.indexOf(',', i);
         return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
     }
+
 
     private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
         long lag = getLag(partition, kafkaMetric);

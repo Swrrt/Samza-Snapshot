@@ -550,12 +550,12 @@ public class MixedLoadBalanceManager {
         containerFlushProcessed.clear();
         Map<String, Long> processed =  metricsRetriever.retrieveFlushProcessed();
         for(Map.Entry<String, Long> entry: processed.entrySet()){
-            String task = entry.getKey();
+            String container = entry.getKey();
             long processe = entry.getValue();
-            String container = taskContainer.get(task);
+            /*String container = taskContainer.get(task);
             if(containerFlushProcessed.containsKey(container)){
                 processe += containerFlushProcessed.get(container);
-            }
+            }*/
             containerFlushProcessed.put(container, processe);
         }
     }
