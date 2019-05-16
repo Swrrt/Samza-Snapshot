@@ -85,7 +85,7 @@ public class MetricsLagRetriever {
                 containerId = containerId.substring(containerId.length() - 6);
                 long processed = containerMetrics.getLong("process-envelopes");
                 flushProcessed.put(containerId, processed);
-                System.out.println("MixedLoadBalanceManager, time " + System.currentTimeMillis() +" : " + "Flush Processed: " + flushProcessed);
+                System.out.println("MixedLoadBalanceManager, time " + json.getJSONObject("header").getLong("time") +" : " + "Flush Processed: " + flushProcessed);
                 flushProcessed.clear();
             }
         }catch (Exception e){
@@ -221,6 +221,9 @@ public class MetricsLagRetriever {
 
     public Map<Integer, Long> retrieveArrived(){
         return arrived;
+    }
+    public Map<Integer, Long> retrieveArrivedTime(){
+        return arrivalTime;
     }
 
     public Map<String, Long> retrieveFlushProcessed(){

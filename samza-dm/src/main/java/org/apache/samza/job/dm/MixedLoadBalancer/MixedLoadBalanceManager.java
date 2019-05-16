@@ -39,6 +39,7 @@ public class MixedLoadBalanceManager {
     // Metrics
     private Map<String, Long> taskArrived = null;
     private Map<String, Long> containerArrived = null;
+    private Map<String, Long> containerArrivedTime = null;
     private Map<String, Long> taskProcessed = null;
     private Map<String, Long> containerProcessed = null;
     private Map<String, Double> taskArrivalRate = null;
@@ -88,6 +89,7 @@ public class MixedLoadBalanceManager {
         containerBacklogs = new HashMap<>();
         containerProcessingSpeed = new HashMap<>();
         containerFlushProcessed = new HashMap<>();
+        containerArrivedTime = new HashMap<>();
         Z = new HashMap<>();
     }
     /*
@@ -313,7 +315,12 @@ public class MixedLoadBalanceManager {
         retrieveArrived();
         retrieveProcessed();
         retrieveFlushProcessed();
-        writeLog("Arrived: " + containerArrived);
+        Map<String, Long> tt = new HashMap<>();
+        for(String container: containerArrived.keySet()) {
+            tt.clear();
+            tt.put(container, containerArrived.get(container));
+            System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Arrived: " + tt);
+        }
         //writeLog("Flush Processed: " + containerFlushProcessed);
         //writeLog("Backlog: " + containerBacklogs);
         //writeLog("Arrival rate: " + containerArrivalRate);
@@ -531,8 +538,10 @@ public class MixedLoadBalanceManager {
 
     public void retrieveArrived(){
         Map<Integer, Long> partitionArrived = metricsRetriever.retrieveArrived();
+        Map<Integer, Long> partitionArrivedTime = metricsRetriever.retrieveArrivedTime();
         taskArrived.clear();
         containerArrived.clear();
+        containerArrivedTime.clear();
         for(Map.Entry<Integer, Long> entry: partitionArrived.entrySet()){
             int partition = entry.getKey();
             long arrived = entry.getValue();
@@ -543,6 +552,17 @@ public class MixedLoadBalanceManager {
                 arrived += containerArrived.get(container);
             }
             containerArrived.put(container, arrived);
+        }
+        for(Map.Entry<Integer, Long> entry: partitionArrivedTime.entrySet()){
+            int partition = entry.getKey();
+            long time = entry.getValue();
+            String task = partitionTask.get(partition);
+            String container = taskContainer.get(task);
+            if(containerArrivedTime.containsKey(container)){
+                long beforeTime = containerArrivedTime.get(container);
+                if(beforeTime > time)time = beforeTime;
+            }
+            containerArrivedTime.put(container, time);
         }
     }
 
