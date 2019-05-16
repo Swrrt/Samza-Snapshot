@@ -392,6 +392,7 @@ public class AsyncRunLoop implements Runnable, Throttleable {
     }
 
     private void endOfStream() {
+      System.out.println(System.currentTimeMillis() + " End of Stream!");
       state.complete = true;
       try {
         ReadableCoordinator coordinator = new ReadableCoordinator(task.taskName());
