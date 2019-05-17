@@ -48,7 +48,7 @@ public class MetricsLagRetriever {
         JSONObject json = new JSONObject(record.value());
         //writeLog("What happened: " + json);
 
-        try {
+        /*try {
             if (!isOurApp(json, app)) return;
             //writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
@@ -68,6 +68,12 @@ public class MetricsLagRetriever {
             }
         }catch (Exception e) {
             //writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
+        }*/
+        try{
+            if(!isOurApp(json, app)) return;
+            updateBacklogAndArrived(json);
+        }catch (Exception e){
+
         }
         try{
             if (!isOurApp(json, app)) return;
@@ -92,6 +98,18 @@ public class MetricsLagRetriever {
 
         }
     }
+    private void updateBacklogAndArrived(JSONObject json){
+        JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
+        writeLog("Trying to retrieve offset from TaskInstanceMetrics");
+        if(taskMetrics == null)return;
+        String taskString = taskMetrics.toString();
+        int i = taskString.indexOf(app.toLowerCase() + '-');
+        if( i==-1 )return ;
+        i = taskString.indexOf('-', i + app.length() + 1);
+        if( i==-1 )return ;
+
+    }
+
     private void updateProcessed(JSONObject json){
         //If TaskInstanceMetrics is here, we get processing speed
         //writeLog("taskMetrics: " + taskMetrics);
