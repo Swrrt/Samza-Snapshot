@@ -84,13 +84,13 @@ class RunLoop (
         consumerMultiplexer.choose()
       }
 
-      println(System.currentTimeMillis + " :choosed a message")
+      //println(System.currentTimeMillis + " :choosed a message")
 
       executor.execute(new Runnable() {
         override def run(): Unit = process(envelope)
       })
 
-      println(System.currentTimeMillis + " :processed a message")
+      //println(System.currentTimeMillis + " :processed a message")
 
       window
       commit

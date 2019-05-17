@@ -154,11 +154,11 @@ public class AsyncRunLoop implements Runnable, Throttleable {
 
         containerMetrics.chooseNs().update(chooseNs - startNs);
 
-        System.out.println(System.currentTimeMillis() + " :choosed a message");
+        //System.out.println(System.currentTimeMillis() + " :choosed a message");
 
         runTasks(envelope);
 
-        System.out.println(System.currentTimeMillis() + " :processed a message");
+        //System.out.println(System.currentTimeMillis() + " :processed a message");
 
         long blockNs = clock.nanoTime();
 
@@ -392,7 +392,6 @@ public class AsyncRunLoop implements Runnable, Throttleable {
     }
 
     private void endOfStream() {
-      System.out.println(System.currentTimeMillis() + " End of Stream!");
       state.complete = true;
       try {
         ReadableCoordinator coordinator = new ReadableCoordinator(task.taskName());
