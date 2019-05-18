@@ -100,14 +100,51 @@ public class MetricsLagRetriever {
     }
     private void updateBacklogAndArrived(JSONObject json){
         JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
+        long currentTime = json.getJSONObject("header").getLong("time");
         writeLog("Trying to retrieve offset from TaskInstanceMetrics");
         if(taskMetrics == null)return;
         String taskString = taskMetrics.toString();
         int i = taskString.indexOf(app.toLowerCase() + '-');
         if( i==-1 )return ;
-        i = taskString.indexOf('-', i + app.length() + 1);
-        if( i==-1 )return ;
+        int j = taskString.indexOf("-offset", i + app.length() + 1);
+        if( j==-1 )return ;
+        int partition = Integer.valueOf(taskString.substring(i + app.length() +1, j));
+        long currentArrived = taskMetrics.getLong(app.toLowerCase() + "-" +partition + "-offset");
+        long currentProcessed = taskMetrics.getLong("message-actually-processed");
+        long currentBacklog = currentArrived - currentProcessed;
 
+        backlog.put(partition, currentBacklog);
+        double lastLag = 0;
+        if(avgBacklog.containsKey(partition)){
+            lastLag = avgBacklog.get(partition);
+        }
+        avgBacklog.put(partition, (arrivalDelta)*lastLag + (1 - arrivalDelta) * currentBacklog);
+
+        long lastArrived = 0;
+        if(arrived.containsKey(partition)){
+            lastArrived = arrived.get(partition);
+        }
+        if(lastArrived > currentArrived){
+            return ;
+        }
+        double arrivedInPeriod = currentArrived - lastArrived;
+        arrived.put(partition, currentArrived);
+
+        double lastArrivedRate = 0;
+        if(arrivalRate.containsKey(partition)){
+            lastArrivedRate = arrivalRate.get(partition);
+        }
+        long lastTime = 0;
+        if(arrivalTime.containsKey(partition)){
+            lastTime = arrivalTime.get(partition);
+        }
+        arrivalTime.put(partition, currentTime);
+
+        double newArrival = lastArrivedRate;
+        if(currentTime > lastTime){
+            newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * (arrivedInPeriod) * 1000/ (currentTime - lastTime);
+        }
+        arrivalRate.put(partition, newArrival);
     }
 
     private void updateProcessed(JSONObject json){
