@@ -110,7 +110,7 @@ public class MetricsLagRetriever {
     }
 
     private long getArrived(JSONObject taskMetrics, int partition){
-        return taskMetrics.getLong("kafka-" + topic.toLowerCase() + "-" +partition + "-offset");
+        return Long.valueOf(taskMetrics.getString("kafka-" + topic.toLowerCase() + "-" +partition + "-offset"));
     }
 
     private long getProcessed(JSONObject taskMetrics){
