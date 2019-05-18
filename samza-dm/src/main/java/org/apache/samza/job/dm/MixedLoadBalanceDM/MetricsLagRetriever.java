@@ -3,6 +3,7 @@ package org.apache.samza.job.dm.MixedLoadBalanceDM;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.samza.config.Config;
+import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
 import org.apache.samza.job.dm.StageReport;
 import org.json.JSONObject;
 
@@ -60,7 +61,7 @@ public class MetricsLagRetriever {
                 //if(partitions.size()>0) writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     try{
-                        updateBacklogAndArrived(partition, kafkaMetrics, time);
+                        updateArrived(partition, kafkaMetrics, time);
                     }catch (Exception e){
                         //writeLog("Partition " + partition +" error: " + e.toString());
                     }
@@ -94,6 +95,7 @@ public class MetricsLagRetriever {
                 long processed = containerMetrics.getLong("process-envelopes");
                 flushProcessed.put(containerId, processed);
                 System.out.println("MixedLoadBalanceManager, time " + json.getJSONObject("header").getLong("time") +" : " + "Flush Processed: " + flushProcessed);
+                //balancer.updateProcessed();
                 flushProcessed.clear();
             }
         }catch (Exception e){
@@ -122,8 +124,10 @@ public class MetricsLagRetriever {
        Update processing speed, arrival rate and backlog accordingly
 
        if offset=null, return nothing
+
+       !!!!!Buggy!!!!!
      */
-    private void updateFromTask(JSONObject json)throws Exception{
+    /*private void updateFromTask(JSONObject json)throws Exception{
         JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
         int partition = getPartition(json);
 
@@ -190,6 +194,22 @@ public class MetricsLagRetriever {
         if (newSpeed > -1e-9) {
             processingSpeed.put(taskName, newSpeed);
         }
+    }*/
+
+    private String partitionToTaskName(int partition){
+        return "Partition "+partition;
+    }
+    private int taskNameToPartition(String taskName){
+        return Integer.valueOf(taskName.substring(11));
+    }
+    private void updateBacklog(int partition, long currentBacklog){
+        if(currentBacklog < 0) currentBacklog = 0;
+        backlog.put(partition, currentBacklog);
+        double lastLag = 0;
+        if(avgBacklog.containsKey(partition)){
+            lastLag = avgBacklog.get(partition);
+        }
+        avgBacklog.put(partition, (arrivalDelta)*lastLag + (1 - arrivalDelta) * currentBacklog);
     }
 
     private void updateProcessed(JSONObject json){
@@ -213,6 +233,9 @@ public class MetricsLagRetriever {
 
 
             processed.put(taskName, currentProcessed);
+            if(arrived.containsKey(taskNameToPartition(taskName))){
+                updateBacklog(taskNameToPartition(taskName), currentProcessed - arrived.get(taskNameToPartition(taskName)));
+            }
 
             double lastSpeed = 0;
             if (processingSpeed.containsKey(taskName)) {
@@ -245,16 +268,9 @@ public class MetricsLagRetriever {
     }
 
 
-    private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
+    private void updateArrived(int partition, String kafkaMetric, long time){
         long lag = getLag(partition, kafkaMetric);
         long fetched = getRead(partition, kafkaMetric);
-        backlog.put(partition, lag);
-
-        double lastLag = 0;
-        if(avgBacklog.containsKey(partition)){
-            lastLag = avgBacklog.get(partition);
-        }
-        avgBacklog.put(partition, (arrivalDelta)*lastLag + (1 - arrivalDelta) * lag);
 
         long lastArrived = 0;
         if(arrived.containsKey(partition)){
@@ -265,6 +281,9 @@ public class MetricsLagRetriever {
         }
         double arrivedInPeriod = lag + fetched - lastArrived;
         arrived.put(partition, lag + fetched);
+        if(processed.containsKey(partitionToTaskName(partition))){
+            updateBacklog(partition, processed.get(partitionToTaskName(partition)) - (lag + fetched));
+        };
 
         double lastArrivedRate = 0;
         if(arrivalRate.containsKey(partition)){
