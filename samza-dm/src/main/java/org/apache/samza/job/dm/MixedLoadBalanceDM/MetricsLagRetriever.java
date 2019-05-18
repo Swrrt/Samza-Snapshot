@@ -73,7 +73,7 @@ public class MetricsLagRetriever {
             if(!isOurApp(json, app)) return;
             updateFromTask(json);
         }catch (Exception e){
-
+            writeLog(e.toString());
         }
         /*try{
             if (!isOurApp(json, app)) return;
@@ -105,13 +105,11 @@ public class MetricsLagRetriever {
         String taskString = json.getJSONObject("header").getString("source");
         int i = taskString.indexOf("Partition");
         if(i == -1)throw new Exception("Not task instance exception");
-        int j = taskString.indexOf("\"",i + 10);
-        int partition = Integer.valueOf(taskString.substring(i + 10, j));
+        int partition = Integer.valueOf(taskString.substring(i + 10));
         return partition;
     }
 
     private long getArrived(JSONObject taskMetrics, int partition){
-        String taskString = taskMetrics.toString();
         return taskMetrics.getLong(app.toLowerCase() + "-" +partition + "-offset");
     }
 
