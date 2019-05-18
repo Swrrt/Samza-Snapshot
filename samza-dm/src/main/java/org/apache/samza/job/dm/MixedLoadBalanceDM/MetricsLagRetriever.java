@@ -234,7 +234,7 @@ public class MetricsLagRetriever {
 
             processed.put(taskName, currentProcessed);
             if(arrived.containsKey(taskNameToPartition(taskName))){
-                updateBacklog(taskNameToPartition(taskName), currentProcessed - arrived.get(taskNameToPartition(taskName)));
+                updateBacklog(taskNameToPartition(taskName),  arrived.get(taskNameToPartition(taskName)) - currentProcessed);
             }
 
             double lastSpeed = 0;
@@ -282,7 +282,7 @@ public class MetricsLagRetriever {
         double arrivedInPeriod = lag + fetched - lastArrived;
         arrived.put(partition, lag + fetched);
         if(processed.containsKey(partitionToTaskName(partition))){
-            updateBacklog(partition, processed.get(partitionToTaskName(partition)) - (lag + fetched));
+            updateBacklog(partition, (lag + fetched) - processed.get(partitionToTaskName(partition)));
         };
 
         double lastArrivedRate = 0;
