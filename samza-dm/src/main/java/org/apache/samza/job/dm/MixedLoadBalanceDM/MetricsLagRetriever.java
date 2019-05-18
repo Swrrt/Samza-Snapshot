@@ -71,18 +71,20 @@ public class MetricsLagRetriever {
         }*/
         try{
             if(!isOurApp(json, app)) return;
-            updateBacklogAndArrived(json);
+            updateFromTask(json);
         }catch (Exception e){
 
         }
-        try{
+        /*try{
             if (!isOurApp(json, app)) return;
             updateProcessed(json);
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
         }catch (Exception e){
             //writeLog("Error when parse taskMetrics: "+ e);
-        }
+        }*/
+
+        //For validation
         try{
             if(!isOurApp(json, app)) return ;
             JSONObject containerMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.SamzaContainerMetrics");
@@ -98,20 +100,42 @@ public class MetricsLagRetriever {
 
         }
     }
-    private void updateBacklogAndArrived(JSONObject json){
-        JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
-        long currentTime = json.getJSONObject("header").getLong("time");
-        writeLog("Trying to retrieve offset from TaskInstanceMetrics");
-        if(taskMetrics == null)return;
+
+    private int getPartition(JSONObject json)throws Exception{
+        String taskString = json.getJSONObject("header").getString("source");
+        int i = taskString.indexOf("Partition");
+        if(i == -1)throw new Exception("Not task instance exception");
+        int j = taskString.indexOf("\"",i + 10);
+        int partition = Integer.valueOf(taskString.substring(i + 10, j));
+        return partition;
+    }
+
+    private long getArrived(JSONObject taskMetrics, int partition){
         String taskString = taskMetrics.toString();
-        int i = taskString.indexOf(app.toLowerCase() + '-');
-        if( i==-1 )return ;
-        int j = taskString.indexOf("-offset", i + app.length() + 1);
-        if( j==-1 )return ;
-        int partition = Integer.valueOf(taskString.substring(i + app.length() +1, j));
-        long currentArrived = taskMetrics.getLong(app.toLowerCase() + "-" +partition + "-offset");
-        long currentProcessed = taskMetrics.getLong("message-actually-processed");
+        return taskMetrics.getLong(app.toLowerCase() + "-" +partition + "-offset");
+    }
+
+    private long getProcessed(JSONObject taskMetrics){
+        return taskMetrics.getLong("message-actually-processed");
+    }
+
+    /*
+       Get processed, arrived from TaskInstanceMetrics
+       Update processing speed, arrival rate and backlog accordingly
+
+       if offset=null, return nothing
+     */
+    private void updateFromTask(JSONObject json)throws Exception{
+        JSONObject taskMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.container.TaskInstanceMetrics");
+        int partition = getPartition(json);
+
+        String taskName = json.getJSONObject("header").getString("source");
+        taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
+
+        long currentArrived = getArrived(taskMetrics, partition);
+        long currentProcessed = getProcessed(taskMetrics);
         long currentBacklog = currentArrived - currentProcessed;
+        long currentTime = json.getJSONObject("header").getLong("time");
 
         backlog.put(partition, currentBacklog);
         double lastLag = 0;
@@ -145,6 +169,29 @@ public class MetricsLagRetriever {
             newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * (arrivedInPeriod) * 1000/ (currentTime - lastTime);
         }
         arrivalRate.put(partition, newArrival);
+
+        long lastProcessed = 0;
+        lastTime = 0;
+        if (processed.containsKey(taskName)) {
+            lastProcessed = processed.get(taskName);
+            lastTime = time.get(taskName);
+        }
+        time.put(taskName, currentTime);
+
+        processed.put(taskName, currentProcessed);
+
+        double lastSpeed = 0;
+        if (processingSpeed.containsKey(taskName)) {
+            lastSpeed = processingSpeed.get(taskName);
+        }
+
+        double newSpeed = lastSpeed;
+        if (currentTime > lastTime) {
+            newSpeed = delta * lastSpeed + (1 - delta) * ((double) currentProcessed - lastProcessed) * 1000 / (currentTime - lastTime); // 1000 since it's millisecond
+        }
+        if (newSpeed > -1e-9) {
+            processingSpeed.put(taskName, newSpeed);
+        }
     }
 
     private void updateProcessed(JSONObject json){
@@ -200,7 +247,7 @@ public class MetricsLagRetriever {
     }
 
 
-    private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
+    /*private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
         long lag = getLag(partition, kafkaMetric);
         long fetched = getRead(partition, kafkaMetric);
         backlog.put(partition, lag);
@@ -236,7 +283,7 @@ public class MetricsLagRetriever {
             newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * (arrivedInPeriod) * 1000/ (time - lastTime);
         }
         arrivalRate.put(partition, newArrival);
-    }
+    }*/
 
     //Use metric like this: 'blocking-poll-count-SystemStreamPartition [kafka, StreamBenchInput, 0]
     //To find all partitions in the metric record.
