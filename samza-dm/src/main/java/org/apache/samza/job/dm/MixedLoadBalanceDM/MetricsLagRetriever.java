@@ -48,7 +48,7 @@ public class MetricsLagRetriever {
         JSONObject json = new JSONObject(record.value());
         //writeLog("What happened: " + json);
 
-        /*try {
+        try {
             if (!isOurApp(json, app)) return;
             //writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
@@ -68,21 +68,21 @@ public class MetricsLagRetriever {
             }
         }catch (Exception e) {
             //writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
-        }*/
-        try{
+        }
+        /*try{
             if(!isOurApp(json, app)) return;
             updateFromTask(json);
         }catch (Exception e){
             writeLog(e.toString());
-        }
-        /*try{
+        }*/
+        try{
             if (!isOurApp(json, app)) return;
             updateProcessed(json);
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
         }catch (Exception e){
             //writeLog("Error when parse taskMetrics: "+ e);
-        }*/
+        }
 
         //For validation
         try{
@@ -245,7 +245,7 @@ public class MetricsLagRetriever {
     }
 
 
-    /*private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
+    private void updateBacklogAndArrived(int partition, String kafkaMetric, long time){
         long lag = getLag(partition, kafkaMetric);
         long fetched = getRead(partition, kafkaMetric);
         backlog.put(partition, lag);
@@ -281,7 +281,7 @@ public class MetricsLagRetriever {
             newArrival = arrivalDelta * lastArrivedRate + (1 - arrivalDelta) * (arrivedInPeriod) * 1000/ (time - lastTime);
         }
         arrivalRate.put(partition, newArrival);
-    }*/
+    }
 
     //Use metric like this: 'blocking-poll-count-SystemStreamPartition [kafka, StreamBenchInput, 0]
     //To find all partitions in the metric record.
