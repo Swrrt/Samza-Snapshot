@@ -114,7 +114,7 @@ public class MetricsLagRetriever {
     }
 
     private long getProcessed(JSONObject taskMetrics){
-        return taskMetrics.getLong("message-actually-processed");
+        return taskMetrics.getLong("messages-actually-processed");
     }
 
     /*
