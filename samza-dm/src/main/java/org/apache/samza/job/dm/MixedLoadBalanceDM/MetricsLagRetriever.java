@@ -200,7 +200,7 @@ public class MetricsLagRetriever {
         return "Partition "+partition;
     }
     private int taskNameToPartition(String taskName){
-        return Integer.valueOf(taskName.substring(11));
+        return Integer.valueOf(taskName.substring(10)); //Skip 'Partition '
     }
     private void updateBacklog(int partition, long currentBacklog){
         if(currentBacklog < 0) currentBacklog = 0;
