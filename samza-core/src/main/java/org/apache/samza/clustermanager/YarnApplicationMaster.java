@@ -177,13 +177,11 @@ public class YarnApplicationMaster {
             //initialize JobCoordinator state
             log.info("Starting YarnApplicationMaster");
             leaderJobCoordinator.start();
-
-            log.info("Upload initial job model");
-            leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
-
             containerProcessManager.start();
             partitionMonitor.start();
 
+            log.info("Upload initial job model");
+            leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
 
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {

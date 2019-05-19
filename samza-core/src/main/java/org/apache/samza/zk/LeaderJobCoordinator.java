@@ -178,7 +178,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         }
         JobModel jobModel = newJobModel;
         //TODO: Change this to our mechanism
-        /*if(processors != null && processors.size() == jobModel.getContainers().size()){*/
+        if(processors != null && processors.size() == jobModel.getContainers().size()){
             List<String> currentProcessorIds = getActualProcessorIds(processors);
             Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);
             if (currentProcessorIds.size() != uniqueProcessorIds.size()) {
@@ -239,10 +239,11 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
             LOG.info("Leader Published new Job Model. Version = " + nextJMVersion);
 
+            LOG.info("Job Model: " + jobModel);
             debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
-        /*}else{
+        }else{
             LOG.info("Need to wait for all Processors online to pulish new JobModel!");
-        }*/
+        }
     }
 
     @Override
