@@ -319,7 +319,7 @@ public class MixedLoadBalanceManager {
         for(String container: containerArrived.keySet()) {
             tt.clear();
             tt.put(container, containerArrived.get(container));
-            //System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Arrived: " + tt);
+            System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Arrived: " + tt);
         }
         //writeLog("Flush Processed: " + containerFlushProcessed);
         //writeLog("Backlog: " + containerBacklogs);
@@ -730,8 +730,6 @@ public class MixedLoadBalanceManager {
         }
         writeLog("Not ready to rebalance, # of tasks: " + taskContainer.size() + ", backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size() + " arrival rate size: " + taskArrivalRate.size());
 
-        writeLog("TaskProcessingSpeed: " + taskProcessingSpeed);
-        writeLog("TaskProcessingSpeed: " + taskProcessed);
         return false;
     }
     public JobModel getOldJobModel(){
