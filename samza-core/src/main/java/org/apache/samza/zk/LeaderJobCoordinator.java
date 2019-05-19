@@ -239,11 +239,36 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
 
             LOG.info("Leader Published new Job Model. Version = " + nextJMVersion);
 
-            LOG.info("Job Model: " + jobModel);
+            //LOG.info("Job Model: " + jobModel);
             debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
         }else{
             LOG.info("Need to wait for all Processors online to pulish new JobModel!");
         }
+    }
+
+    public void forcePublishJobModel(JobModel jobModel){
+        String currentJMVersion = zkUtils.getJobModelVersion();
+        String nextJMVersion;
+        if (currentJMVersion == null) {
+            nextJMVersion = "1";
+        } else {
+            nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
+        }
+        LOG.info("Leader generated new Job Model. Version = " + nextJMVersion);
+        // Publish the new job model
+        zkUtils.publishJobModel(nextJMVersion, jobModel);
+
+        List<String> a = new ArrayList<>(jobModel.getContainers().keySet());
+        // Start the barrier for the job model update
+        barrier.create(nextJMVersion, a);
+
+        // Notify all processors about the new JobModel by updating JobModel Version number
+        zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
+
+        LOG.info("Leader force Published new Job Model. Version = " + nextJMVersion);
+
+        //LOG.info("Job Model: " + jobModel);
+        debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
     }
 
     @Override

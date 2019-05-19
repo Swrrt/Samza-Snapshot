@@ -181,7 +181,7 @@ public class YarnApplicationMaster {
             partitionMonitor.start();
 
             log.info("Upload initial job model");
-            leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
+            leaderJobCoordinator.forcePublishJobModel(jobModelManager.jobModel());
 
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {
