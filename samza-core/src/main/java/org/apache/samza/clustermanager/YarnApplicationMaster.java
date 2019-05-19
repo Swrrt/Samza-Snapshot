@@ -177,8 +177,13 @@ public class YarnApplicationMaster {
             //initialize JobCoordinator state
             log.info("Starting YarnApplicationMaster");
             leaderJobCoordinator.start();
+
+            log.info("Upload initial job model");
+            leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
+
             containerProcessManager.start();
             partitionMonitor.start();
+
 
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {
@@ -188,8 +193,8 @@ public class YarnApplicationMaster {
                 listener.startListener();
             }else{
                 log.info("Load Balance mode is off, use default job model");
-                Thread.sleep(200000);
-                leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
+                //Thread.sleep(200000);
+                //leaderJobCoordinator.publishJobModel(jobModelManager.jobModel());
             }
             boolean isInterrupted = false;
             //For testing
