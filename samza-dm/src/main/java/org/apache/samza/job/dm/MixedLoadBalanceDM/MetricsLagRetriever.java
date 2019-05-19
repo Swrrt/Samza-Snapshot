@@ -82,7 +82,7 @@ public class MetricsLagRetriever {
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
         }catch (Exception e){
-            //writeLog("Error when parse taskMetrics: "+ e);
+            writeLog("Error when parse taskMetrics: "+ e);
         }
 
         //For validation
@@ -94,7 +94,7 @@ public class MetricsLagRetriever {
                 containerId = containerId.substring(containerId.length() - 6);
                 long processed = containerMetrics.getLong("process-envelopes");
                 flushProcessed.put(containerId, processed);
-                System.out.println("MixedLoadBalanceManager, time " + json.getJSONObject("header").getLong("time") +" : " + "Flush Processed: " + flushProcessed);
+                //System.out.println("MixedLoadBalanceManager, time " + json.getJSONObject("header").getLong("time") +" : " + "Flush Processed: " + flushProcessed);
                 //balancer.updateProcessed();
                 flushProcessed.clear();
             }
