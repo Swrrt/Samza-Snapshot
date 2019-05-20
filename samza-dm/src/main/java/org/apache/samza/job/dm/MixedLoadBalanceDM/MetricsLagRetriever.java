@@ -275,9 +275,12 @@ public class MetricsLagRetriever {
         if(arrived.containsKey(partition)){
             lastArrived = arrived.get(partition);
         }
+        // After rebalance, the lag and fetched will start from 0 again.
         if(lastArrived > lag + fetched){
-            return ;
+            lastArrived = 0;
+            arrivalRate.put(partition, 0.0);
         }
+
         double arrivedInPeriod = lag + fetched - lastArrived;
         arrived.put(partition, lag + fetched);
         if(processed.containsKey(partitionToTaskName(partition))){
