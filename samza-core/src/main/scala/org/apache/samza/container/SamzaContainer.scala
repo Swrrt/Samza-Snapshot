@@ -400,7 +400,7 @@ object SamzaContainer extends Logging {
 
     info("Got checkpointListeners : %s" format checkpointListeners)
 
-    val offsetManager = OurOffsetManager(inputStreamMetadata, config, checkpointManager,
+    val offsetManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
       systemAdmins, checkpointListeners, offsetManagerMetrics, offsetClient)
 
     info("Got offset manager: %s" format offsetManager)
