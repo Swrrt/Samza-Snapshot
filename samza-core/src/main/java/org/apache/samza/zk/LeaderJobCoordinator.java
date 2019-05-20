@@ -168,6 +168,10 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         debounceTimer.scheduleAfterDebounceTime(ON_PROCESSOR_CHANGE, debounceTimeMs,
                 () -> doOnProcessorChange(processors));
     }
+    //Use this to publish jobModel without timeout
+    public void onJobModelChange(){
+        doOnProcessorChange(currentProcessors);
+    }
 
     void doOnProcessorChange(List<String> processors) {
         // if list of processors is empty - it means we are called from 'onBecomeLeader'
@@ -416,7 +420,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     public void publishJobModel(JobModel jobModel){
         newJobModel = jobModel;
         LOG.info("New JobModel comes into Leader!");
-        onProcessorChange(currentProcessors);
+        onJobModelChange();
     }
     public JobModel testingGenerateNewJobModel(List<String> processors){
         // Generate new Job Model using MixedLoadBalanceManager
