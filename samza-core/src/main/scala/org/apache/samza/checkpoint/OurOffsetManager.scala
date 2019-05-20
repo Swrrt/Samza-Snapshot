@@ -42,7 +42,7 @@ import scala.collection._
  * reset offset settings. It's just a convenience class to make OffsetManager
  * easier to work with.
  */
-case class OffsetSetting(
+/*case class OffsetSetting(
   /**
    * The metadata for the SystemStream.
    */
@@ -64,7 +64,7 @@ case class OffsetSetting(
    * checkpointed. If this is true, then defaultOffset will be used to find
    * the new starting position in the stream.
    */
-  resetOffset: Boolean)
+  resetOffset: Boolean)*/
 
 /**
  * OffsetManager object is a helper that does wiring to build an OffsetManager
