@@ -17,6 +17,7 @@ import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
+import org.apache.samza.zk.RMI.OffsetServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 //Need to bind
@@ -57,6 +58,7 @@ public class MixedLoadBalanceManager {
     //private UtilizationServer utilizationServer = null;
     //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
     private LocalityServer localityServer = null;
+    private OffsetServer offsetServer = null;
     //private final int LOCALITY_RETRY_TIMES = 1;
     //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
     private MetricsLagRetriever metricsRetriever = null;
@@ -76,6 +78,7 @@ public class MixedLoadBalanceManager {
         //utilizationServer = new UtilizationServer();
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         localityServer = new LocalityServer();
+        offsetServer = new OffsetServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         metricsRetriever = new MetricsLagRetriever();
         taskArrived = new HashMap<>();
@@ -134,7 +137,8 @@ public class MixedLoadBalanceManager {
         threshold = config.getDouble("job.loadbalance.threshold", 10.0);
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
-        localityServer.start();
+        //localityServer.start();
+        offsetServer.start();
     }
     // Read container-host mapping from web
     /*private Map<String, String> getContainerHost() {

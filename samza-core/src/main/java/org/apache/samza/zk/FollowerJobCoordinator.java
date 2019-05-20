@@ -54,6 +54,7 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 //import org.apache.samza.job.dm.MixedLoadBalancer.JVMMonitor;
+import org.apache.samza.zk.RMI.OffsetClient;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +103,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     //private JVMMonitor jvmMonitor = null;
     private LocalityClient localityClient = null;
+    private OffsetClient offsetClient = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
 
@@ -127,7 +129,13 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         //
         // jvmMonitor = new JVMMonitor();
         if(config.getBoolean("job.loadbalance.on", false)) {
-            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "")));
+            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "8881")));
+            this.offsetClient = new OffsetClient(
+                    config.get("job.loadbalance.offsetserver.address",""),
+                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
+                    config.get("job.default.system"),
+                    config.get("job.loadbalance.inputtopic")
+            );
         }
     }
     // In YARN mode, we have containerId
@@ -156,6 +164,12 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         //jvmMonitor = new JVMMonitor();
         if(config.getBoolean("job.loadbalance.on", false)) {
             this.localityClient = new LocalityClient(config.get("containerlocalityserver.address", ""), Integer.parseInt(config.get("containerlocalityserver.port", "8881")));
+            this.offsetClient = new OffsetClient(
+                    config.get("job.loadbalance.offsetserver.address",""),
+                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
+                    config.get("job.default.system"),
+                    config.get("job.loadbalance.inputtopic")
+            );
         }
     }
 
@@ -210,7 +224,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             reporter.stop();
         }
     }
-
+    public OffsetClient getOffsetClient(){
+        return offsetClient;
+    }
     @Override
     public void setListener(JobCoordinatorListener listener) {
         this.coordinatorListener = listener;

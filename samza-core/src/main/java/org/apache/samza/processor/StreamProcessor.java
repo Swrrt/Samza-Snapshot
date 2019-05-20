@@ -43,6 +43,7 @@ import org.apache.samza.task.StreamTaskFactory;
 import org.apache.samza.util.Util;
 import org.apache.samza.zk.FollowerJobCoordinator;
 import org.apache.samza.zk.FollowerJobCoordinatorFactory;
+import org.apache.samza.zk.RMI.OffsetClient;
 import org.apache.zookeeper.server.quorum.Follower;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,14 +202,15 @@ public class StreamProcessor {
 
   }
 
-  SamzaContainer createSamzaContainer(String processorId, JobModel jobModel, int storeSuffix) {
+  SamzaContainer createSamzaContainer(String processorId, JobModel jobModel, int storeSuffix, OffsetClient offsetClient) {
     return SamzaContainer.apply1(
-        processorId,
-        jobModel,
-        config,
-        Util.<String, MetricsReporter>javaMapAsScalaMap(customMetricsReporter),
-        taskFactory,
-        storeSuffix);
+            processorId,
+            jobModel,
+            config,
+            Util.<String, MetricsReporter>javaMapAsScalaMap(customMetricsReporter),
+            taskFactory,
+            storeSuffix,
+            offsetClient);
   }
 
   JobCoordinatorListener createJobCoordinatorListener() {
@@ -298,7 +300,7 @@ public class StreamProcessor {
         };
         // If this container has no task.
         if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
-          container = createSamzaContainer(processorId, jobModel, storeSuffix++);
+          container = createSamzaContainer(processorId, jobModel, storeSuffix++, ((FollowerJobCoordinator) jobCoordinator).getOffsetClient());
           container.setContainerListener(containerListener);
           LOGGER.info("Starting container " + container.toString());
           executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
