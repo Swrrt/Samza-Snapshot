@@ -291,6 +291,7 @@ class OffsetManager(
   def stopWithOffsetClient(offsetClient: OffsetClient) {
     if (offsetClient != null) {
       info("Offset Manager is shutting down, upload offset to offset server")
+      info("Offset" + lastProcessedOffsets)
       offsetClient.sendOffset(lastProcessedOffsets);
     } else {
       debug("Skipping checkpoint manager shutdown because no checkpoint manager is defined.")
@@ -351,7 +352,8 @@ class OffsetManager(
     if(offsetClient != null) {
       info("Loading offsets from offset client.")
       val result = offsetClient.getLastProcessedOffset
-      result
+      info("Loaded offsets: " + result)
+      lastProcessedOffsets.putAll(result)
     }
   }
 

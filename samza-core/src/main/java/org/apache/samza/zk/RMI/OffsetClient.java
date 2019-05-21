@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class OffsetClient {
-    private static final Logger LOG = LoggerFactory.getLogger(UtilizationClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OffsetClient.class);
     String leaderAddress = "";
     int port = 8884;
     String systemName = "";
