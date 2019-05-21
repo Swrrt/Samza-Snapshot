@@ -699,7 +699,7 @@ class SamzaContainer(
   private var paused: Boolean = false
   private var containerListener: SamzaContainerListener = null
   private var offsetClient: OffsetClient = null
-
+  private var containerModel: ContainerModel = null
   def getStatus(): SamzaContainerStatus = status
 
   def getTaskInstances() = taskInstances
@@ -708,8 +708,10 @@ class SamzaContainer(
     containerListener = listener
   }
 
-  def setOffsetClient(client: OffsetClient): Unit ={
+  def setOffsetClientAndJobModel(client: OffsetClient,
+                                 jobModel: JobModel): Unit ={
     offsetClient = client
+    containerModel = jobModel.getContainers.get(containerContext.id)
   }
 
   def run {
@@ -873,7 +875,7 @@ class SamzaContainer(
     info("Starting offset manager.")
 
     if(offsetClient == null) offsetManager.start
-    else offsetManager.startWithOffsetClient(offsetClient)
+    else offsetManager.startWithOffsetClient(offsetClient, containerModel)
   }
 
   def startLocalityManager {

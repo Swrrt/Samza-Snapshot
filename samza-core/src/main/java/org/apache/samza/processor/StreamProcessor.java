@@ -301,7 +301,7 @@ public class StreamProcessor {
         if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
           container = createSamzaContainer(processorId, jobModel, storeSuffix++);
           container.setContainerListener(containerListener);
-          container.setOffsetClient(((FollowerJobCoordinator) jobCoordinator).getOffsetClient());
+          container.setOffsetClientAndJobModel(((FollowerJobCoordinator) jobCoordinator).getOffsetClient(), jobModel);
           LOGGER.info("Starting container " + container.toString());
           executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
                   .setNameFormat("p-" + processorId + "-container-thread-%d").build());

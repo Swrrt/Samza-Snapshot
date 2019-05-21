@@ -29,6 +29,7 @@ import org.apache.samza.config.Config
 import org.apache.samza.config.StreamConfig.Config2Stream
 import org.apache.samza.config.SystemConfig.Config2System
 import org.apache.samza.container.TaskName
+import org.apache.samza.job.model.ContainerModel
 import org.apache.samza.system.SystemStreamMetadata.OffsetType
 import org.apache.samza.system.{SystemAdmin, SystemStream, SystemStreamMetadata, SystemStreamPartition}
 import org.apache.samza.util.Logging
@@ -179,10 +180,10 @@ class OffsetManager(
     systemStreamPartitions.foreach { case (taskName, ssp) => ssp.foreach (ssp => offsetManagerMetrics.addCheckpointedOffset(ssp, "")) }
   }
 
-  def startWithOffsetClient(offsetClient: OffsetClient): Unit ={
+  def startWithOffsetClient(offsetClient: OffsetClient, containerModel: ContainerModel): Unit ={
     registerCheckpointManager
     //loadOffsetsFromCheckpointManager
-    loadOffsetsFromOffsetClient(offsetClient)
+    loadOffsetsFromOffsetClient(offsetClient, containerModel)
     stripResetStreams
     loadStartingOffsets
     loadDefaults
@@ -348,10 +349,10 @@ class OffsetManager(
     }
   }
 
-  private def loadOffsetsFromOffsetClient(offsetClient: OffsetClient) {
+  private def loadOffsetsFromOffsetClient(offsetClient: OffsetClient, containerModel: ContainerModel) {
     if(offsetClient != null) {
-      info("Loading offsets from offset client.")
-      val result = offsetClient.getLastProcessedOffset
+      info("Loading offsets of " + containerModel.getTasks + " from offset client.")
+      val result = offsetClient.getLastProcessedOffset(containerModel)
       info("Loaded offsets: " + result)
       lastProcessedOffsets.putAll(result)
     }

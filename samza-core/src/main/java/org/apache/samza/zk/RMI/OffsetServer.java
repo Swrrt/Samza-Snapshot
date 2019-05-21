@@ -17,7 +17,7 @@ public class OffsetServer {
         offsets = new ConcurrentHashMap<>();
     }
     public void start(){
-        writeLog("Last Processed Offsets Server starting...");
+        LOG.info("Last Processed Offsets Server starting...");
         try{
             Registry registry = LocateRegistry.createRegistry(8884);
             registry.rebind("myOffset", new OffsetMessageImpl(offsets));
@@ -40,8 +40,8 @@ public class OffsetServer {
     public float getOffset(String partition){
         return offsets.get(partition);
     }
-    private void writeLog(String log){
+    /*private void writeLog(String log){
         Calendar calendar = Calendar.getInstance();
         System.out.println(calendar.getTime() + " OffsetServer: " + log );
-    }
+    }*/
 }

@@ -2,6 +2,7 @@ package org.apache.samza.zk.RMI;
 
 import org.apache.samza.Partition;
 import org.apache.samza.container.TaskName;
+import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.system.SystemStream;
 import org.apache.samza.system.SystemStreamPartition;
 import org.slf4j.Logger;
@@ -52,13 +53,15 @@ public class OffsetClient {
         }
         LOG.info("Offset information sent");
     }
-    public ConcurrentHashMap<TaskName, ConcurrentHashMap<SystemStreamPartition, String>> getLastProcessedOffset(){
+    public ConcurrentHashMap<TaskName, ConcurrentHashMap<SystemStreamPartition, String>> getLastProcessedOffset(ContainerModel containerModel){
         HashMap<String, Long> offsets = getOffset();
         ConcurrentHashMap<TaskName, ConcurrentHashMap<SystemStreamPartition, String>> lastProcessedOffset = new ConcurrentHashMap<>();
         for (String i : offsets.keySet()){
             TaskName taskName = new TaskName(i);
-            lastProcessedOffset.put(taskName, new ConcurrentHashMap<>());
-            lastProcessedOffset.get(taskName).put(new SystemStreamPartition(systemName, topicName, new Partition(Integer.valueOf(i.substring(10)))), offsets.get(i).toString());
+            if(containerModel.getTasks().containsKey(taskName)) {
+                lastProcessedOffset.put(taskName, new ConcurrentHashMap<>());
+                lastProcessedOffset.get(taskName).put(new SystemStreamPartition(systemName, topicName, new Partition(Integer.valueOf(i.substring(10)))), offsets.get(i).toString());
+            }
         }
         return lastProcessedOffset;
     }
