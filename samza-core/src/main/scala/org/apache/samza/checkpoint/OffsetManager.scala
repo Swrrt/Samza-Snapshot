@@ -71,6 +71,14 @@ case class OffsetSetting(
   * from a config object.
   */
 object OffsetManager extends Logging {
+  def apply(systemStreamMetadata: Map[SystemStream, SystemStreamMetadata],
+            config: Config,
+            checkpointManager: CheckpointManager = null,
+            systemAdmins: Map[String, SystemAdmin] = Map(),
+            checkpointListeners: Map[String, CheckpointListener] = Map(),
+            offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics): Unit ={
+    this.apply(systemStreamMetadata, config, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics, null)
+  }
   def apply(
              systemStreamMetadata: Map[SystemStream, SystemStreamMetadata],
              config: Config,
@@ -104,7 +112,7 @@ object OffsetManager extends Logging {
           // Build OffsetSetting so we can create a map for OffsetManager.
           (systemStream, OffsetSetting(systemStreamMetadata, defaultOffsetType, resetOffset))
       }.toMap
-    new OurOffsetManager(offsetSettings, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics, offsetClient)
+    new OffsetManager(offsetSettings, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics, offsetClient)
   }
 }
 
@@ -332,9 +340,11 @@ class OffsetManager(
   }
 
   private def loadOffsetsFromOffsetClient {
-    info("Loading offsets from offset client.")
-    val result = offsetClient.getLastProcessedOffset
-    result
+    if(offsetClient != null) {
+      info("Loading offsets from offset client.")
+      val result = offsetClient.getLastProcessedOffset
+      result
+    }
   }
 
   private def restoreOffsetsFromOffsetClient(taskName: TaskName, offsets: HashMap[java.lang.String, java.lang.Long]): Map[TaskName, Map[SystemStreamPartition, String]] = {
