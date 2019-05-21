@@ -479,12 +479,38 @@ public class MixedLoadBalanceManager {
                 }
             if(migrateTaskId.equals("")){
                 writeLog("Cannot find a available migration");
+
+                //Test
+                Object [] tasks = taskContainer.keySet().toArray();
+                targetContainerId = containerIds.iterator().next();
+                Random generator = new Random();
+                migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
+                for(String containerId: containerIds)
+                    if(!taskContainer.get(migrateTaskId).equals(containerId)){
+                        targetContainerId = containerId;
+                    }
+                writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
+                newTaskContainer.put(migrateTaskId, targetContainerId);
+
             }else{
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
                 newTaskContainer.put(migrateTaskId, targetContainerId);
             }
         }else{
             writeLog("Cannot find available operator to re-balance");
+
+
+            //Test, randomly choose one task to migrate
+            Object [] tasks = taskContainer.keySet().toArray();
+            String migrateTaskId, targetContainerId = containerIds.iterator().next();
+            Random generator = new Random();
+            migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
+            for(String containerId: containerIds)
+                if(!taskContainer.get(migrateTaskId).equals(containerId)){
+                    targetContainerId = containerId;
+                }
+            writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
+            newTaskContainer.put(migrateTaskId, targetContainerId);
         }
         return newTaskContainer;
     }
