@@ -202,15 +202,14 @@ public class StreamProcessor {
 
   }
 
-  SamzaContainer createSamzaContainer(String processorId, JobModel jobModel, int storeSuffix, OffsetClient offsetClient) {
+  SamzaContainer createSamzaContainer(String processorId, JobModel jobModel, int storeSuffix) {
     return SamzaContainer.apply1(
             processorId,
             jobModel,
             config,
             Util.<String, MetricsReporter>javaMapAsScalaMap(customMetricsReporter),
             taskFactory,
-            storeSuffix,
-            offsetClient);
+            storeSuffix);
   }
 
   JobCoordinatorListener createJobCoordinatorListener() {
@@ -300,8 +299,9 @@ public class StreamProcessor {
         };
         // If this container has no task.
         if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
-          container = createSamzaContainer(processorId, jobModel, storeSuffix++, ((FollowerJobCoordinator) jobCoordinator).getOffsetClient());
+          container = createSamzaContainer(processorId, jobModel, storeSuffix++);
           container.setContainerListener(containerListener);
+          container.setOffsetClient(((FollowerJobCoordinator) jobCoordinator).getOffsetClient());
           LOGGER.info("Starting container " + container.toString());
           executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
                   .setNameFormat("p-" + processorId + "-container-thread-%d").build());

@@ -117,7 +117,7 @@ object SamzaContainer extends Logging {
             config: Config,
             customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
             taskFactory: Object): SamzaContainer = {
-    this.apply1(containerId, jobModel, config, customReporters, taskFactory, 0, null);
+    this.apply1(containerId, jobModel, config, customReporters, taskFactory, 0);
   }
   def apply1(
     containerId: String,
@@ -125,8 +125,7 @@ object SamzaContainer extends Logging {
     config: Config,
     customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
     taskFactory: Object,
-    storeSuffix: Int = 0,
-    offsetClient: OffsetClient) = {
+    storeSuffix: Int = 0) = {
     val containerModel = jobModel.getContainers.get(containerId)
     val containerName = "samza-container-%s" format containerId
     val maxChangeLogStreamPartitions = jobModel.maxChangeLogStreamPartitions
@@ -401,7 +400,7 @@ object SamzaContainer extends Logging {
     info("Got checkpointListeners : %s" format checkpointListeners)
 
     val offsetManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
-      systemAdmins, checkpointListeners, offsetManagerMetrics, offsetClient)
+      systemAdmins, checkpointListeners, offsetManagerMetrics)
 
     info("Got offset manager: %s" format offsetManager)
 
@@ -699,6 +698,7 @@ class SamzaContainer(
   private var exceptionSeen: Throwable = null
   private var paused: Boolean = false
   private var containerListener: SamzaContainerListener = null
+  private var offsetClient: OffsetClient = null
 
   def getStatus(): SamzaContainerStatus = status
 
@@ -706,6 +706,10 @@ class SamzaContainer(
 
   def setContainerListener(listener: SamzaContainerListener): Unit = {
     containerListener = listener
+  }
+
+  def setOffsetClient(client: OffsetClient): Unit ={
+    offsetClient = client
   }
 
   def run {
@@ -868,7 +872,8 @@ class SamzaContainer(
 
     info("Starting offset manager.")
 
-    offsetManager.start
+    if(offsetClient == null) offsetManager.start
+    else offsetManager.startWithOffsetClient(offsetClient)
   }
 
   def startLocalityManager {
@@ -1023,7 +1028,8 @@ class SamzaContainer(
   def shutdownOffsetManager {
     info("Shutting down offset manager.")
 
-    offsetManager.stop
+    if(offsetClient == null)offsetManager.stop
+    else offsetManager.stopWithOffsetClient(offsetClient)
   }
 
   def shutdownMetrics {

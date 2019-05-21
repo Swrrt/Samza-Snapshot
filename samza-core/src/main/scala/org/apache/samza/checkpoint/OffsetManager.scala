@@ -71,22 +71,13 @@ case class OffsetSetting(
   * from a config object.
   */
 object OffsetManager extends Logging {
-  def apply(systemStreamMetadata: Map[SystemStream, SystemStreamMetadata],
-            config: Config,
-            checkpointManager: CheckpointManager = null,
-            systemAdmins: Map[String, SystemAdmin] = Map(),
-            checkpointListeners: Map[String, CheckpointListener] = Map(),
-            offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics): Unit ={
-    this.apply(systemStreamMetadata, config, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics, null)
-  }
   def apply(
              systemStreamMetadata: Map[SystemStream, SystemStreamMetadata],
              config: Config,
              checkpointManager: CheckpointManager = null,
              systemAdmins: Map[String, SystemAdmin] = Map(),
              checkpointListeners: Map[String, CheckpointListener] = Map(),
-             offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics,
-             offsetClient: OffsetClient) = {
+             offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics) = {
     debug("Building offset manager for %s." format systemStreamMetadata)
 
     val offsetSettings = systemStreamMetadata
@@ -112,7 +103,7 @@ object OffsetManager extends Logging {
           // Build OffsetSetting so we can create a map for OffsetManager.
           (systemStream, OffsetSetting(systemStreamMetadata, defaultOffsetType, resetOffset))
       }.toMap
-    new OffsetManager(offsetSettings, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics, offsetClient)
+    new OffsetManager(offsetSettings, checkpointManager, systemAdmins, checkpointListeners, offsetManagerMetrics)
   }
 }
 
@@ -161,9 +152,7 @@ class OffsetManager(
                         /**
                           * offsetManagerMetrics for keeping track of checkpointed offsets of each SystemStreamPartition.
                           */
-                        val offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics,
-
-                        val offsetClient: OffsetClient ) extends Logging {
+                        val offsetManagerMetrics: OffsetManagerMetrics = new OffsetManagerMetrics) extends Logging {
 
 
   /**
@@ -190,10 +179,21 @@ class OffsetManager(
     systemStreamPartitions.foreach { case (taskName, ssp) => ssp.foreach (ssp => offsetManagerMetrics.addCheckpointedOffset(ssp, "")) }
   }
 
-  def start {
+  def startWithOffsetClient(offsetClient: OffsetClient): Unit ={
     registerCheckpointManager
     //loadOffsetsFromCheckpointManager
-    loadOffsetsFromOffsetClient
+    loadOffsetsFromOffsetClient(offsetClient)
+    stripResetStreams
+    loadStartingOffsets
+    loadDefaults
+
+    info("Successfully loaded last processed offsets: %s" format lastProcessedOffsets)
+    info("Successfully loaded starting offsets: %s" format startingOffsets)
+  }
+
+  def start {
+    registerCheckpointManager
+    loadOffsetsFromCheckpointManager
     stripResetStreams
     loadStartingOffsets
     loadDefaults
@@ -288,10 +288,18 @@ class OffsetManager(
     }
   }
 
-  def stop {
-    if (checkpointManager != null) {
+  def stopWithOffsetClient(offsetClient: OffsetClient) {
+    if (offsetClient != null) {
       info("Offset Manager is shutting down, upload offset to offset server")
       offsetClient.sendOffset(lastProcessedOffsets);
+    } else {
+      debug("Skipping checkpoint manager shutdown because no checkpoint manager is defined.")
+    }
+  }
+
+  def stop {
+    if (checkpointManager != null) {
+      info("Offset Manager is shutting down")
     } else {
       debug("Skipping checkpoint manager shutdown because no checkpoint manager is defined.")
     }
@@ -339,7 +347,7 @@ class OffsetManager(
     }
   }
 
-  private def loadOffsetsFromOffsetClient {
+  private def loadOffsetsFromOffsetClient(offsetClient: OffsetClient) {
     if(offsetClient != null) {
       info("Loading offsets from offset client.")
       val result = offsetClient.getLastProcessedOffset
