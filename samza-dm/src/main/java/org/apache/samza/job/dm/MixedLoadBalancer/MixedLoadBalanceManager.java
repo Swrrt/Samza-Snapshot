@@ -451,9 +451,9 @@ public class MixedLoadBalanceManager {
         if(maxDelay > threshold){
             writeLog("Maximal delay: container" + maxId + "exceed threshold: " + maxDelay + ", now re-balance");
             String migrateTaskId = "", targetContainerId = "";
-            double minimum = 1e15;
+            double minimum = -100;
             for (String taskId: taskContainer.keySet())
-                if(maxExceptChoosedDelay < minimum && taskContainer.get(taskId).equals(maxId)){ //Shortcut if already have a best migration
+                if((minimum < 0 || maxExceptChoosedDelay < minimum) && taskContainer.get(taskId).equals(maxId)){ //Shortcut if already have a best migration
                     double newArrival = containerArrivalRate.get(maxId) - taskArrivalRate.get(taskId);
                     double newProcess = containerProcessingSpeed.get(maxId);
                     if(newArrival < newProcess - 1e-9){
@@ -481,7 +481,7 @@ public class MixedLoadBalanceManager {
                 writeLog("Cannot find a available migration");
 
                 //Test
-                Object [] tasks = taskContainer.keySet().toArray();
+                /*Object [] tasks = taskContainer.keySet().toArray();
                 targetContainerId = containerIds.iterator().next();
                 Random generator = new Random();
                 migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
@@ -490,7 +490,7 @@ public class MixedLoadBalanceManager {
                         targetContainerId = containerId;
                     }
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-                newTaskContainer.put(migrateTaskId, targetContainerId);
+                newTaskContainer.put(migrateTaskId, targetContainerId);*/
 
             }else{
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
@@ -501,7 +501,7 @@ public class MixedLoadBalanceManager {
 
 
             //Test, randomly choose one task to migrate
-            Object [] tasks = taskContainer.keySet().toArray();
+            /*Object [] tasks = taskContainer.keySet().toArray();
             String migrateTaskId, targetContainerId = containerIds.iterator().next();
             Random generator = new Random();
             migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
@@ -510,7 +510,7 @@ public class MixedLoadBalanceManager {
                     targetContainerId = containerId;
                 }
             writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-            newTaskContainer.put(migrateTaskId, targetContainerId);
+            newTaskContainer.put(migrateTaskId, targetContainerId);*/
         }
         return newTaskContainer;
     }
