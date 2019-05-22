@@ -877,7 +877,6 @@ class SamzaContainer(
     if(offsetClient == null) offsetManager.start
     else {
       offsetManager.startWithOffsetClient(offsetClient, containerModel)
-      val beginOffset = offsetClient.getBeginOffset(containerModel)
     }
   }
 

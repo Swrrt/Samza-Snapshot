@@ -485,7 +485,7 @@ public class MixedLoadBalanceManager {
                 writeLog("Cannot find a available migration");
 
                 //Test
-                /*Object [] tasks = taskContainer.keySet().toArray();
+                Object [] tasks = taskContainer.keySet().toArray();
                 targetContainerId = containerIds.iterator().next();
                 Random generator = new Random();
                 migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
@@ -494,7 +494,7 @@ public class MixedLoadBalanceManager {
                         targetContainerId = containerId;
                     }
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-                newTaskContainer.put(migrateTaskId, targetContainerId);*/
+                newTaskContainer.put(migrateTaskId, targetContainerId);
 
             }else{
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
@@ -505,7 +505,7 @@ public class MixedLoadBalanceManager {
 
 
             //Test, randomly choose one task to migrate
-            /*Object [] tasks = taskContainer.keySet().toArray();
+            Object [] tasks = taskContainer.keySet().toArray();
             String migrateTaskId, targetContainerId = containerIds.iterator().next();
             Random generator = new Random();
             migrateTaskId = (String)(tasks[generator.nextInt(tasks.length)]);
@@ -514,7 +514,7 @@ public class MixedLoadBalanceManager {
                     targetContainerId = containerId;
                 }
             writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-            newTaskContainer.put(migrateTaskId, targetContainerId);*/
+            newTaskContainer.put(migrateTaskId, targetContainerId);
         }
         return newTaskContainer;
     }
