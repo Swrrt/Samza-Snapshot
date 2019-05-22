@@ -34,7 +34,7 @@ public class MetricsLagRetriever {
     private OffsetClient offsetClient = null;
     private HashMap<String, Long> beginOffset = null;
     private HashMap<String, Long> lastProcessedOffset = null;
-    private long lastTimeUpdate = 0, lastProcessedInterval = 200;
+    private long lastTimeUpdate = 0, lastProcessedInterval = 500;
     private final double delta = 7.0/8.0; //Parameter to smooth processing speed
     private final double arrivalDelta = 7.0/8.0;
     public void initial(String appName, String topic_name){
@@ -55,7 +55,8 @@ public class MetricsLagRetriever {
                 config.get("job.loadbalance.offsetserver.address",""),
                 Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
                 config.get("job.default.system"),
-                config.get("job.loadbalance.inputtopic")
+                config.get("job.loadbalance.inputtopic"),
+                false
         );
     }
     //Update metrics from record
@@ -292,7 +293,10 @@ public class MetricsLagRetriever {
     }
 
     private long getLastProcessed(int partition){
-        if(lastProcessedOffset == null || System.currentTimeMillis() - lastTimeUpdate > lastProcessedInterval) lastProcessedOffset = offsetClient.getProcessedOffset();
+        if(lastProcessedOffset == null || System.currentTimeMillis() - lastTimeUpdate > lastProcessedInterval) {
+            lastTimeUpdate = System.currentTimeMillis();
+            lastProcessedOffset = offsetClient.getProcessedOffset();
+        }
         return lastProcessedOffset.get("Partition " + partition);
     }
 

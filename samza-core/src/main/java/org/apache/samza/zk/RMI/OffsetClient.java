@@ -25,13 +25,18 @@ public class OffsetClient {
     int port = 8884;
     String systemName = "";
     String topicName = "";
+    boolean debugInfo = true;
     public OffsetClient(){
     }
-    public OffsetClient(String leaderAddress, int port, String systemName, String topicName){
+    public OffsetClient(String leaderAddress, int port, String systemName, String topicName, boolean debug){
+        debugInfo = debug;
         this.leaderAddress = leaderAddress;
         this.port = port;
         this.systemName = systemName;
         this.topicName = topicName;
+    }
+    public OffsetClient(String leaderAddress, int port, String systemName, String topicName){
+        this(leaderAddress, port, systemName, topicName, true);
     }
     public void sendProcessedOffset(ConcurrentHashMap<TaskName, ConcurrentHashMap<SystemStreamPartition, String>> lastProcessedOffset){
         HashMap<String, Long> offsets = new HashMap<>();
