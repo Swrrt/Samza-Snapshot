@@ -119,6 +119,7 @@ public class MixedLoadBalanceManager {
             So we need a way to catch them.
          */
         metricsRetriever.initial(config.get("job.name"), config.get("job.loadbalance.inputtopic"));
+        metricsRetriever.setOffsetClient(config);
         //kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
         oldJobModel = jobModel;
         updateFromJobModel(jobModel);
