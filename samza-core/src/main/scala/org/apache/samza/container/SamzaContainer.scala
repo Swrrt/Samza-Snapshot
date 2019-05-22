@@ -875,7 +875,10 @@ class SamzaContainer(
     info("Starting offset manager.")
 
     if(offsetClient == null) offsetManager.start
-    else offsetManager.startWithOffsetClient(offsetClient, containerModel)
+    else {
+      offsetManager.startWithOffsetClient(offsetClient, containerModel)
+      val beginOffset = offsetClient.getBeginOffset(containerModel)
+    }
   }
 
   def startLocalityManager {

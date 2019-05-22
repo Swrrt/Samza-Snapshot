@@ -23,6 +23,8 @@ import java.rmi.RemoteException;
 import java.util.HashMap;
 
 public interface OffsetMessage extends Remote{
-    void send(HashMap<String, Long> message) throws RemoteException;
-    HashMap<String, Long> get() throws RemoteException;
+    void sendProcessed(HashMap<String, Long> message) throws RemoteException;
+    void sendBegin(HashMap<String, Long> message) throws RemoteException;
+    HashMap<String, Long> getProcessed() throws RemoteException;
+    HashMap<String, Long> getBegin() throws RemoteException;
 }

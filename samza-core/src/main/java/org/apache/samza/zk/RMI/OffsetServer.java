@@ -12,33 +12,38 @@ import java.util.concurrent.ConcurrentHashMap;
 //Currently runs in DM(MixedLoadBalance). Could run in AM(Leader)
 public class OffsetServer {
     private static final Logger LOG = LoggerFactory.getLogger(OffsetServer.class);
-    ConcurrentHashMap<String, Long> offsets = null;
+    ConcurrentHashMap<String, Long> processedOffsets = null;
+    ConcurrentHashMap<String, Long> beginOffsets = null;
     public OffsetServer(){
-        offsets = new ConcurrentHashMap<>();
+        processedOffsets = new ConcurrentHashMap<>();
+        beginOffsets = new ConcurrentHashMap<>();
     }
     public void start(){
         LOG.info("Last Processed Offsets Server starting...");
+        processedOffsets.clear();
+        beginOffsets.clear();
         try{
             Registry registry = LocateRegistry.createRegistry(8884);
-            registry.rebind("myOffset", new OffsetMessageImpl(offsets));
+            registry.rebind("myOffset", new OffsetMessageImpl(processedOffsets, beginOffsets));
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
         }
         LOG.info("OffsetServer started");
     }
     public void clear(){
-        offsets.clear();
+        processedOffsets.clear();
+        beginOffsets.clear();
     }
     public HashMap getAndRemoveOffsets(){
         //Copy the offsets, in order to seclude local and remote resource
         HashMap<String, Long> temp = new HashMap<>();
-        temp.putAll(offsets);
+        temp.putAll(processedOffsets);
         LOG.info("Got offsets: "+temp.toString());
-        offsets.clear();
+        processedOffsets.clear();
         return temp;
     }
     public float getOffset(String partition){
-        return offsets.get(partition);
+        return processedOffsets.get(partition);
     }
     /*private void writeLog(String log){
         Calendar calendar = Calendar.getInstance();

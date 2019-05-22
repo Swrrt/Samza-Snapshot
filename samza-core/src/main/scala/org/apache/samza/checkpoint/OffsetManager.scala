@@ -184,12 +184,36 @@ class OffsetManager(
     registerCheckpointManager
     //loadOffsetsFromCheckpointManager
     loadOffsetsFromOffsetClient(offsetClient, containerModel)
+    var isBegin = false
+    if(lastProcessedOffsets.size() == 0 ) isBegin = true
     stripResetStreams
     loadStartingOffsets
     loadDefaults
-
+    if(isBegin){
+      info("First time to consume, record the begin offset")
+      val beginOffsets = translateOffsetsToJava(startingOffsets)// Minus 1 here
+      offsetClient.sendBeginOffset(beginOffsets)
+      offsetClient.sendProcessedOffset(beginOffsets)
+    }
     info("Successfully loaded last processed offsets: %s" format lastProcessedOffsets)
     info("Successfully loaded starting offsets: %s" format startingOffsets)
+  }
+  //Translate scala map to java map
+  // And minus 1
+  def translateOffsetsToJava(offsets: Map[TaskName, Map[SystemStreamPartition, String]]): ConcurrentHashMap[TaskName, ConcurrentHashMap[SystemStreamPartition, String]]={
+    val javaOffsets = new ConcurrentHashMap[TaskName, ConcurrentHashMap[SystemStreamPartition, String]]()
+    offsets.foreach{
+      case(taskName, ssps) => {
+        val ssp1 = new ConcurrentHashMap[SystemStreamPartition, String]()
+        ssps.foreach{
+          case (ssp, v) => {
+            ssp1.put(ssp, (v.toLong - 1).toString)
+          }
+        }
+        javaOffsets.put(taskName, ssp1);
+      }
+    }
+    javaOffsets
   }
 
   def start {
@@ -293,7 +317,7 @@ class OffsetManager(
     if (offsetClient != null) {
       info("Offset Manager is shutting down, upload offset to offset server")
       info("Offset" + lastProcessedOffsets)
-      offsetClient.sendOffset(lastProcessedOffsets);
+      offsetClient.sendProcessedOffset(lastProcessedOffsets);
     } else {
       debug("Skipping checkpoint manager shutdown because no checkpoint manager is defined.")
     }

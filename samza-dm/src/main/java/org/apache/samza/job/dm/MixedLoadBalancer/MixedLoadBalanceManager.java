@@ -324,6 +324,9 @@ public class MixedLoadBalanceManager {
             tt.clear();
             tt.put(container, containerArrived.get(container));
             System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Arrived: " + tt);
+            tt.clear();
+            tt.put(container, containerProcessed.get(container));
+            System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Processed: " + tt);
         }
         //writeLog("Flush Processed: " + containerFlushProcessed);
         //writeLog("Backlog: " + containerBacklogs);
@@ -332,10 +335,10 @@ public class MixedLoadBalanceManager {
     }
 
 
-    public void flushMetrics(){
+    /*public void flushMetrics(){
         writeLog("Flushing metrics");
         metricsRetriever.flush();
-    }
+    }*/
 
     //Retrieve metrics (arrival rate, backlog, processing speed) and rebalance accordingly.
     public JobModel rebalanceJobModel(){

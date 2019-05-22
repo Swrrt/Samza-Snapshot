@@ -67,6 +67,9 @@ class KafkaSystemConsumerMetrics(val systemName: String = "unknown", val registr
   def setTopicPartitionValue(host: String, port: Int, value: Int) {
     topicPartitions.get((host,port)).set(value)
   }
+  def setReadValue(topicAndPartition: TopicAndPartition, value: Long): Unit = {
+    reads.get((topicAndPartition)).set(value);
+  }
   def setLagValue(topicAndPartition: TopicAndPartition, value: Long) {
     lag.get((topicAndPartition)).set(value);
   }

@@ -1,10 +1,12 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.samza.config.Config;
 import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
 import org.apache.samza.job.dm.StageReport;
+import org.apache.samza.zk.RMI.OffsetClient;
 import org.json.JSONObject;
 
 
@@ -29,6 +31,10 @@ public class MetricsLagRetriever {
     private ConcurrentMap<Integer, Long> backlog;
     private ConcurrentMap<Integer, Double> avgBacklog;
     private ConcurrentMap<String, Long> flushProcessed;
+    private OffsetClient offsetClient = null;
+    private HashMap<String, Long> beginOffset = null;
+    private HashMap<String, Long> lastProcessedOffset = null;
+    private long lastTimeUpdate = 0, lastProcessedInterval = 200;
     private final double delta = 7.0/8.0; //Parameter to smooth processing speed
     private final double arrivalDelta = 7.0/8.0;
     public void initial(String appName, String topic_name){
@@ -43,6 +49,14 @@ public class MetricsLagRetriever {
         arrived = new ConcurrentHashMap<>();
         avgBacklog = new ConcurrentHashMap<>();
         flushProcessed = new ConcurrentHashMap<>();
+    }
+    public void setOffsetClient(Config config){
+        this.offsetClient = new OffsetClient(
+                config.get("job.loadbalance.offsetserver.address",""),
+                Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
+                config.get("job.default.system"),
+                config.get("job.loadbalance.inputtopic")
+        );
     }
     //Update metrics from record
     public void update(ConsumerRecord<String, String> record){
@@ -221,7 +235,7 @@ public class MetricsLagRetriever {
             taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
 
             long currentTime = json.getJSONObject("header").getLong("time");
-            long currentProcessed = taskMetrics.getLong("messages-actually-processed");
+            long currentProcessed = taskMetrics.getLong("messages-actually-processed") + getLastProcessed(taskNameToPartition(taskName)) - getBegin(taskNameToPartition(taskName));
 
             long lastProcessed = 0, lastTime = 0;
             if (processed.containsKey(taskName)) {
@@ -266,25 +280,42 @@ public class MetricsLagRetriever {
         return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
     }
 
+    private long getWatermark(int partition, String kafkaMetric){
+        String pattern = "kafka-"+topic.toLowerCase()+"-"+partition+"-high-watermark\":";
+        int i = kafkaMetric.indexOf(pattern);
+        int j = kafkaMetric.indexOf(',', i);
+        return Long.valueOf(kafkaMetric.substring(i+pattern.length(), j));
+    }
+    private long getBegin(int partition){
+        if(beginOffset == null || !beginOffset.containsKey(String.valueOf("Partition " + partition)))beginOffset = offsetClient.getBeginOffset();
+        return beginOffset.get(String.valueOf("Partition " + partition));
+    }
+
+    private long getLastProcessed(int partition){
+        if(lastProcessedOffset == null || System.currentTimeMillis() - lastTimeUpdate > lastProcessedInterval) lastProcessedOffset = offsetClient.getProcessedOffset();
+        return lastProcessedOffset.get("Partition " + partition);
+    }
 
     private void updateArrived(int partition, String kafkaMetric, long time){
-        long lag = getLag(partition, kafkaMetric);
-        long fetched = getRead(partition, kafkaMetric);
+        /*long lag = getLag(partition, kafkaMetric);
+        long fetched = getRead(partition, kafkaMetric);*/
+        long head = getBegin(partition);
+        long watermark = getWatermark(partition, kafkaMetric);
 
         long lastArrived = 0;
         if(arrived.containsKey(partition)){
             lastArrived = arrived.get(partition);
         }
-        // After rebalance, the lag and fetched will start from 0 again.
+        /*// After rebalance, the lag and fetched will start from 0 again.
         if(lastArrived > lag + fetched){
             lastArrived = 0;
             arrivalRate.put(partition, 0.0);
-        }
+        }*/
 
-        double arrivedInPeriod = lag + fetched - lastArrived;
-        arrived.put(partition, lag + fetched);
+        double arrivedInPeriod = watermark - head - lastArrived;
+        arrived.put(partition, watermark - head);
         if(processed.containsKey(partitionToTaskName(partition))){
-            updateBacklog(partition, (lag + fetched) - processed.get(partitionToTaskName(partition)));
+            updateBacklog(partition, (watermark - head) - processed.get(partitionToTaskName(partition)));
         };
 
         double lastArrivedRate = 0;
@@ -383,6 +414,7 @@ public class MetricsLagRetriever {
     }
 
     //Need flush metrics after rebalancing
+    /*
     public void flush(){
         processingSpeed.clear();
         arrivalRate.clear();
@@ -392,7 +424,7 @@ public class MetricsLagRetriever {
         processed.clear();
         arrived.clear();
         avgBacklog.clear();
-    }
+    }*/
     private void writeLog(String log){
         System.out.println("MetricsLagRetriever: " + log);
     }
