@@ -77,7 +77,7 @@ public class MetricsLagRetriever {
                     try{
                         updateArrived(partition, kafkaMetrics, time);
                     }catch (Exception e){
-                        //writeLog("Partition " + partition +" error: " + e.toString());
+                        writeLog("Partition " + partition +" error: " + e.toString());
                     }
                 }
             }
@@ -301,7 +301,9 @@ public class MetricsLagRetriever {
         long fetched = getRead(partition, kafkaMetric);*/
         long head = getBegin(partition);
         long watermark = getWatermark(partition, kafkaMetric);
-
+        if(watermark < 0){ //not ready
+            return ;
+        }
         long lastArrived = 0;
         if(arrived.containsKey(partition)){
             lastArrived = arrived.get(partition);
