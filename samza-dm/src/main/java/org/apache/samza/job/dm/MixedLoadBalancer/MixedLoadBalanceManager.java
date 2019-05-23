@@ -62,6 +62,7 @@ public class MixedLoadBalanceManager {
     //private final int LOCALITY_RETRY_TIMES = 1;
     //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
     private MetricsLagRetriever metricsRetriever = null;
+    private DelayEstimator delayEstimator = null;
     public MixedLoadBalanceManager(){
         config = null;
         //consistentHashing = new ConsistentHashing();
@@ -81,6 +82,7 @@ public class MixedLoadBalanceManager {
         offsetServer = new OffsetServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         metricsRetriever = new MetricsLagRetriever();
+        delayEstimator = new DelayEstimator();
         taskArrived = new HashMap<>();
         containerArrived = new HashMap<>();
         taskProcessed = new HashMap<>();
@@ -752,6 +754,8 @@ public class MixedLoadBalanceManager {
 
     public void updateMetrics(ConsumerRecord<String, String> record){
         metricsRetriever.update(record);
+        //TODO: update delay estimator
+
     }
 
     public boolean readyToRebalance(){

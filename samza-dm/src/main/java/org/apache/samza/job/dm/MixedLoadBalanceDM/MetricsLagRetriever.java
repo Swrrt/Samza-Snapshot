@@ -76,7 +76,7 @@ public class MetricsLagRetriever {
                 //if(partitions.size()>0) writeLog("Partitions: " + partitions);
                 for (int partition : partitions) {
                     try{
-                        updateArrived(partition, kafkaMetrics, time);
+                        //updateArrived(partition, kafkaMetrics, time);
                     }catch (Exception e){
                         writeLog("Partition " + partition +" error: " + e.toString());
                     }
@@ -246,6 +246,10 @@ public class MetricsLagRetriever {
             time.put(taskName, currentTime);
 
 
+            long currentArrived = Long.parseLong(taskMetrics.getString("kafka-" + topic + "-" + taskNameToPartition(taskName) + "-offset")) - getBegin(taskNameToPartition(taskName));
+            arrived.put(taskNameToPartition(taskName), currentArrived);
+            arrivalTime.put(taskNameToPartition(taskName), currentTime);
+
             processed.put(taskName, currentProcessed);
             if(arrived.containsKey(taskNameToPartition(taskName))){
                 updateBacklog(taskNameToPartition(taskName),  arrived.get(taskNameToPartition(taskName)) - currentProcessed);
@@ -304,7 +308,7 @@ public class MetricsLagRetriever {
         /*long lag = getLag(partition, kafkaMetric);
         long fetched = getRead(partition, kafkaMetric);*/
         long head = getBegin(partition);
-        long watermark = getWatermark(partition, kafkaMetric);
+        long watermark = getWatermark(partition, kafkaMetric) - 1;
         if(watermark < 0){ //not ready
             return ;
         }
