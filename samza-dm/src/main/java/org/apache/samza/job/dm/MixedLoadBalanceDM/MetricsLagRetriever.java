@@ -97,7 +97,7 @@ public class MetricsLagRetriever {
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
         }catch (Exception e){
-            //writeLog("Error when parse taskMetrics: "+ e);
+            writeLog("Error when parse processing taskMetrics: "+ e);
         }
 
         //For validation
@@ -246,7 +246,7 @@ public class MetricsLagRetriever {
             time.put(taskName, currentTime);
 
 
-            long currentArrived = Long.parseLong(taskMetrics.getString("kafka-" + topic + "-" + taskNameToPartition(taskName) + "-offset")) - getBegin(taskNameToPartition(taskName));
+            long currentArrived = Long.parseLong(taskMetrics.getString("kafka-" + topic.toLowerCase() + "-" + taskNameToPartition(taskName) + "-offset")) - getBegin(taskNameToPartition(taskName));
             arrived.put(taskNameToPartition(taskName), currentArrived);
             arrivalTime.put(taskNameToPartition(taskName), currentTime);
 
