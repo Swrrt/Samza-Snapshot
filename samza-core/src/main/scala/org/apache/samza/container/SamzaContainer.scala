@@ -888,11 +888,11 @@ class SamzaContainer(
     if(offsetClient == null) offsetManager.start
     else {
       offsetManager.startWithOffsetClient(offsetClient, containerModel)
-      val beginOffsets = offsetClient.getBeginOffset()
+      val lastOffsets = offsetClient.getProcessedOffset()
       //Update messages-total-processed
       taskInstances.foreach{
         case(taskName, taskInstance) =>{
-          taskInstance.metrics.messagesTotalProcessed.set(beginOffsets.get(taskName.getTaskName))
+          taskInstance.metrics.messagesTotalProcessed.set(lastOffsets.get(taskName.getTaskName))
         }
       }
     }
