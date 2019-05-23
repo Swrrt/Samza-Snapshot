@@ -27,4 +27,6 @@ public interface OffsetMessage extends Remote{
     void sendBegin(HashMap<String, Long> message) throws RemoteException;
     HashMap<String, Long> getProcessed() throws RemoteException;
     HashMap<String, Long> getBegin() throws RemoteException;
+    void sendShutdownTime(String containerId, long timeStamp)throws RemoteException;
+    void sendStartTime(String containerId, long timeStamp)throws RemoteException;
 }

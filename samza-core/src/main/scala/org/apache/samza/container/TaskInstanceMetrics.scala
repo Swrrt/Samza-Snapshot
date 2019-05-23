@@ -38,6 +38,9 @@ class TaskInstanceMetrics(
   val messagesInFlight = newGauge("messages-in-flight", 0)
   val asyncCallbackCompleted = newCounter("async-callback-complete-calls");
 
+  // Add a accumulative processed
+  val messagesTotalProcessed = newCounter("messages-total-processed")
+
   def addOffsetGauge(systemStreamPartition: SystemStreamPartition, getValue: () => String) {
     newGauge("%s-%s-%d-offset" format (systemStreamPartition.getSystem, systemStreamPartition.getStream, systemStreamPartition.getPartition.getPartitionId), getValue)
   }

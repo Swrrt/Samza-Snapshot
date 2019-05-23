@@ -14,17 +14,24 @@ public class OffsetServer {
     private static final Logger LOG = LoggerFactory.getLogger(OffsetServer.class);
     ConcurrentHashMap<String, Long> processedOffsets = null;
     ConcurrentHashMap<String, Long> beginOffsets = null;
+    //To get shutting down time.
+    ConcurrentHashMap<String, Long> shutdownTime = null;
+    ConcurrentHashMap<String, Long> startTime = null;
     public OffsetServer(){
         processedOffsets = new ConcurrentHashMap<>();
         beginOffsets = new ConcurrentHashMap<>();
+        shutdownTime = new ConcurrentHashMap<>();
+        startTime = new ConcurrentHashMap<>();
     }
     public void start(){
         LOG.info("Last Processed Offsets Server starting...");
         processedOffsets.clear();
         beginOffsets.clear();
+        shutdownTime.clear();
+        startTime.clear();
         try{
             Registry registry = LocateRegistry.createRegistry(8884);
-            registry.rebind("myOffset", new OffsetMessageImpl(processedOffsets, beginOffsets));
+            registry.rebind("myOffset", new OffsetMessageImpl(processedOffsets, beginOffsets, shutdownTime, startTime));
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
         }
@@ -33,6 +40,18 @@ public class OffsetServer {
     public void clear(){
         processedOffsets.clear();
         beginOffsets.clear();
+    }
+    public void setShutdownTime(String Id, long time){
+        shutdownTime.put(Id, time);
+    }
+    public void setStartTime(String Id, long time){
+        startTime.put(Id, time);
+    }
+    public long getShutdownTime(String Id){
+        return shutdownTime.get(Id);
+    }
+    public long getStartTime(String Id){
+        return startTime.get(Id);
     }
     public HashMap getAndRemoveOffsets(){
         //Copy the offsets, in order to seclude local and remote resource

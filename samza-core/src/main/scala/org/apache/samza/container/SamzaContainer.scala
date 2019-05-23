@@ -718,7 +718,13 @@ class SamzaContainer(
     try {
       info("Starting container.")
 
+
       val startTime = System.nanoTime()
+      //sendStartingTime to offset server
+      if(offsetClient != null){
+        offsetClient.sendStartTime(containerContext.id, startTime)
+      }
+
       status = SamzaContainerStatus.STARTING
 
       jmxServer = new JmxServer()
@@ -772,6 +778,11 @@ class SamzaContainer(
 
       if (!status.equals(SamzaContainerStatus.FAILED)) {
         status = SamzaContainerStatus.STOPPED
+      }
+
+      //Send shutdown timestamp
+      if(offsetClient != null){
+        offsetClient.sendShutdownTime(containerContext.id, System.nanoTime())
       }
 
       info("Shutdown complete.")
@@ -877,6 +888,13 @@ class SamzaContainer(
     if(offsetClient == null) offsetManager.start
     else {
       offsetManager.startWithOffsetClient(offsetClient, containerModel)
+      val beginOffsets = offsetClient.getBeginOffset()
+      //Update messages-total-processed
+      taskInstances.foreach{
+        case(taskName, taskInstance) =>{
+          taskInstance.metrics.messagesTotalProcessed.set(beginOffsets.get(taskName.getTaskName))
+        }
+      }
     }
   }
 

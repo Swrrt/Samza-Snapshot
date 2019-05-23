@@ -236,7 +236,7 @@ public class MetricsLagRetriever {
             taskName = taskName.substring(taskName.indexOf("TaskName-") + 9);
 
             long currentTime = json.getJSONObject("header").getLong("time");
-            long currentProcessed = taskMetrics.getLong("messages-actually-processed") + getLastProcessed(taskNameToPartition(taskName)) - getBegin(taskNameToPartition(taskName));
+            long currentProcessed = taskMetrics.getLong("message-total-processed"); //taskMetrics.getLong("messages-actually-processed") + getLastProcessed(taskNameToPartition(taskName)) - getBegin(taskNameToPartition(taskName));
 
             long lastProcessed = 0, lastTime = 0;
             if (processed.containsKey(taskName)) {

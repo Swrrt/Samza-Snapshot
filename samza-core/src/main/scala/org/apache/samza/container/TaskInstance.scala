@@ -143,6 +143,7 @@ class TaskInstance(
 
     if (ssp2CaughtupMapping(envelope.getSystemStreamPartition)) {
       metrics.messagesActuallyProcessed.inc
+      metrics.messagesTotalProcessed.inc
 
       trace("Processing incoming message envelope for taskName and SSP: %s, %s"
         format (taskName, envelope.getSystemStreamPartition))

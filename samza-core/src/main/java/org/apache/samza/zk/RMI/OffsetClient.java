@@ -138,5 +138,29 @@ public class OffsetClient {
         LOG.info("Begin offsets information got");
         return offsets;
     }
+
+    // Sending container shutdown timestamp
+    public void sendShutdownTime(String containerId, long time){
+        LOG.info("Send shutdown timestamp to offset server");
+        try{
+            Registry registry = LocateRegistry.getRegistry(leaderAddress, port);
+            OffsetMessage impl = (OffsetMessage) registry.lookup("myOffset");
+            LOG.info("Container " + containerId + " shutdown timestamp:" + time);
+            impl.sendShutdownTime(containerId, time);
+        }catch (Exception e){
+            LOG.info("Exception happened: "+ e.toString());
+        }
+    }
+    public void sendStartTime(String containerId, long time){
+        LOG.info("Send start timestamp to offset server");
+        try{
+            Registry registry = LocateRegistry.getRegistry(leaderAddress, port);
+            OffsetMessage impl = (OffsetMessage) registry.lookup("myOffset");
+            LOG.info("Container " + containerId + " start timestamp:" + time);
+            impl.sendShutdownTime(containerId, time);
+        }catch (Exception e){
+            LOG.info("Exception happened: "+ e.toString());
+        }
+    }
 }
 
