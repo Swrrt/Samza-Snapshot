@@ -194,6 +194,8 @@ class OffsetManager(
       val beginOffsets = translateOffsetsToJava(startingOffsets)// Minus 1 here
       offsetClient.sendBeginOffset(beginOffsets)
       offsetClient.sendProcessedOffset(beginOffsets)
+      //Also update the lastProcessedOffsets.
+      lastProcessedOffsets.putAll(beginOffsets)
     }
     info("Successfully loaded last processed offsets: %s" format lastProcessedOffsets)
     info("Successfully loaded starting offsets: %s" format startingOffsets)
