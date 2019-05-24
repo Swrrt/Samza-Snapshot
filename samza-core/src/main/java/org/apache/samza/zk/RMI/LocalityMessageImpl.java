@@ -4,7 +4,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class LocalityMessageImpl extends UnicastRemoteObject implements UtilizationMessage {
+public class LocalityMessageImpl extends UnicastRemoteObject implements LocalityMessage {
     ConcurrentHashMap<String, String> locality = null;
     public LocalityMessageImpl() throws RemoteException{
     }

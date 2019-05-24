@@ -3,8 +3,7 @@ package org.apache.samza.job.dm.MixedLoadBalancer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.KafkaOffsetRetriever;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.MetricsLagRetriever;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.SnapshotMetricsRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
@@ -18,8 +17,7 @@ import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
 import org.apache.samza.zk.RMI.OffsetServer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 //Need to bind
 public class MixedLoadBalanceManager {
     //private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
@@ -61,7 +59,7 @@ public class MixedLoadBalanceManager {
     private OffsetServer offsetServer = null;
     //private final int LOCALITY_RETRY_TIMES = 1;
     //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
-    private MetricsLagRetriever metricsRetriever = null;
+    private SnapshotMetricsRetriever metricsRetriever = null;
     private DelayEstimator delayEstimator = null;
     public MixedLoadBalanceManager(){
         config = null;
@@ -81,7 +79,7 @@ public class MixedLoadBalanceManager {
         localityServer = new LocalityServer();
         offsetServer = new OffsetServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
-        metricsRetriever = new MetricsLagRetriever();
+        metricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
         taskArrived = new HashMap<>();
         containerArrived = new HashMap<>();
