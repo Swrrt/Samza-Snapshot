@@ -60,7 +60,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                                 }
                                 @Override
                                 public <T> void gauge(Gauge<T> gauge) {
-                                    
+
                                 }
                                 @Override
                                 public void timer(Timer timer) {

@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentMap;
     Retrieve backlog information from metrics.
     Asynchronous retrieve data and report
 */
-public class MetricsLagRetriever {
+public class SnapshotMetricsRetriever {
     //private static final Logger LOG = LoggerFactory.getLogger(KafkaOffsetRetriever.class);
     private Properties properties;
     private String topic, app;
@@ -436,6 +436,6 @@ public class MetricsLagRetriever {
         avgBacklog.clear();
     }*/
     private void writeLog(String log){
-        System.out.println("MetricsLagRetriever: " + log);
+        System.out.println("SnapshotMetricsRetriever: " + log);
     }
 }
