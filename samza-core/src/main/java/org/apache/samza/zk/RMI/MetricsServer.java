@@ -18,19 +18,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MetricsServer {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsServer.class);
     List<Pair<String, ReadableMetricsRegistry>> metrics;
+    MetricsMessageImpl impl;
+    int port = 8886;
     public MetricsServer(){
         metrics = new LinkedList<>();
     }
+    public void setPort(int port){
+        this.port = port;
+    }
     public void register(String source, ReadableMetricsRegistry registry){
-        if(source.equals("")) { // only send certain metrics TODO
+        if(source.startsWith("TaskName-Partition") || source.startsWith("samza-container-")) { // only send certain metrics
             metrics.add(new Pair<>(source, registry));
         }
     }
     public void start(){
-        LOG.info("Metrics Server starting...");
+        LOG.info("Metrics Server starting at port: " + port + "...");
         try{
-            Registry registry = LocateRegistry.createRegistry(8886);
-            registry.rebind("myMetrics", new MetricsMessageImpl(metrics));
+            Registry registry = LocateRegistry.createRegistry(port);
+            impl = new MetricsMessageImpl(metrics);
+            registry.rebind("myMetrics", impl);
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
         }
@@ -38,28 +44,9 @@ public class MetricsServer {
     }
     public void clear(){
     }
-    public void setShutdownTime(String Id, long time){
-        shutdownTime.put(Id, time);
-    }
-    public void setStartTime(String Id, long time){
-        startTime.put(Id, time);
-    }
-    public long getShutdownTime(String Id){
-        return shutdownTime.get(Id);
-    }
-    public long getStartTime(String Id){
-        return startTime.get(Id);
-    }
-    public HashMap getAndRemoveOffsets(){
-        //Copy the offsets, in order to seclude local and remote resource
-        HashMap<String, Long> temp = new HashMap<>();
-        temp.putAll(processedOffsets);
-        LOG.info("Got offsets: "+temp.toString());
-        processedOffsets.clear();
-        return temp;
-    }
-    public float getOffset(String partition){
-        return processedOffsets.get(partition);
+
+    public void updateOffsets(ConcurrentHashMap beginOffset, ConcurrentHashMap lastProcessedOffset){
+        impl.setOffset(beginOffset, lastProcessedOffset);
     }
     /*private void writeLog(String log){
         Calendar calendar = Calendar.getInstance();

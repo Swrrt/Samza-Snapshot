@@ -2,7 +2,9 @@ package org.apache.samza.zk.RMI;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.HashMap;
+import java.util.List;
 
 public interface MetricsMessage extends Remote{
-    Byte[] getMetrics()throws RemoteException;
+    HashMap<String, String> getArrivedAndProcessed()throws RemoteException;
 }
