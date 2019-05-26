@@ -42,6 +42,7 @@ import org.apache.samza.task.TaskCallbackFactory
 import org.apache.samza.task.TaskInstanceCollector
 import org.apache.samza.task.WindowableTask
 import org.apache.samza.util.Logging
+import org.apache.samza.zk.RMI.MetricsServer
 
 import scala.collection.JavaConverters._
 
@@ -83,6 +84,13 @@ class TaskInstance(
     debug("Registering metrics for taskName: %s" format taskName)
 
     reporters.values.foreach(_.register(metrics.source, metrics.registry))
+  }
+
+  def registerMetricsWithMetricsServer(metricsServer: MetricsServer) {
+    debug("Registering metrics for taskName: %s" format taskName)
+    reporters.values.foreach(_.register(metrics.source, metrics.registry))
+    info("Registering metrics %s to metrics server" format metrics)
+    metricsServer.register(metrics.source, metrics.registry);
   }
 
   def registerOffsets {

@@ -1,6 +1,8 @@
 package org.apache.samza.zk.RMI;
 
 import javafx.util.Pair;
+import org.apache.samza.job.model.ContainerModel;
+import org.apache.samza.job.model.JobModel;
 import org.apache.samza.metrics.*;
 import org.apache.samza.metrics.Timer;
 
@@ -11,27 +13,30 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMessage {
     List<Pair<String, ReadableMetricsRegistry>> metrics;
-    ConcurrentHashMap<String, Long> beginOffset, lastProcessedOffset;
+    //ConcurrentHashMap<String, Long> beginOffset, lastProcessedOffset;
+    HashMap<String, Object> arrived;
+    HashMap<String, Long> processed;
     String topic;
-    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics)throws RemoteException {
+    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, HashMap<String, Object> arrived, HashMap<String, Long> processed)throws RemoteException {
         this.metrics = metrics;
-        this.beginOffset = new ConcurrentHashMap<>();
-        this.lastProcessedOffset = new ConcurrentHashMap<>();
+        this.arrived = arrived;
+        this.processed = processed;
+        //this.beginOffset = new ConcurrentHashMap<>();
+        //this.lastProcessedOffset = new ConcurrentHashMap<>();
     }
-    public void setOffset(ConcurrentHashMap beginOffset, ConcurrentHashMap lastProcessedOffset){
+    /*public void setOffset(ConcurrentHashMap beginOffset, ConcurrentHashMap lastProcessedOffset){
         this.beginOffset.clear();
         this.beginOffset.putAll(beginOffset);
         this.lastProcessedOffset.clear();
         this.lastProcessedOffset.putAll(lastProcessedOffset);
-    }
+    }*/
     public HashMap<String, String> getArrivedAndProcessed(){
         HashMap<String, String> ret = new HashMap<>();
-        HashMap<String, Long> arrived = new HashMap<>(), processed = new HashMap<>();
         for(Pair<String, ReadableMetricsRegistry> pair: metrics){
             if(pair.getKey().startsWith("TaskName-Partition")){
                 String id = pair.getKey().substring(9);
                 if(pair.getValue().getGroups().contains("org.apache.samza.container.TaskInstanceMetrics")) { // Has processed metrics
-                    pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-actually-processed").visit(new MetricsVisitor() {
+                    pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-total-processed").visit(new MetricsVisitor() {
                         @Override
                         public void counter(Counter counter) {
                             processed.put(id, counter.getCount());
@@ -60,7 +65,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                                 }
                                 @Override
                                 public <T> void gauge(Gauge<T> gauge) {
-
+                                    arrived.put(id, gauge);
                                 }
                                 @Override
                                 public void timer(Timer timer) {
@@ -72,18 +77,18 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
 
             }
         }
-        for(String id: lastProcessedOffset.keySet()){
+        for(String id: arrived.keySet()){
             long arrive = 0;
             if(arrived.containsKey(id)){
-                arrive = arrived.get(id);
+                arrive = (Long)arrived.get(id);
             }
-            arrive -= beginOffset.get(id);
+            //arrive -= beginOffset.get(id);
 
             long processe = 0;
             if(processed.containsKey(id)){
                 processe = processed.get(id);
             }
-            processe += lastProcessedOffset.get(id) - beginOffset.get(id);
+            //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
             ret.put(id, arrive + "_" + processe);
         }
         return ret;

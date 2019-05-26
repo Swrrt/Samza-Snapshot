@@ -33,7 +33,7 @@ import org.apache.samza.job.model.ContainerModel
 import org.apache.samza.system.SystemStreamMetadata.OffsetType
 import org.apache.samza.system.{SystemAdmin, SystemStream, SystemStreamMetadata, SystemStreamPartition}
 import org.apache.samza.util.Logging
-import org.apache.samza.zk.RMI.OffsetClient
+import org.apache.samza.zk.RMI.{MetricsServer, OffsetClient}
 
 import scala.collection.JavaConverters._
 import scala.collection._
@@ -197,6 +197,7 @@ class OffsetManager(
       //Also update the lastProcessedOffsets.
       lastProcessedOffsets.putAll(beginOffsets)
     }
+
     info("Successfully loaded last processed offsets: %s" format lastProcessedOffsets)
     info("Successfully loaded starting offsets: %s" format startingOffsets)
   }

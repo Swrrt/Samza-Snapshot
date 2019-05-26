@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.samza.metrics.Metric;
 import org.apache.samza.zk.RMI.LocalityClient;
 import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
@@ -54,6 +55,7 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 //import org.apache.samza.job.dm.MixedLoadBalancer.JVMMonitor;
+import org.apache.samza.zk.RMI.MetricsServer;
 import org.apache.samza.zk.RMI.OffsetClient;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
@@ -104,6 +106,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     //private JVMMonitor jvmMonitor = null;
     private LocalityClient localityClient = null;
     private OffsetClient offsetClient = null;
+    private MetricsServer metricsServer = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
 
@@ -136,6 +139,8 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
+            this.metricsServer = new MetricsServer();
+            this.metricsServer.setPort(8900 + Integer.parseInt(processorId));
         }
     }
     // In YARN mode, we have containerId
@@ -170,6 +175,8 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
+            this.metricsServer = new MetricsServer();
+            this.metricsServer.setPort(8900 + Integer.parseInt(processorId));
         }
     }
 
@@ -226,6 +233,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     }
     public OffsetClient getOffsetClient(){
         return offsetClient;
+    }
+    public MetricsServer getMetricsServer(){
+        return metricsServer;
     }
     @Override
     public void setListener(JobCoordinatorListener listener) {

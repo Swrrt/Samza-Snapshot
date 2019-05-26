@@ -79,7 +79,7 @@ import org.apache.samza.util.MetricsReporterLoader
 import org.apache.samza.util.SystemClock
 import org.apache.samza.util.Util
 import org.apache.samza.util.Util.asScalaClock
-import org.apache.samza.zk.RMI.OffsetClient
+import org.apache.samza.zk.RMI.{MetricsServer, OffsetClient}
 
 import scala.collection.JavaConverters._
 
@@ -700,6 +700,7 @@ class SamzaContainer(
   private var containerListener: SamzaContainerListener = null
   private var offsetClient: OffsetClient = null
   private var containerModel: ContainerModel = null
+  private var metricsServer: MetricsServer = null
   def getStatus(): SamzaContainerStatus = status
 
   def getTaskInstances() = taskInstances
@@ -712,6 +713,9 @@ class SamzaContainer(
                                  jobModel: JobModel): Unit ={
     offsetClient = client
     containerModel = jobModel.getContainers.get(containerContext.id)
+  }
+  def setMetricsServer(server: MetricsServer): Unit ={
+    metricsServer = server;
   }
 
   def run {
@@ -862,7 +866,11 @@ class SamzaContainer(
   def startMetrics {
     info("Registering task instances with metrics.")
 
-    taskInstances.values.foreach(_.registerMetrics)
+    if(metricsServer == null)taskInstances.values.foreach(_.registerMetrics)
+    else{
+      metricsServer.setContainerModel(containerModel);
+      taskInstances.values.foreach(_.registerMetricsWithMetricsServer(metricsServer))
+    }
 
     info("Starting JVM metrics.")
 
@@ -872,10 +880,12 @@ class SamzaContainer(
 
     info("Starting metrics reporters.")
 
+
     reporters.values.foreach(reporter => {
       reporter.register(metrics.source, metrics.registry)
       reporter.start
     })
+    if(metricsServer != null) metricsServer.register(metrics.source, metrics.registry)
   }
 
   def startOffsetManager {
@@ -1058,7 +1068,9 @@ class SamzaContainer(
     info("Shutting down metrics reporters.")
 
     reporters.values.foreach(_.stop)
-
+    if(metricsServer != null){
+      metricsServer.clear();
+    }
     if (jvm != null) {
       info("Shutting down JVM metrics.")
 
