@@ -36,6 +36,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
         for(Pair<String, ReadableMetricsRegistry> pair: metrics){
             if(pair.getKey().startsWith("TaskName-Partition")){
                 String id = pair.getKey().substring(9);
+                System.out.println("TaskName-Partition : " + pair.getValue().getGroups());
                 if(pair.getValue().getGroups().contains("org.apache.samza.container.TaskInstanceMetrics")) { // Has processed metrics
                     pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-total-processed").visit(new MetricsVisitor() {
                         @Override
@@ -53,6 +54,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                     });
                 }
             }else if(pair.getKey().startsWith("samza-container-")){ // Has arrived metrics
+                System.out.println("samza-container- : " + pair.getValue().getGroups());
                 if(pair.getValue().getGroups().contains("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")){
                     for(Map.Entry<String, Metric> entry : pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").entrySet()){
                         String metricName = entry.getKey();

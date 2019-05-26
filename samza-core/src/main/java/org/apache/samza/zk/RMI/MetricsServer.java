@@ -66,6 +66,11 @@ public class MetricsServer {
             if(!containerModel.getTasks().containsKey(id))arrived.remove(id);
         for(String id: processed.keySet())
             if(!containerModel.getTasks().containsKey(id))processed.remove(id);
+        /*for(TaskName id: containerModel.getTasks().keySet()){
+            if(!arrived.containsKey(id)){
+                arrived.put()
+            }
+        }*/
     }
     /*public static ConcurrentHashMap<String, Long> translate(ConcurrentHashMap<TaskName, ConcurrentHashMap<SystemStreamPartition, String>> offsets){
         ConcurrentHashMap<String, Long> newOffsets = new ConcurrentHashMap<>();
