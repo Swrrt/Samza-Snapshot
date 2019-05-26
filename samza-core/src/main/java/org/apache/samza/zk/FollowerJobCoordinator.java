@@ -141,6 +141,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             );
             this.metricsServer = new MetricsServer();
             this.metricsServer.setPort(8900 + Integer.parseInt(processorId));
+            this.metricsServer.start();
         }
     }
     // In YARN mode, we have containerId
@@ -177,6 +178,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             );
             this.metricsServer = new MetricsServer();
             this.metricsServer.setPort(8900 + Integer.parseInt(processorId));
+            this.metricsServer.start();
         }
     }
 

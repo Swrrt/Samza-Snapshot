@@ -37,6 +37,7 @@ public class MetricsServer {
     }
     public void register(String source, ReadableMetricsRegistry registry){
         if(source.startsWith("TaskName-Partition") && registry.getGroups().contains("org.apache.samza.container.TaskInstanceMetrics") || source.startsWith("samza-container-") && registry.getGroups().contains("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")) { // only send certain metrics
+            LOG.info("Registering " + source + " to MetricsServer");
             metrics.add(new Pair<>(source, registry));
         }
     }
