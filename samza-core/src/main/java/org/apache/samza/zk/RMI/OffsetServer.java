@@ -41,6 +41,9 @@ public class OffsetServer {
         processedOffsets.clear();
         beginOffsets.clear();
     }
+    public long getBeginOffset(String id){
+        return beginOffsets.get(id);
+    }
     public void setShutdownTime(String Id, long time){
         shutdownTime.put(Id, time);
     }

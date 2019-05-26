@@ -5,6 +5,7 @@ import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.SnapshotMetricsRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
+import org.apache.samza.metrics.reporter.Metrics;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
 import org.apache.samza.zk.RMI.LocalityServer;
@@ -16,6 +17,7 @@ import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
+import org.apache.samza.zk.RMI.MetricsClient;
 import org.apache.samza.zk.RMI.OffsetServer;
 
 //Need to bind
@@ -59,7 +61,7 @@ public class MixedLoadBalanceManager {
     private OffsetServer offsetServer = null;
     //private final int LOCALITY_RETRY_TIMES = 1;
     //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
-    private SnapshotMetricsRetriever metricsRetriever = null;
+    private SnapshotMetricsRetriever snapshotMetricsRetriever = null;
     private DelayEstimator delayEstimator = null;
     public MixedLoadBalanceManager(){
         config = null;
@@ -79,7 +81,7 @@ public class MixedLoadBalanceManager {
         localityServer = new LocalityServer();
         offsetServer = new OffsetServer();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
-        metricsRetriever = new SnapshotMetricsRetriever();
+        snapshotMetricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
         taskArrived = new HashMap<>();
         containerArrived = new HashMap<>();
@@ -118,9 +120,11 @@ public class MixedLoadBalanceManager {
             Group id is generated randomly in SamzaContainer(KafkaSystemFactory.getConsumer())
             So we need a way to catch them.
          */
-        metricsRetriever.initial(config.get("job.name"), config.get("job.loadbalance.inputtopic"));
-        metricsRetriever.setOffsetClient(config);
+
+        snapshotMetricsRetriever.initial(config.get("job.name"), config.get("job.loadbalance.inputtopic"));
+        snapshotMetricsRetriever.setOffsetClient(config);
         //kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
+
         oldJobModel = jobModel;
         updateFromJobModel(jobModel);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
@@ -138,7 +142,7 @@ public class MixedLoadBalanceManager {
         threshold = config.getDouble("job.loadbalance.threshold", 10.0);
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
-        //localityServer.start();
+        localityServer.start();
         offsetServer.start();
     }
     // Read container-host mapping from web
@@ -314,11 +318,12 @@ public class MixedLoadBalanceManager {
         return generateJobModel();
     }*/
     public void showMetrics(){
-        retrieveAvgBacklog();
-        retrieveArrivalRate();
-        retrieveProcessingSpeed();
-        retrieveArrived();
-        retrieveProcessed();
+        //retrieveArrivedAndProcessed();
+        //retrieveAvgBacklog();
+        //retrieveArrivalRate();
+        //retrieveProcessingSpeed();
+        //retrieveArrived();
+        //retrieveProcessed();
         retrieveFlushProcessed();
         Map<String, Long> tt = new HashMap<>();
         for(String container: containerArrived.keySet()) {
@@ -338,7 +343,7 @@ public class MixedLoadBalanceManager {
 
     /*public void flushMetrics(){
         writeLog("Flushing metrics");
-        metricsRetriever.flush();
+        snapshotMetricsRetriever.flush();
     }*/
 
     //Retrieve metrics (arrival rate, backlog, processing speed) and rebalance accordingly.
@@ -367,31 +372,6 @@ public class MixedLoadBalanceManager {
      */
 
 
-    /*
-        Check whether the job model is still overloaded.
-
-     */
-    /*public boolean checkOverload(Map<String, Long> unprocessedMessages, Map<String, Double> processingSpeed, JobModel tryJobModel){
-        Map<String, Long> unprocessedContainer = new HashMap<>();
-        Map<String, String> taskContainer = getTaskContainer(tryJobModel);
-        /*
-         Calculate unprocessed messages for containers
-
-        for (Map.Entry<String, Long> entry : unprocessedMessages.entrySet()) {
-            String containerId = taskContainer.get(entry.getKey());
-            if (!unprocessedContainer.containsKey(containerId)) {
-                unprocessedContainer.put(containerId, 0l);
-            }
-            unprocessedContainer.put(containerId, unprocessedContainer.get(containerId) + entry.getValue());
-        }
-        for(String containerId: processingSpeed.keySet()){
-            if(unprocessedContainer.containsKey(containerId)){
-                double rate = unprocessedContainer.get(containerId)/processingSpeed.get(containerId);
-                if(rate > threshold + 1e-9)return true;
-            }
-        }
-        return false;
-    }*/
 
     /*
         Move one task from most overloaded container to not overloaded container
@@ -569,10 +549,37 @@ public class MixedLoadBalanceManager {
         return dis;
     }*/
 
+    public void retrieveArrivedAndProcessed(long time){
+        HashMap<String, String> offsets;
+        taskProcessed.clear();
+        taskArrived.clear();
+        containerProcessed.clear();
+        containerArrived.clear();
+        for(String containerId: containerIds){
+            MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
+            offsets = client.getOffsets();
+            long s_arrived = 0, s_processed = 0;
+            for(Map.Entry<String, String> entry: offsets.entrySet()){
+                String id = entry.getKey();
+                String value = entry.getValue();
+                int i = value.indexOf('_');
+                long begin = offsetServer.getBeginOffset(id);
+                long arrived = Long.parseLong(value.substring(0, i)) - begin - 1, processed = Long.parseLong(value.substring(i+1)) - begin;
+                taskArrived.put(id, arrived);
+                taskProcessed.put(id, processed);
+                s_arrived += arrived;
+                s_processed += processed;
+            }
+            containerArrived.put(containerId, s_arrived);
+            containerProcessed.put(containerId, s_processed);
+        }
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrived: " + containerArrived);
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Processed: " + containerProcessed);
+    }
 
-    public void retrieveArrived(){
-        Map<Integer, Long> partitionArrived = metricsRetriever.retrieveArrived();
-        Map<Integer, Long> partitionArrivedTime = metricsRetriever.retrieveArrivedTime();
+    /*public void retrieveArrived(){
+        Map<Integer, Long> partitionArrived = snapshotMetricsRetriever.retrieveArrived();
+        Map<Integer, Long> partitionArrivedTime = snapshotMetricsRetriever.retrieveArrivedTime();
         taskArrived.clear();
         containerArrived.clear();
         containerArrivedTime.clear();
@@ -598,11 +605,11 @@ public class MixedLoadBalanceManager {
             }
             containerArrivedTime.put(container, time);
         }
-    }
+    }*/
 
     public void retrieveFlushProcessed(){
         containerFlushProcessed.clear();
-        Map<String, Long> processed =  metricsRetriever.retrieveFlushProcessed();
+        Map<String, Long> processed =  snapshotMetricsRetriever.retrieveFlushProcessed();
         for(Map.Entry<String, Long> entry: processed.entrySet()){
             String container = entry.getKey();
             long processe = entry.getValue();
@@ -614,10 +621,10 @@ public class MixedLoadBalanceManager {
         }
     }
 
-    public void retrieveProcessed(){
+    /*public void retrieveProcessed(){
         taskProcessed.clear();
         containerProcessed.clear();
-        Map<String, Long> processed =  metricsRetriever.retrieveProcessed();
+        Map<String, Long> processed =  snapshotMetricsRetriever.retrieveProcessed();
         for(Map.Entry<String, Long> entry: processed.entrySet()){
             String task = entry.getKey();
             long processe = entry.getValue();
@@ -628,12 +635,12 @@ public class MixedLoadBalanceManager {
             }
             containerProcessed.put(container, processe);
         }
-    }
+    }*/
     /*
         Using metrics
      */
-    public void retrieveAvgBacklog(){
-        Map<Integer, Double> partitionBacklog = metricsRetriever.retrieveAvgBacklog();//kafkaOffsetRetriever.retrieveBacklog();
+    /*public void retrieveAvgBacklog(){
+        Map<Integer, Double> partitionBacklog = snapshotMetricsRetriever.retrieveAvgBacklog();//kafkaOffsetRetriever.retrieveBacklog();
         taskBacklogs.clear();
         containerBacklogs.clear();
         for(Map.Entry<Integer, Double> entry: partitionBacklog.entrySet()){
@@ -650,7 +657,7 @@ public class MixedLoadBalanceManager {
         writeLog("Average Backlog: " + containerBacklogs);
     }
     public void retrieveArrivalRate(){
-        Map<Integer, Double> partitionArrivalRate = metricsRetriever.retrieveArrivalRate();//kafkaOffsetRetriever.retrieveBacklog();
+        Map<Integer, Double> partitionArrivalRate = snapshotMetricsRetriever.retrieveArrivalRate();//kafkaOffsetRetriever.retrieveBacklog();
         taskArrivalRate.clear();
         containerArrivalRate.clear();
         for(Map.Entry<Integer, Double> entry: partitionArrivalRate.entrySet()){
@@ -669,7 +676,7 @@ public class MixedLoadBalanceManager {
     public void retrieveProcessingSpeed(){
         taskProcessingSpeed.clear();
         containerProcessingSpeed.clear();
-        Map<String, Double> retrieved =  metricsRetriever.retrieveProcessingSpeed();
+        Map<String, Double> retrieved =  snapshotMetricsRetriever.retrieveProcessingSpeed();
         for(Map.Entry<String, Double> entry: retrieved.entrySet()){
             String task = entry.getKey();
             double speed = entry.getValue();
@@ -681,7 +688,7 @@ public class MixedLoadBalanceManager {
             containerProcessingSpeed.put(container, speed);
         }
         writeLog("Processing Speed: " + containerProcessingSpeed);
-    }
+    }*/
 
     /*
        TODO: update all metrics and check if load is balance.
@@ -716,9 +723,9 @@ public class MixedLoadBalanceManager {
     public boolean checkLoad(){
         writeLog("Check if all containers are not overload");
         updateFromJobModel(oldJobModel);
-        retrieveAvgBacklog(); //Update backlog
-        retrieveArrivalRate(); //Update arrival rate
-        retrieveProcessingSpeed(); //Update processing speed
+//        retrieveAvgBacklog(); //Update backlog
+//        retrieveArrivalRate(); //Update arrival rate
+//        retrieveProcessingSpeed(); //Update processing speed
         double maxDelay = -1;
         for(String containerId: containerIds){
             if(!containerBacklogs.containsKey(containerId)){
@@ -751,15 +758,15 @@ public class MixedLoadBalanceManager {
     }*/
 
     public void updateMetrics(ConsumerRecord<String, String> record){
-        metricsRetriever.update(record);
+        snapshotMetricsRetriever.update(record);
         //TODO: update delay estimator
 
     }
 
     public boolean readyToRebalance(){
-        retrieveAvgBacklog();
+       /* retrieveAvgBacklog();
         retrieveArrivalRate();
-        retrieveProcessingSpeed();
+        retrieveProcessingSpeed();*/
         if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size() && taskArrivalRate.size() == taskContainer.size()){
             writeLog("Ready to rebalance");
             return true;

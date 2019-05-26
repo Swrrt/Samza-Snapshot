@@ -157,7 +157,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     // Update leader's address from kafka metric topic
     public boolean updateLeader(ConsumerRecord<String, String> record){
-        balanceManager.updateMetrics(record);
+        //balanceManager.updateMetrics(record);
         try {
             JSONObject json = new JSONObject(record.value());
             String jobName = json.getJSONObject("header").getString("job-name");

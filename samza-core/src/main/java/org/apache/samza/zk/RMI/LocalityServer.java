@@ -35,6 +35,11 @@ public class LocalityServer {
     public String getLocality(String processorId){
         return locality.get(processorId);
     }
+    public HashMap<String, String> getLocalities(){
+        HashMap<String, String> local = new HashMap<>();
+        local.putAll(locality);
+        return local;
+    }
     private void writeLog(String log){
         System.out.println(log);
     }
