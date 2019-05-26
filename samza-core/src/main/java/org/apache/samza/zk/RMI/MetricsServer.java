@@ -26,6 +26,7 @@ public class MetricsServer {
     HashMap<String, Long> processed;
     HashMap<String, Object> arrived;
     MetricsMessageImpl impl;
+    String topic = "";
     int port = 8886;
     public MetricsServer(){
         metrics = new LinkedList<>();
@@ -35,6 +36,7 @@ public class MetricsServer {
     public void setPort(int port){
         this.port = port;
     }
+    public void setTopic(String topic){this.topic = topic;}
     public void register(String source, ReadableMetricsRegistry registry){
         if(source.startsWith("TaskName-Partition") && registry.getGroups().contains("org.apache.samza.container.TaskInstanceMetrics") || source.startsWith("samza-container-") && registry.getGroups().contains("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")) { // only send certain metrics
             LOG.info("Registering " + source + " to MetricsServer");
@@ -42,10 +44,10 @@ public class MetricsServer {
         }
     }
     public void start(){
-        LOG.info("Metrics Server starting at port: " + port + "...");
+        LOG.info("Metrics Server starting at port: " + port + " with topic: " + topic + "...");
         try{
             Registry registry = LocateRegistry.createRegistry(port);
-            impl = new MetricsMessageImpl(metrics, arrived, processed);
+            impl = new MetricsMessageImpl(metrics, arrived, processed, topic);
             registry.rebind("myMetrics", impl);
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());

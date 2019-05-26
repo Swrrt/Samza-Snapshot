@@ -17,10 +17,11 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
     HashMap<String, Object> arrived;
     HashMap<String, Long> processed;
     String topic;
-    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, HashMap<String, Object> arrived, HashMap<String, Long> processed)throws RemoteException {
+    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, HashMap<String, Object> arrived, HashMap<String, Long> processed, String topic)throws RemoteException {
         this.metrics = metrics;
         this.arrived = arrived;
         this.processed = processed;
+        this.topic = topic;
         //this.beginOffset = new ConcurrentHashMap<>();
         //this.lastProcessedOffset = new ConcurrentHashMap<>();
     }
