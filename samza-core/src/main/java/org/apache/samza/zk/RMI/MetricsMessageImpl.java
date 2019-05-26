@@ -86,7 +86,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
         for(String id: arrived.keySet()){
             long arrive = 0;
             if(arrived.containsKey(id)){
-                arrive = (Long)arrived.get(id);
+                arrive = Long.parseLong(arrived.get(id).toString());
             }
             //arrive -= beginOffset.get(id);
 
@@ -97,6 +97,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
             ret.put(id, arrive + "_" + processe);
         }
+        System.out.println("Return: " + ret);
         return ret;
     }
 }
