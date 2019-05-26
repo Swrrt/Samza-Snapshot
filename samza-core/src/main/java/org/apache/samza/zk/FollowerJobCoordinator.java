@@ -170,7 +170,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         });
         //jvmMonitor = new JVMMonitor();
         if(config.getBoolean("job.loadbalance.on", false)) {
-            this.localityClient = new LocalityClient(config.get("containerlocalityserver.address", ""), Integer.parseInt(config.get("containerlocalityserver.port", "8881")));
+            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "8881")));
             this.offsetClient = new OffsetClient(
                     config.get("job.loadbalance.offsetserver.address",""),
                     Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
