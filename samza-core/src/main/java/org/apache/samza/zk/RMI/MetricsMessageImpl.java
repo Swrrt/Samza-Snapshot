@@ -78,7 +78,6 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                         }
                     }
                 }
-
             }
         }
         System.out.println("Arrived: " + arrived);
