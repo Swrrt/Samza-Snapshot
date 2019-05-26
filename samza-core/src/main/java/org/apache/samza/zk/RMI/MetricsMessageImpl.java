@@ -60,7 +60,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                     System.out.println("samza-container- : " + pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics"));
                     for(Map.Entry<String, Metric> entry : pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").entrySet()){
                         String metricName = entry.getKey();
-                        if(metricName.startsWith("kafka-" + topic.toLowerCase() + "-") && metricName.endsWith("-high-watermark")){
+                        if(metricName.startsWith("kafka-" + topic.toLowerCase() + "-") && metricName.endsWith("-high-watermark") && !metricName.endsWith("behind-high-watermark")){
                             int i = ("kafka-" + topic.toLowerCase() + "-").length();
                             int j = metricName.indexOf('-', i);
                             String id = "Partition " + metricName.substring(i,j);
