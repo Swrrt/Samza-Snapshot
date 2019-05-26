@@ -32,6 +32,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
     }*/
     public HashMap<String, String> getArrivedAndProcessed(){
         HashMap<String, String> ret = new HashMap<>();
+        System.out.println("Metrics: " + metrics);
         for(Pair<String, ReadableMetricsRegistry> pair: metrics){
             if(pair.getKey().startsWith("TaskName-Partition")){
                 String id = pair.getKey().substring(9);
