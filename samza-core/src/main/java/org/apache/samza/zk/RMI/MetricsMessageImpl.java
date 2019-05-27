@@ -33,12 +33,12 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
     }*/
     public HashMap<String, String> getArrivedAndProcessed(){
         HashMap<String, String> ret = new HashMap<>();
-        System.out.println("Metrics: " + metrics);
+        //System.out.println("Metrics: " + metrics);
         for(Pair<String, ReadableMetricsRegistry> pair: metrics){
             if(pair.getKey().startsWith("TaskName-Partition")){
                 String id = pair.getKey().substring(9);
                 if(pair.getValue().getGroups().contains("org.apache.samza.container.TaskInstanceMetrics")) { // Has processed metrics
-                    System.out.println(pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics"));
+          //          System.out.println(pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics"));
                     pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-total-processed").visit(new MetricsVisitor() {
                         @Override
                         public void counter(Counter counter) {
@@ -57,7 +57,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             }else if(pair.getKey().startsWith("samza-container-")){ // Has arrived metrics
                 //System.out.println("samza-container- : " + pair.getValue().getGroups());
                 if(pair.getValue().getGroups().contains("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")){
-                    System.out.println("samza-container- : " + pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics"));
+            //        System.out.println("samza-container- : " + pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics"));
                     for(Map.Entry<String, Metric> entry : pair.getValue().getGroup("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").entrySet()){
                         String metricName = entry.getKey();
                         if(metricName.startsWith("kafka-" + topic.toLowerCase() + "-") && metricName.endsWith("-high-watermark") && !metricName.endsWith("behind-high-watermark")){
@@ -81,8 +81,8 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                 }
             }
         }
-        System.out.println("Arrived: " + arrived);
-        System.out.println("Processed: " + processed);
+        //System.out.println("Arrived: " + arrived);
+        //System.out.println("Processed: " + processed);
         for(String id: arrived.keySet()){
             long arrive = 0;
             if(arrived.containsKey(id)){

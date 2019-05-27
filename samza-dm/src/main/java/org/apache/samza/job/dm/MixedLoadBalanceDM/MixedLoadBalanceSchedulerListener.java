@@ -55,6 +55,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
 
             long time = System.currentTimeMillis() ;
             loadBalanceManager.retrieveArrivedAndProcessed(time);
+            loadBalanceManager.updateDelay(time);
             if(time - lastReportTime >= reportInterval){
                  lastReportTime = time;
                  writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);
@@ -72,9 +73,9 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             if(leaderComes) {
                 long nowTime = System.currentTimeMillis();
                 if(nowTime - lastTime >= rebalanceInterval) {
-                    writeLog("Try to rebalance");
+                    /*writeLog("Try to rebalance");
                     if(!config.getBoolean("job.loadbalance.testmetrics", false))scheduler.updateJobModel();
-                    lastTime = nowTime;
+                    lastTime = nowTime;*/
                 }else{
                     //writeLog("Smaller than rebalanceInterval, wait for next loop");
                 }

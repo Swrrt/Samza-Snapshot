@@ -36,7 +36,6 @@ public class MixedLoadBalanceManager {
     private Map<Integer, String> partitionTask = null;
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
-
     // Metrics
     private Map<String, Long> taskArrived = null;
     private Map<String, Long> containerArrived = null;
@@ -317,7 +316,7 @@ public class MixedLoadBalanceManager {
         }
         return generateJobModel();
     }*/
-    public void showMetrics(){
+    /*public void showMetrics(){
         //retrieveArrivedAndProcessed();
         //retrieveAvgBacklog();
         //retrieveArrivalRate();
@@ -338,7 +337,7 @@ public class MixedLoadBalanceManager {
         //writeLog("Backlog: " + containerBacklogs);
         //writeLog("Arrival rate: " + containerArrivalRate);
         //writeLog("Processing rate: " + containerProcessingSpeed);
-    }
+    }*/
 
 
     /*public void flushMetrics(){
@@ -464,7 +463,7 @@ public class MixedLoadBalanceManager {
             if(migrateTaskId.equals("")){
                 writeLog("Cannot find a available migration");
 
-                //Test
+                /*//Test
                 Object [] tasks = taskContainer.keySet().toArray();
                 targetContainerId = containerIds.iterator().next();
                 Random generator = new Random();
@@ -474,7 +473,7 @@ public class MixedLoadBalanceManager {
                         targetContainerId = containerId;
                     }
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-                newTaskContainer.put(migrateTaskId, targetContainerId);
+                newTaskContainer.put(migrateTaskId, targetContainerId);*/
 
             }else{
                 writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
@@ -484,7 +483,7 @@ public class MixedLoadBalanceManager {
             writeLog("Cannot find available operator to re-balance");
 
 
-            //Test, randomly choose one task to migrate
+            /*//Test, randomly choose one task to migrate
             Object [] tasks = taskContainer.keySet().toArray();
             String migrateTaskId, targetContainerId = containerIds.iterator().next();
             Random generator = new Random();
@@ -494,7 +493,7 @@ public class MixedLoadBalanceManager {
                     targetContainerId = containerId;
                 }
             writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
-            newTaskContainer.put(migrateTaskId, targetContainerId);
+            newTaskContainer.put(migrateTaskId, targetContainerId);*/
         }
         return newTaskContainer;
     }
@@ -551,6 +550,7 @@ public class MixedLoadBalanceManager {
 
     public void retrieveArrivedAndProcessed(long time){
         HashMap<String, String> offsets;
+        //timePoints.add(time);
         taskProcessed.clear();
         taskArrived.clear();
         containerProcessed.clear();
@@ -559,14 +559,18 @@ public class MixedLoadBalanceManager {
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
             offsets = client.getOffsets();
             long s_arrived = 0, s_processed = 0;
+            long d_completed = 0;
             for(Map.Entry<String, String> entry: offsets.entrySet()){
                 String id = entry.getKey();
                 String value = entry.getValue();
                 int i = value.indexOf('_');
                 long begin = offsetServer.getBeginOffset(id);
                 long arrived = Long.parseLong(value.substring(0, i)) - begin - 1, processed = Long.parseLong(value.substring(i+1)) - begin;
+                //delayEstimator.updatePartitionArrived(id, time, arrived);
                 taskArrived.put(id, arrived);
+                //delayEstimator.updatePartitionCompleted(id, time, processed);
                 taskProcessed.put(id, processed);
+                //delayEstimator.updatePartitionBacklog(id, time, containerId, arrived - processed);
                 s_arrived += arrived;
                 s_processed += processed;
             }
@@ -575,6 +579,16 @@ public class MixedLoadBalanceManager {
         }
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrived: " + containerArrived);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Processed: " + containerProcessed);
+    }
+
+    public void updateDelay(long time){
+        delayEstimator.updateAtTime(time, taskArrived, taskProcessed, oldJobModel);
+        HashMap<String, Double> delays = new HashMap<>();
+        for(String containerId: containerIds){
+            double delay = delayEstimator.estimateDelay(containerId, time, time);
+            delays.put(containerId, delay);
+        }
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Delay: " + delays);
     }
 
     /*public void retrieveArrived(){
