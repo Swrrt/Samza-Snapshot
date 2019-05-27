@@ -64,7 +64,7 @@ public class SnapshotMetricsRetriever {
         JSONObject json = new JSONObject(record.value());
         //writeLog("What happened: " + json);
 
-        try {
+        /*try {
             if (!isOurApp(json, app)) return;
             //writeLog("Our apps's record");
             String kafkaMetrics = json.getJSONObject("metrics").getJSONObject("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics").toString();
@@ -84,21 +84,21 @@ public class SnapshotMetricsRetriever {
             }
         }catch (Exception e) {
             //writeLog("Exception when read kafkaSystemConsumerMetrics: "+e);
-        }
+        }*/
         /*try{
             if(!isOurApp(json, app)) return;
             updateFromTask(json);
         }catch (Exception e){
             writeLog(e.toString());
         }*/
-        try{
+        /*try{
             if (!isOurApp(json, app)) return;
             updateProcessed(json);
                 //writeLog("TaskName: " + taskName + "   lastTime: " + lastTime + " lastProcessed: " + lastProcessed + " lastSpeed: " + lastSpeed + " delta: " +delta);
                 //writeLog("TaskName: " + taskName + "   Time: " + currentTime + " Processed: " + currentProcessed + " Speed: " + newSpeed);
         }catch (Exception e){
             writeLog("Error when parse processing taskMetrics: "+ e);
-        }
+        }*/
 
         //For validation
         try{

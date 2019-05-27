@@ -772,6 +772,9 @@ public class MixedLoadBalanceManager {
     public HashMap getUtilMap(){
         return utilizationServer.getAndRemoveUtilizationMap();
     }*/
+    public void showDelayMetrics(){
+        delayEstimator.showExecutors();
+    }
 
     public void updateMetrics(ConsumerRecord<String, String> record){
         snapshotMetricsRetriever.update(record);

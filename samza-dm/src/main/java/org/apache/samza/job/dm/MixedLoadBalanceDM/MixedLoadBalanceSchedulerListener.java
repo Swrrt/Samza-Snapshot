@@ -75,6 +75,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             if(leaderComes) {
                 long nowTime = System.currentTimeMillis();
                 if(nowTime - lastTime >= rebalanceInterval) {
+                    loadBalanceManager.showDelayMetrics();
                     /*writeLog("Try to rebalance");
                     if(!config.getBoolean("job.loadbalance.testmetrics", false))scheduler.updateJobModel();
                     lastTime = nowTime;*/

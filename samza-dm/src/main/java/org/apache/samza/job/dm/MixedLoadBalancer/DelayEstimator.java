@@ -1,5 +1,6 @@
 package org.apache.samza.job.dm.MixedLoadBalancer;
 
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
@@ -150,10 +151,43 @@ public class DelayEstimator {
         if(size > 0) delay /= size;
         return delay;
     }
-
-    public void migration(long time, long lastTime){
+    public void migration(long time, String srcExecutorId, String tgtExecutorId, String partionId){
         //TODO:
+        //Reduce source containers' backlog
+        long backlog = partitionStates.get(partionId).backlog.get(time).get(srcExecutorId);
+        long arrived = partitionStates.get(partionId).arrived.get(time);
+        for(int i = timePoints.size() - 1 ; i >=0 ; i--){
+            long tTime = timePoints.get(i);
+            long tArrived = partitionStates.get(partionId).arrived.get(tTime);
+            if(tArrived < arrived - backlog){
+                break;
+            }
+            long sBacklog = partitionStates.get(partionId).backlog.get(tTime).get(srcExecutorId);
+            long tBacklog = partitionStates.get(partionId).backlog.get(tTime).get(tgtExecutorId);
+            partitionStates.get(partionId).backlog.get(tTime).put(srcExecutorId, sBacklog - (tArrived - (arrived - backlog)));
+            partitionStates.get(partionId).backlog.get(tTime).put(tgtExecutorId, tBacklog + (tArrived - (arrived - backlog)));
+        }
     }
+    public void showExecutors(){
+        for(String id: executorStates.keySet()){
+            showExecutor(id);
+        }
+    }
+    public void showExecutor(String executorId){
+        HashMap<String, Long> backlog = new HashMap<>();
+        writeLog("DelayEstimator, show executor " + executorId);
+        for(int i=0;i<timePoints.size();i++){
+            long time = timePoints.get(i);
+            backlog.clear();
+            for(int partition = 0; partition < partitionStates.keySet().size(); partition ++){
+                String id = "Partition " + partition;
+                backlog.put(String.valueOf(partition), getPartitionBacklog(id, time, executorId));
+            }
+            writeLog("DelayEstimator, time: " + time + " Completed: " + getExecutorCompleted(executorId, time) + " Backlog: " + backlog);
+        }
+        writeLog("DelayEstimator, end of executor " + executorId);
+    }
+
     private void writeLog(String string){
         System.out.println("DelayEstimator: " + string);
     }
