@@ -119,7 +119,7 @@ public class DelayEstimator {
                 arrived += getPartitionBacklog(id, time, executorId);
             }
             if(arrived >= completed){
-                return (arrived - lastArrived) / (double)(time - lastTime);
+                return lastTime + (completed - lastArrived) *  (double)(time - lastTime) / (double)(arrived - lastArrived) ;
             }
             lastTime = time;
             lastArrived = arrived;
