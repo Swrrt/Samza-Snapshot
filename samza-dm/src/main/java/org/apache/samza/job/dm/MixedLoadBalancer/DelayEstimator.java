@@ -139,8 +139,10 @@ public class DelayEstimator {
             if(tTime >= lastTime){
                 long completed = getExecutorCompleted(executorId, tTime);
                 long lastCompleted = getExecutorCompleted(executorId, tLastTime);
-                delay += (completed - lastCompleted) * findArrivedTime(executorId, completed);
+                double estimateArrive = findArrivedTime(executorId, completed);
+                delay += (completed - lastCompleted) * (tTime - estimateArrive);
                 size += completed - lastCompleted;
+                writeLog("For container " + executorId + ", estimated arrive time for completed " + completed + "(at time " + tTime + " is: " + estimateArrive + ", size is: " + (completed - lastCompleted));
             }
             tLastTime = tTime;
         }
@@ -149,6 +151,9 @@ public class DelayEstimator {
     }
 
     public void migration(long time, long lastTime){
-
+        //TODO:
+    }
+    private void writeLog(String string){
+        System.out.println("DelayEstimator: " + string);
     }
 }
