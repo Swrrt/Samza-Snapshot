@@ -112,6 +112,7 @@ public class DelayEstimator {
     public double findArrivedTime(String executorId, long completed){
         long lastTime = 0;
         long lastArrived = 0;
+        if(completed == 0)return 0;
         for(int i=0;i<timePoints.size(); i++){
             long time = timePoints.get(i);
             long arrived = getExecutorCompleted(executorId, time);
@@ -142,7 +143,7 @@ public class DelayEstimator {
                 double estimateArrive = findArrivedTime(executorId, completed);
                 delay += (completed - lastCompleted) * (tTime - estimateArrive);
                 size += completed - lastCompleted;
-                writeLog("For container " + executorId + ", estimated arrive time for completed " + completed + "(at time " + tTime + " is: " + estimateArrive + ", size is: " + (completed - lastCompleted));
+                //writeLog("For container " + executorId + ", estimated arrive time for completed " + completed + "(at time " + tTime + " is: " + estimateArrive + ", size is: " + (completed - lastCompleted));
             }
             tLastTime = tTime;
         }
