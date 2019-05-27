@@ -23,15 +23,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MetricsServer {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsServer.class);
     List<Pair<String, ReadableMetricsRegistry>> metrics;
-    HashMap<String, Long> processed;
-    HashMap<String, Object> arrived;
+    ConcurrentHashMap<String, Long> processed;
+    ConcurrentHashMap<String, Object> arrived;
     MetricsMessageImpl impl;
     String topic = "";
     int port = 8886;
     public MetricsServer(){
         metrics = new LinkedList<>();
-        processed = new HashMap<>();
-        arrived = new HashMap<>();
+        processed = new ConcurrentHashMap<>();
+        arrived = new ConcurrentHashMap<>();
     }
     public void setPort(int port){
         this.port = port;

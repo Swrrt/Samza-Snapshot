@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMessage {
     List<Pair<String, ReadableMetricsRegistry>> metrics;
     //ConcurrentHashMap<String, Long> beginOffset, lastProcessedOffset;
-    HashMap<String, Object> arrived;
-    HashMap<String, Long> processed;
+    ConcurrentHashMap<String, Object> arrived;
+    ConcurrentHashMap<String, Long> processed;
     String topic;
-    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, HashMap<String, Object> arrived, HashMap<String, Long> processed, String topic)throws RemoteException {
+    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, ConcurrentHashMap<String, Object> arrived, ConcurrentHashMap<String, Long> processed, String topic)throws RemoteException {
         this.metrics = metrics;
         this.arrived = arrived;
         this.processed = processed;
@@ -70,7 +70,9 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                                 }
                                 @Override
                                 public <T> void gauge(Gauge<T> gauge) {
-                                    arrived.put(id, gauge);
+                                    if(Long.parseLong(gauge.toString()) != -1) {
+                                        arrived.put(id, gauge);
+                                    }
                                 }
                                 @Override
                                 public void timer(Timer timer) {

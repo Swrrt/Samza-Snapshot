@@ -12,6 +12,7 @@ import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
@@ -559,13 +560,14 @@ public class MixedLoadBalanceManager {
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
             offsets = client.getOffsets();
             long s_arrived = 0, s_processed = 0;
-            long d_completed = 0;
             for(Map.Entry<String, String> entry: offsets.entrySet()){
                 String id = entry.getKey();
                 String value = entry.getValue();
                 int i = value.indexOf('_');
                 long begin = offsetServer.getBeginOffset(id);
                 long arrived = Long.parseLong(value.substring(0, i)) - begin - 1, processed = Long.parseLong(value.substring(i+1)) - begin;
+                if(arrived < 0) arrived = 0;
+                if(processed < 0) processed = 0;
                 //delayEstimator.updatePartitionArrived(id, time, arrived);
                 taskArrived.put(id, arrived);
                 //delayEstimator.updatePartitionCompleted(id, time, processed);
