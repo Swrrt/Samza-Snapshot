@@ -85,8 +85,8 @@ public class DelayEstimator {
             long d_completed = 0;
             for (TaskName taskName : containerModel.getTasks().keySet()) {
                 String id = taskName.getTaskName();
-                long arrived = taskArrived.get(id);
-                long processed = taskProcessed.get(id);
+                long arrived = taskArrived.getOrDefault(id, 0l);
+                long processed = taskProcessed.getOrDefault(id, 0l);
                 updatePartitionArrived(id, time, arrived);
                 updatePartitionCompleted(id, time, processed);
                 //Update partition backlog
