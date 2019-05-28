@@ -63,11 +63,19 @@ public class MetricsServer {
         impl.setOffset(beginOffset, lastProcessedOffset);
     }*/
     public void setContainerModel(ContainerModel containerModel){
-        LOG.info("Remove useless information based on container model");
-        for(String id: arrived.keySet())
-            if(!containerModel.getTasks().containsKey(id))arrived.remove(id);
-        for(String id: processed.keySet())
-            if(!containerModel.getTasks().containsKey(id))processed.remove(id);
+        LOG.info("Remove useless information based on container model: " + containerModel.getTasks().keySet());
+        for(String id: arrived.keySet()) {
+            if (!containerModel.getTasks().containsKey(new TaskName(id))){
+                arrived.remove(id);
+                LOG.info("Remove " + id + "offsets");
+            }
+        }
+        for(String id: processed.keySet()) {
+            if (!containerModel.getTasks().containsKey(new TaskName(id))) {
+                processed.remove(id);
+                LOG.info("Remove " + id + "offsets");
+            }
+        }
         /*for(TaskName id: containerModel.getTasks().keySet()){
             if(!arrived.containsKey(id)){
                 arrived.put()
