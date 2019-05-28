@@ -189,18 +189,18 @@ public class DelayEstimator {
     public void migration(long time, String srcExecutorId, String tgtExecutorId, String partionId){
         //TODO:
         //Reduce source containers' backlog
-        long backlog = partitionStates.get(partionId).backlog.get(time).get(srcExecutorId);
-        long arrived = partitionStates.get(partionId).arrived.get(time);
+        long backlog = getPartitionBacklog(partionId, time, srcExecutorId);
+        long arrived = getPartitionArrived(partionId, time);
         for(int i = timePoints.size() - 1 ; i >=0 ; i--){
             long tTime = timePoints.get(i);
-            long tArrived = partitionStates.get(partionId).arrived.get(tTime);
+            long tArrived = getPartitionArrived(partionId, tTime);
             if(tArrived < arrived - backlog){
                 break;
             }
-            long sBacklog = partitionStates.get(partionId).backlog.get(tTime).get(srcExecutorId);
-            long tBacklog = partitionStates.get(partionId).backlog.get(tTime).get(tgtExecutorId);
-            partitionStates.get(partionId).backlog.get(tTime).put(srcExecutorId, sBacklog - (tArrived - (arrived - backlog)));
-            partitionStates.get(partionId).backlog.get(tTime).put(tgtExecutorId, tBacklog + (tArrived - (arrived - backlog)));
+            long sBacklog = getPartitionBacklog(partionId, tTime, srcExecutorId);
+            long tBacklog = getPartitionBacklog(partionId, tTime, tgtExecutorId);
+            updatePartitionBacklog(partionId, tTime, srcExecutorId, sBacklog - (tArrived - (arrived - backlog)));
+            updatePartitionBacklog(partionId, tTime, tgtExecutorId, tBacklog + (tArrived - (arrived - backlog)));
         }
     }
     public void showExecutors(String label){
