@@ -65,6 +65,20 @@ public class DelayEstimator {
         }
         return arrived;
     }
+    public Map<String, Long> getPartitionsArrived(long time){
+        HashMap<String, Long> arrived = new HashMap<>();
+        for(String id: partitionStates.keySet()){
+            arrived.put(id, getPartitionArrived(id, time));
+        }
+        return arrived;
+    }
+    public Map<String, Long> getPartitionsCompleted(long time){
+        HashMap<String, Long> completed = new HashMap<>();
+        for(String id: partitionStates.keySet()){
+            completed.put(id, getPartitionCompleted(id, time));
+        }
+        return completed;
+    }
     public long getPartitionCompleted(String partitionId, long time){
         long completed = 0;
         if(partitionStates.containsKey(partitionId) && partitionStates.get(partitionId).completed.containsKey(time)){
@@ -78,6 +92,27 @@ public class DelayEstimator {
             backlog = partitionStates.get(partitionId).backlog.get(time).getOrDefault(executorId, 0l);
         }
         return backlog;
+    }
+    public long getExecutorArrived(String executorId, long time){
+        long arrived = getExecutorCompleted(executorId, time);
+        for(String id:partitionStates.keySet()){
+            arrived += getPartitionBacklog(id, time, executorId);
+        }
+        return arrived;
+    }
+    public Map<String, Long> getExecutorsArrived(long time){
+        HashMap<String, Long> arrived = new HashMap<>();
+        for(String executorId: executorStates.keySet()){
+            arrived.put(executorId, getExecutorArrived(executorId, time));
+        }
+        return arrived;
+    }
+    public Map<String, Long> getExecutorsCompleted(long time){
+        HashMap<String, Long> completed = new HashMap<>();
+        for(String executorId: executorStates.keySet()){
+            completed.put(executorId, getExecutorCompleted(executorId, time));
+        }
+        return completed;
     }
     public void updateAtTime(long time, Map<String, Long> taskArrived, Map<String, Long> taskProcessed, JobModel jobModel) { //Normal update
         timePoints.add(time);
@@ -168,14 +203,14 @@ public class DelayEstimator {
             partitionStates.get(partionId).backlog.get(tTime).put(tgtExecutorId, tBacklog + (tArrived - (arrived - backlog)));
         }
     }
-    public void showExecutors(){
+    public void showExecutors(String label){
         for(String id: executorStates.keySet()){
-            showExecutor(id);
+            showExecutor(id, label);
         }
     }
-    public void showExecutor(String executorId){
+    public void showExecutor(String executorId, String label){
         HashMap<String, Long> backlog = new HashMap<>();
-        writeLog("DelayEstimator, show executor " + executorId);
+        writeLog("DelayEstimator, show executor " + executorId + " " + label);
         for(int i=0;i<timePoints.size();i++){
             long time = timePoints.get(i);
             backlog.clear();

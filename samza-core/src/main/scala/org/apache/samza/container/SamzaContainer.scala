@@ -1061,16 +1061,19 @@ class SamzaContainer(
     info("Shutting down offset manager.")
 
     if(offsetClient == null)offsetManager.stop
-    else offsetManager.stopWithOffsetClient(offsetClient)
+    else {
+      offsetManager.stopWithOffsetClient(offsetClient)
+      if(metricsServer != null){
+        metricsServer.clear();
+      }
+    }
   }
 
   def shutdownMetrics {
     info("Shutting down metrics reporters.")
 
     reporters.values.foreach(_.stop)
-    if(metricsServer != null){
-      metricsServer.clear();
-    }
+
     if (jvm != null) {
       info("Shutting down JVM metrics.")
 

@@ -41,10 +41,11 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
 
         writeLog("Subscribing to kafka metrics stream: " + metricsTopicName);
         leaderComes = false;
-        long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 20000);
+        long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 50000);
         long retrieveInterval = config.getInt("job.loadbalance.delay.interval.unit", 500);
         long lastReportTime = 0, reportInterval = 500, totalRecords = 0;
         long startTime = lastTime;
+        long migrationTimes = 0;
         while (true) {
             //writeLog("Try to retrieve report");
             try{
@@ -75,10 +76,12 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             if(leaderComes) {
                 long nowTime = System.currentTimeMillis();
                 if(nowTime - lastTime >= rebalanceInterval) {
-                    loadBalanceManager.showDelayMetrics();
-                    /*writeLog("Try to rebalance");
-                    if(!config.getBoolean("job.loadbalance.testmetrics", false))scheduler.updateJobModel();
-                    lastTime = nowTime;*/
+                    migrationTimes ++;
+                    loadBalanceManager.showDelayMetrics("before" + migrationTimes);
+                    writeLog("Try to rebalance");
+                    if(!config.getBoolean("job.loadbalance.testmetrics", false))scheduler.updateJobModel(time);
+                    loadBalanceManager.showDelayMetrics("after" + migrationTimes);
+                    lastTime = nowTime;
                 }else{
                     //writeLog("Smaller than rebalanceInterval, wait for next loop");
                 }

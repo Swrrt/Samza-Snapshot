@@ -132,11 +132,12 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             prevTime = report.getTime();
         }*/
     }
-    public void updateJobModel(){
+    public void updateJobModel(long time){
         if(balanceManager.readyToRebalance()){
             //Rebalance the JobModel
             JobModel oldJobModel = balanceManager.getOldJobModel();
-            JobModel newJobModel = balanceManager.rebalanceJobModel();
+            JobModel newJobModel = balanceManager.randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
+
             if(newJobModel == null){
                 //need to scale
                 writeLog("Need to scale up");
