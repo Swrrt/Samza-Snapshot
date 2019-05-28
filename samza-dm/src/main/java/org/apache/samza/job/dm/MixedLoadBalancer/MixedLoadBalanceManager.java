@@ -487,7 +487,6 @@ public class MixedLoadBalanceManager {
     //Test, randomly choose one task to migrate
     public JobModel randomMoveOneTask(long time){
         updateFromJobModel(oldJobModel);
-        HashMap<String, String> newTaskContainer = new HashMap<>();
         Object [] tasks = taskContainer.keySet().toArray();
         String migrateTaskId, targetContainerId = containerIds.iterator().next();
         Random generator = new Random();
@@ -499,8 +498,7 @@ public class MixedLoadBalanceManager {
             }
         writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
         delayEstimator.migration(time, oldContainerId, targetContainerId, migrateTaskId);
-        newTaskContainer.put(migrateTaskId, targetContainerId);
-        taskContainer = newTaskContainer;
+        taskContainer.put(migrateTaskId, targetContainerId);
         return generateJobModel();
     }
     public JobModel generateNewJobModel(Map<String, Double> arrivalRate, Map<String, Double> backlog, Map<String, Double> processingSpeed, JobModel oldJobModel){
