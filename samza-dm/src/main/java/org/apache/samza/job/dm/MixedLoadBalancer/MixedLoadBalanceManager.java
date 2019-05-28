@@ -241,7 +241,7 @@ public class MixedLoadBalanceManager {
         //store the new job model for future use;
         writeLog("Generating new job model...");
         writeLog("Containers: "+ containerIds);
-        writeLog("Task-Containers: " + taskContainer);
+        //writeLog("Task-Containers: " + taskContainer);
         //writeLog("Tasks: "+ taskContainer.keySet());
         Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
@@ -253,7 +253,7 @@ public class MixedLoadBalanceManager {
         //Add taskModel according to taskContainer
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
             String containerId = taskContainer.get(task.getKey());
-            writeLog("containerId: " + containerId);
+        //    writeLog("containerId: " + containerId);
             containerTasks.get(containerId).add(task.getValue());
         }
 

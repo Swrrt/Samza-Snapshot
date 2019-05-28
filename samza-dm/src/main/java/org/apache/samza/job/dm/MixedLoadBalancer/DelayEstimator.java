@@ -218,7 +218,7 @@ public class DelayEstimator {
                 String id = "Partition " + partition;
                 backlog.put(String.valueOf(partition), getPartitionBacklog(id, time, executorId));
             }
-            writeLog("DelayEstimator, time: " + time + " Completed: " + getExecutorCompleted(executorId, time) + " Backlog: " + backlog);
+            writeLog("DelayEstimator, time: " + time + " Arrived: " + getExecutorArrived(executorId, time) + " Completed: " + getExecutorCompleted(executorId, time) + " Backlog: " + backlog);
         }
         writeLog("DelayEstimator, end of executor " + executorId);
     }
