@@ -241,6 +241,7 @@ public class MixedLoadBalanceManager {
         //store the new job model for future use;
         writeLog("Generating new job model...");
         writeLog("Containers: "+ containerIds);
+        writeLog("Task-Containers: " + taskContainer);
         //writeLog("Tasks: "+ taskContainer.keySet());
         Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
         Map<String, ContainerModel> containers = new HashMap<>();
@@ -251,7 +252,9 @@ public class MixedLoadBalanceManager {
         }
         //Add taskModel according to taskContainer
         for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-            containerTasks.get(taskContainer.get(task.getKey())).add(task.getValue());
+            String containerId = taskContainer.get(task.getKey());
+            writeLog("containerId: " + containerId);
+            containerTasks.get(containerId).add(task.getValue());
         }
 
         for(String container: containerIds){
@@ -483,6 +486,7 @@ public class MixedLoadBalanceManager {
 
     //Test, randomly choose one task to migrate
     public JobModel randomMoveOneTask(long time){
+        updateFromJobModel(oldJobModel);
         HashMap<String, String> newTaskContainer = new HashMap<>();
         Object [] tasks = taskContainer.keySet().toArray();
         String migrateTaskId, targetContainerId = containerIds.iterator().next();
