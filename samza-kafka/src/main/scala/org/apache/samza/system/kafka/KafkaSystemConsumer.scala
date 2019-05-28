@@ -277,9 +277,9 @@ private[kafka] class KafkaSystemConsumer(
       }
 
       if(fetchLimitByBytesEnabled ) {
-        put(systemStreamPartition, new IncomingMessageEnvelope(systemStreamPartition, offset, key, message, getMessageSize(msg.message)))
+        put(systemStreamPartition, new IncomingMessageEnvelope(systemStreamPartition, offset, key, message, getMessageSize(msg.message), msg.message.timestamp))
       } else {
-        put(systemStreamPartition, new IncomingMessageEnvelope(systemStreamPartition, offset, key, message))
+        put(systemStreamPartition, new IncomingMessageEnvelope(systemStreamPartition, offset, key, message, msg.message.timestamp))
       }
 
       setIsAtHead(systemStreamPartition, isAtHead)

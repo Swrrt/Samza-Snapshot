@@ -172,6 +172,8 @@ class TaskInstance(
         offsetManager.update(taskName, envelope.getSystemStreamPartition, envelope.getOffset)
       }
     }
+
+    println(taskName + "," + (System.currentTimeMillis() - envelope.getTimestamp))
   }
 
   def endOfStream(coordinator: ReadableCoordinator): Unit = {

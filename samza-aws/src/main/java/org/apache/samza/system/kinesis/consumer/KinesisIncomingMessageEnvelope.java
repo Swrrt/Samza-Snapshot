@@ -34,8 +34,8 @@ public class KinesisIncomingMessageEnvelope extends IncomingMessageEnvelope {
   private final Date approximateArrivalTimestamp;
 
   public KinesisIncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key,
-      Object message, String shardId, String sequenceNumber, Date approximateArrivalTimestamp) {
-    super(systemStreamPartition, offset, key, message);
+                                        Object message, String shardId, String sequenceNumber, Date approximateArrivalTimestamp) {
+    super(systemStreamPartition, offset, key, message, System.currentTimeMillis());
     this.shardId = shardId;
     this.sequenceNumber = sequenceNumber;
     this.approximateArrivalTimestamp = approximateArrivalTimestamp;
@@ -56,7 +56,7 @@ public class KinesisIncomingMessageEnvelope extends IncomingMessageEnvelope {
   @Override
   public String toString() {
     return "KinesisIncomingMessageEnvelope:: shardId:" + shardId + ", sequenceNumber:" + sequenceNumber
-        + ", approximateArrivalTimestamp:" + approximateArrivalTimestamp + ", message:" + getMessage();
+            + ", approximateArrivalTimestamp:" + approximateArrivalTimestamp + ", message:" + getMessage();
   }
 
 }

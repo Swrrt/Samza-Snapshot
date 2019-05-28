@@ -36,6 +36,7 @@ public class IncomingMessageEnvelope {
   private final Object key;
   private final Object message;
   private final int size;
+  private final long timestamp;
 
   /**
    * Constructs a new IncomingMessageEnvelope from specified components.
@@ -45,8 +46,21 @@ public class IncomingMessageEnvelope {
    * @param key A deserialized key received from the partition offset.
    * @param message A deserialized message received from the partition offset.
    */
-  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message) {
-    this(systemStreamPartition, offset, key, message, 0);
+//  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message) {
+//    this(systemStreamPartition, offset, key, message, 0);
+//  }
+
+  /**
+   * Constructs a new IncomingMessageEnvelope from specified components.
+   * @param systemStreamPartition The aggregate object representing the incoming stream name, the name of the cluster
+   * from which the stream came, and the partition of the stream from which the message was received.
+   * @param offset The offset in the partition that the message was received from.
+   * @param key A deserialized key received from the partition offset.
+   * @param message A deserialized message received from the partition offset.
+   * @param timestamp timestamp of message.
+   */
+  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message, long timestamp) {
+    this(systemStreamPartition, offset, key, message, 0, timestamp);
   }
 
   /**
@@ -58,12 +72,31 @@ public class IncomingMessageEnvelope {
    * @param message A deserialized message received from the partition offset.
    * @param size size of the message and key in bytes.
    */
-  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message, int size) {
+//  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message, int size) {
+//    this.systemStreamPartition = systemStreamPartition;
+//    this.offset = offset;
+//    this.key = key;
+//    this.message = message;
+//    this.size = size;
+//  }
+
+  /**
+   * Constructs a new IncomingMessageEnvelope from specified components.
+   * @param systemStreamPartition The aggregate object representing the incoming stream name, the name of the cluster
+   * from which the stream came, and the partition of the stream from which the message was received.
+   * @param offset The offset in the partition that the message was received from.
+   * @param key A deserialized key received from the partition offset.
+   * @param message A deserialized message received from the partition offset.
+   * @param size size of the message and key in bytes.
+   * @param timestamp timestamp of message.
+   */
+  public IncomingMessageEnvelope(SystemStreamPartition systemStreamPartition, String offset, Object key, Object message, int size, long timestamp) {
     this.systemStreamPartition = systemStreamPartition;
     this.offset = offset;
     this.key = key;
     this.message = message;
     this.size = size;
+    this.timestamp = timestamp;
   }
 
   public SystemStreamPartition getSystemStreamPartition() {
@@ -82,6 +115,10 @@ public class IncomingMessageEnvelope {
     return message;
   }
 
+  public long getTimestamp(){
+    return timestamp;
+  }
+
   public int getSize() {
     return size;
   }
@@ -97,11 +134,11 @@ public class IncomingMessageEnvelope {
    * @return an IncomingMessageEnvelope corresponding to end-of-stream for that SSP.
    */
   public static IncomingMessageEnvelope buildEndOfStreamEnvelope(SystemStreamPartition ssp) {
-    return new IncomingMessageEnvelope(ssp, END_OF_STREAM_OFFSET, null, new EndOfStreamMessage(null));
+    return new IncomingMessageEnvelope(ssp, END_OF_STREAM_OFFSET, null, new EndOfStreamMessage(null), 0);
   }
 
   public static IncomingMessageEnvelope buildWatermarkEnvelope(SystemStreamPartition ssp, long watermark) {
-    return new IncomingMessageEnvelope(ssp, null, null, new WatermarkMessage(watermark, null));
+    return new IncomingMessageEnvelope(ssp, null, null, new WatermarkMessage(watermark, null), 0);
   }
 
   @Override
@@ -149,6 +186,6 @@ public class IncomingMessageEnvelope {
 
   @Override
   public String toString() {
-    return "IncomingMessageEnvelope [systemStreamPartition=" + systemStreamPartition + ", offset=" + offset + ", key=" + key + ", message=" + message + "]";
+    return "IncomingMessageEnvelope [systemStreamPartition=" + systemStreamPartition + ", offset=" + offset + ", key=" + key + ", message=" + message + "timestamp=" + timestamp + "]";
   }
 }
