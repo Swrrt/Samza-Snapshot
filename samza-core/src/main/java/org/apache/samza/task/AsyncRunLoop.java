@@ -141,6 +141,11 @@ public class AsyncRunLoop implements Runnable, Throttleable {
 
       long prevNs = clock.nanoTime();
 
+      long start = clock.nanoTime();
+      long processTime = 0;
+      long timeInterval = 0;
+      int tuples = 0;
+
       while (!shutdownNow) {
         if (throwable != null) {
           log.error("Caught throwable and stopping run loop", throwable);
@@ -170,9 +175,26 @@ public class AsyncRunLoop implements Runnable, Throttleable {
         prevNs = currentNs;
         containerMetrics.blockNs().update(currentNs - blockNs);
 
-        if (totalNs != 0) {
+//        if (totalNs != 0) {
+//          // totalNs is not 0 if timer metrics are enabled
+//          containerMetrics.utilization().set(((double) activeNs) / totalNs);
+//        }
+
+        processTime += activeNs;
+        timeInterval += totalNs;
+
+        if (currentNs - start >= 200000000) {
+
           // totalNs is not 0 if timer metrics are enabled
-          containerMetrics.utilization().set(((double) activeNs) / totalNs);
+          double utilization = ((double) processTime) / timeInterval;
+          double serviceRate = (double) tuples/utilization * 5;
+          log.debug("utilization: " + utilization + " process time: " + processTime + " tuples: " + tuples + " service rate: " + serviceRate);
+          containerMetrics.avgUtilization().set(utilization);
+          containerMetrics.serviceRate().set(serviceRate);
+          start = currentNs;
+          processTime = 0;
+          timeInterval = 0;
+          tuples = 0;
         }
       }
     } finally {
