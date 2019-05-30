@@ -149,14 +149,12 @@ public class DelayEstimator {
         long lastTime = 0;
         long lastArrived = 0;
         if(completed == 0)return 0;
-        for(int i=0;i<timePoints.size(); i++){
+        for(int i = timePoints.size() - 1; i>=0; i--){
             long time = timePoints.get(i);
-            long arrived = getExecutorCompleted(executorId, time);
-            for(String id:partitionStates.keySet()){
-                arrived += getPartitionBacklog(id, time, executorId);
-            }
-            if(arrived >= completed){
-                return lastTime + (completed - lastArrived) *  (double)(time - lastTime) / (double)(arrived - lastArrived) ;
+            long arrived = getExecutorArrived(executorId, time);
+            if(arrived <= completed){
+                if(arrived == completed)return time;
+                return lastTime - (lastArrived - completed) *  (double)(lastTime - time) / (double)(lastArrived - arrived) ;
             }
             lastTime = time;
             lastArrived = arrived;
