@@ -38,11 +38,14 @@ class SamzaContainerMetrics(
   val commitNs = newTimer("commit-ns")
   val blockNs = newTimer("block-ns")
   val containerStartupTime = newTimer("container-startup-time")
-  val utilization = newGauge("event-loop-utilization", 0.0F)
+//  val utilization = newGauge("event-loop-utilization", 0.0F)
   val diskUsageBytes = newGauge("disk-usage-bytes", 0L)
   val diskQuotaBytes = newGauge("disk-quota-bytes", Long.MaxValue)
   val executorWorkFactor = newGauge("executor-work-factor", 1.0)
   val physicalMemoryMb = newGauge[Double]("physical-memory-mb", 0.0F)
+
+  val avgUtilization = newGauge("average-utilization", 0.0F)
+  val serviceRate = newGauge("service-rate", 0.0F)
 
   val taskStoreRestorationMetrics: util.Map[TaskName, Gauge[Long]] = new util.HashMap[TaskName, Gauge[Long]]()
 
