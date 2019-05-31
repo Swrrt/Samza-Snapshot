@@ -95,7 +95,7 @@ class RunLoop (
       window
       commit
       val totalNs = clock() - loopStartTime
-      metrics.utilization.set(activeNs.toFloat / totalNs)
+      //metrics.utilization.set(activeNs.toFloat / totalNs)
       activeNs = 0L
     }
   }
