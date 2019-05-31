@@ -564,7 +564,7 @@ public class MixedLoadBalanceManager {
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
             offsets = client.getOffsets();
             double utilization = -100;
-            if(offsets != null) {
+            if(offsets != null && offsets.containsKey("Utilization")) {
                 utilization = Double.parseDouble(offsets.get("Utilization"));
                 offsets.remove("Utilization");
             }
