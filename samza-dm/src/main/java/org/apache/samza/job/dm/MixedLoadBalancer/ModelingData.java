@@ -146,6 +146,10 @@ public class ModelingData {
             double util = containerUtilization.getOrDefault(containerId, 1.0);
             updateExecutorUtilization(containerId, time, util);
             util = getUtilization(containerId, time, lastTime);
+            if(util < 1e-10){
+                //TODO: change this
+                util = 1;
+            }
             double serviceRate = (completed - lastCompleted)/(((double)time - lastTime) * util);
             updateExecutorServiceRate(containerId, time, serviceRate);
             //Update avg delay
