@@ -34,6 +34,8 @@ public class MetricsServer {
         metrics = new LinkedList<>();
         processed = new ConcurrentHashMap<>();
         arrived = new ConcurrentHashMap<>();
+        utilization = new AtomicDouble();
+        utilization.set(0);
     }
     public void setPort(int port){
         this.port = port;
