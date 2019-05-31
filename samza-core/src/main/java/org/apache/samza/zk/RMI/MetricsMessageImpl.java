@@ -1,5 +1,6 @@
 package org.apache.samza.zk.RMI;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import javafx.util.Pair;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
@@ -16,12 +17,14 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
     //ConcurrentHashMap<String, Long> beginOffset, lastProcessedOffset;
     ConcurrentHashMap<String, Object> arrived;
     ConcurrentHashMap<String, Long> processed;
+    AtomicDouble utilization;
     String topic;
-    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, ConcurrentHashMap<String, Object> arrived, ConcurrentHashMap<String, Long> processed, String topic)throws RemoteException {
+    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, ConcurrentHashMap<String, Object> arrived, ConcurrentHashMap<String, Long> processed, AtomicDouble utilization, String topic)throws RemoteException {
         this.metrics = metrics;
         this.arrived = arrived;
         this.processed = processed;
         this.topic = topic;
+        this.utilization = utilization;
         //this.beginOffset = new ConcurrentHashMap<>();
         //this.lastProcessedOffset = new ConcurrentHashMap<>();
     }
@@ -81,6 +84,21 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                         }
                     }
                 }
+
+                if(pair.getValue().getGroups().contains("org.apache.samza.container.SamzaContainerMetrics")){
+                    pair.getValue().getGroup("org.apache.samza.container.SamzaContainerMetrics").get("average-utilization").visit(new MetricsVisitor() {
+                        @Override
+                        public void counter(Counter counter) {
+                        }
+                        @Override
+                        public <T> void gauge(Gauge<T> gauge) {
+                            utilization.set(Double.parseDouble(gauge.toString()));
+                        }
+                        @Override
+                        public void timer(Timer timer) {
+                        }
+                    });
+                }
             }
         }
         //System.out.println("Arrived: " + arrived);
@@ -99,6 +117,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
             ret.put(id, arrive + "_" + processe);
         }
+        ret.put("Utilization", utilization.toString());
         System.out.println("Return: " + ret);
         return ret;
     }

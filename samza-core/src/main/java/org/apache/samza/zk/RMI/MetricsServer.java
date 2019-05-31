@@ -1,5 +1,6 @@
 package org.apache.samza.zk.RMI;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import javafx.beans.binding.ObjectExpression;
 import javafx.util.Pair;
 import org.apache.samza.container.TaskName;
@@ -25,6 +26,7 @@ public class MetricsServer {
     List<Pair<String, ReadableMetricsRegistry>> metrics;
     ConcurrentHashMap<String, Long> processed;
     ConcurrentHashMap<String, Object> arrived;
+    AtomicDouble utilization;
     MetricsMessageImpl impl;
     String topic = "";
     int port = 8886;
@@ -47,7 +49,7 @@ public class MetricsServer {
         LOG.info("Metrics Server starting at port: " + port + " with topic: " + topic + "...");
         try{
             Registry registry = LocateRegistry.createRegistry(port);
-            impl = new MetricsMessageImpl(metrics, arrived, processed, topic);
+            impl = new MetricsMessageImpl(metrics, arrived, processed, utilization, topic);
             registry.rebind("myMetrics", impl);
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
@@ -57,6 +59,8 @@ public class MetricsServer {
     public void clear(){
         LOG.info("Clear metrics registries");
         metrics.clear();
+        //Set utilization = -100 as offline
+        utilization.set(-100);
     }
 
     /*public void updateOffsets(ConcurrentHashMap beginOffset, ConcurrentHashMap lastProcessedOffset){

@@ -42,7 +42,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
         writeLog("Subscribing to kafka metrics stream: " + metricsTopicName);
         leaderComes = false;
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 50000);
-        long retrieveInterval = config.getInt("job.loadbalance.delay.interval.unit", 500);
+        long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
         long lastReportTime = 0, reportInterval = 500, totalRecords = 0;
         long startTime = lastTime;
         long migrationTimes = 0;
@@ -59,6 +59,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             long time = System.currentTimeMillis() ;
             loadBalanceManager.retrieveArrivedAndProcessed(time);
             loadBalanceManager.updateDelay(time);
+            loadBalanceManager.updateModelingData(time);
             if(time - lastReportTime >= reportInterval){
                  lastReportTime = time;
                  writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);

@@ -43,6 +43,7 @@ public class MixedLoadBalanceManager {
     private Map<String, Long> containerArrivedTime = null;
     private Map<String, Long> taskProcessed = null;
     private Map<String, Long> containerProcessed = null;
+    private Map<String, Double> containerUtilization = null;
     private Map<String, Double> taskArrivalRate = null;
     private Map<String, Double> taskBacklogs = null;
     private Map<String, Double> taskProcessingSpeed = null;
@@ -52,6 +53,7 @@ public class MixedLoadBalanceManager {
     private Map<String, Long> containerFlushProcessed = null;
     private Map<String, Double > Z = null;
 
+    private ModelingData modelingData;
     private Config config;
    // private final int defaultVNs;  // Default number of VNs for new coming containers
     private final double localityWeight = 0;   // Weight parameter for Chord and Locality
@@ -87,6 +89,7 @@ public class MixedLoadBalanceManager {
         containerArrived = new HashMap<>();
         taskProcessed = new HashMap<>();
         containerProcessed = new HashMap<>();
+        containerUtilization = new HashMap<>();
         taskArrivalRate = new HashMap<>();
         taskProcessingSpeed = new HashMap<>();
         taskBacklogs = new HashMap<>();
@@ -96,6 +99,7 @@ public class MixedLoadBalanceManager {
         containerFlushProcessed = new HashMap<>();
         containerArrivedTime = new HashMap<>();
         Z = new HashMap<>();
+        modelingData = new ModelingData();
     }
     /*
         TODO:
@@ -138,8 +142,11 @@ public class MixedLoadBalanceManager {
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             insertContainer(containerModel.getProcessorId());
         }
+        modelingData.setDelayEstimator(delayEstimator);
+        modelingData.setTimes(delayEstimator.timePoints);
+        modelingData.setTimes(config.getLong("job,loadbalance.delay.interval", 500l), config.getInt("job.loadbalance.delay.alpha", 20), config.getInt("job.loadbalance.delay.beta", 10));
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
-        threshold = config.getDouble("job.loadbalance.threshold", 10.0);
+        threshold = config.getDouble("job.loadbalance.delay.threshold", 10.0);
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
         localityServer.start();
@@ -552,9 +559,19 @@ public class MixedLoadBalanceManager {
         taskArrived.clear();
         containerProcessed.clear();
         containerArrived.clear();
+        containerUtilization.clear();
         for(String containerId: containerIds){
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
             offsets = client.getOffsets();
+
+            double utilization = Double.parseDouble(offsets.get("Utilization"));
+            offsets.remove("Utilization");
+            if(utilization > -1e-9){ //Online
+                containerUtilization.put(containerId, utilization);
+            }else { //Offline
+                containerUtilization.put(containerId, 0.0);
+            }
+
             long s_arrived = 0, s_processed = 0;
             for(Map.Entry<String, String> entry: offsets.entrySet()){
                 String id = entry.getKey();
@@ -585,6 +602,8 @@ public class MixedLoadBalanceManager {
 
     public void updateDelay(long time){
         delayEstimator.updateAtTime(time, taskArrived, taskProcessed, oldJobModel);
+
+        //For testing
         HashMap<String, Double> delays = new HashMap<>();
         for(String containerId: containerIds){
             double delay = delayEstimator.estimateDelay(containerId, time, time);
@@ -599,6 +618,31 @@ public class MixedLoadBalanceManager {
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Partition Processed: " + delayEstimator.getPartitionsCompleted(time));
     }
 
+    public void updateModelingData(long time){
+        modelingData.updateAtTime(time, containerUtilization, oldJobModel);
+
+        //For testing
+        HashMap<String, Double> arrivalRate = new HashMap<>();
+        HashMap<String, Double> serviceRate = new HashMap<>();
+        HashMap<String, Double> utilization = new HashMap<>();
+        HashMap<String, Double> avgDelay = new HashMap<>();
+        HashMap<String, Double> residual = new HashMap<>();
+        for(String containerId: containerIds){
+            double arrivalR = modelingData.getExecutorArrivalRate(containerId, time);
+            arrivalRate.put(containerId, arrivalR);
+            double serviceR = modelingData.getExecutorServiceRate(containerId, time);
+            serviceRate.put(containerId, serviceR);
+            double delay = modelingData.getAvgDelay(containerId, time);
+            avgDelay.put(containerId, delay);
+            double res = modelingData.getAvgResidual(containerId, time);
+            residual.put(containerId, res);
+        }
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrival Rate: " + arrivalRate);
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Service Rate: " + serviceRate);
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Average Delay: " + avgDelay);
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Residual: " + residual);
+
+    }
     /*public void retrieveArrived(){
         Map<Integer, Long> partitionArrived = snapshotMetricsRetriever.retrieveArrived();
         Map<Integer, Long> partitionArrivedTime = snapshotMetricsRetriever.retrieveArrivedTime();

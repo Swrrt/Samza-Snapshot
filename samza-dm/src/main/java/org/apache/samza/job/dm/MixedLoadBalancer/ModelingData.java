@@ -21,6 +21,7 @@ public class ModelingData {
         Map<Long, Double> serviceRate;
         Map<Long, Double> avgDelay;
         Map<Long, Double> avgResidual;
+        Map<Long, Double> utilization;
         ExecutorData(){
             arrivalRate = new HashMap<>();
             serviceRate = new HashMap<>();
@@ -32,16 +33,18 @@ public class ModelingData {
     private Map<String, PartitionData> partitions;
     private List<Long> times;
     private DelayEstimator delayEstimator;
-    private int windowSize;
     private Map<String, Deque<Pair<Long, Double>>> delayWindows;
+    private int alpha = 1, beta = 2;
+    private long interval = 0;
     public ModelingData(){
         executors = new HashMap<>();
         partitions = new HashMap<>();
-        windowSize = 1;
         delayWindows = new HashMap<>();
     }
-    public void setWindowSize(int windowSize){
-        this.windowSize = windowSize;
+    public void setTimes(long interval, int a, int b){
+        this.interval = interval;
+        alpha = a;
+        beta = b;
     }
     public void setTimes(List<Long> times){
         this.times = times;
@@ -49,11 +52,34 @@ public class ModelingData {
     public void setDelayEstimator(DelayEstimator delayEstimator){
         this.delayEstimator = delayEstimator;
     }
+    public double getExecutorArrivalRate(String executorId, long time){
+        return executors.get(executorId).arrivalRate.getOrDefault(time, 0.0);
+    }
+    public double getExecutorServiceRate(String executorId, long time) {
+        return executors.get(executorId).serviceRate.getOrDefault(time, 0.0);
+    }
     public double getAvgDelay(String executorId, long time){
         return executors.get(executorId).avgDelay.getOrDefault(time, 0.0);
     }
     public double getAvgResidual(String executorId, long time){
         return executors.get(executorId).avgResidual.getOrDefault(time, 0.0);
+    }
+    public double getUtilization(String executorId, long time){
+        return executors.get(executorId).utilization.getOrDefault(time, 0.0);
+    }
+    public double getUtilization(String executorId, long time, long lastTime){
+        double sum = 0;
+        int numberOfInterval = 0;
+        for(int i = times.size() - 1; i>=0; i--){
+            long tTime = times.get(i);
+            if(tTime < lastTime)break;
+            if(tTime <= time){
+                numberOfInterval ++;
+                sum += getUtilization(executorId, tTime);
+            }
+        }
+        if(numberOfInterval == 0)return 0;
+        else return sum/numberOfInterval;
     }
     public void updatePartitionArriveRate(String partitionId, long time, double value){
         if(!partitions.containsKey(partitionId)){
@@ -72,6 +98,12 @@ public class ModelingData {
             executors.put(executorId, new ExecutorData());
         }
         executors.get(executorId).serviceRate.put(time, value);
+    }
+    public void updateExecutorUtilization(String executorId, long time, double value){
+        if(!executors.containsKey(executorId)){
+            executors.put(executorId, new ExecutorData());
+        }
+        executors.get(executorId).utilization.put(time, value);
     }
     public void updateAvgDelay(String executorId, long time, double value){
         if(!executors.containsKey(executorId)){
@@ -93,11 +125,11 @@ public class ModelingData {
         }
         return lastTime;
     }
-    public void updateAtTime(long time, Map<String, Double> utilization, JobModel jobModel){
-        long lastTime = getLastTime(time);
+    public void updateAtTime(long time, Map<String, Double> containerUtilization, JobModel jobModel){
         for(Map.Entry<String, ContainerModel> entry: jobModel.getContainers().entrySet()) {
             String containerId = entry.getKey();
             double s_arrivalRate = 0;
+            long lastTime = getLastTime(time - beta * interval);
             for (TaskName taskName : entry.getValue().getTasks().keySet()) {
                 String partitionId = taskName.getTaskName();
                 long arrived = delayEstimator.getPartitionArrived(partitionId, time);
@@ -110,7 +142,9 @@ public class ModelingData {
             //Update actual service rate (capability)
             long completed = delayEstimator.getExecutorCompleted(containerId, time);
             long lastCompleted = delayEstimator.getExecutorCompleted(containerId, lastTime);
-            double util = utilization.getOrDefault(containerId, 1.0);
+            double util = containerUtilization.getOrDefault(containerId, 1.0);
+            updateExecutorUtilization(containerId, time, util);
+            util = getUtilization(containerId, time, lastTime);
             double serviceRate = (completed - lastCompleted)/(((double)time - lastTime) * util);
             updateExecutorServiceRate(containerId, time, serviceRate);
             //Update avg delay
@@ -120,7 +154,7 @@ public class ModelingData {
             }
             Deque<Pair<Long, Double>> window = delayWindows.get(containerId);
             window.addLast(new Pair(time, delay));
-            while(window.size() > windowSize){
+            while(window.size() > alpha){
                 window.pollFirst();
             }
             Iterator<Pair<Long, Double>> iterator = window.iterator();
@@ -128,7 +162,7 @@ public class ModelingData {
             while(iterator.hasNext()){
                 s_Delay += iterator.next().getValue();
             }
-            double avgDelay = s_Delay / windowSize;
+            double avgDelay = s_Delay / alpha;
             updateAvgDelay(containerId, time, avgDelay);
             //Update residual
             double avgResidual = getAvgResidual(containerId, lastTime);
