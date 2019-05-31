@@ -27,6 +27,7 @@ public class ModelingData {
             serviceRate = new HashMap<>();
             avgDelay = new HashMap<>();
             avgResidual = new HashMap<>();
+            utilization = new HashMap<>();
         }
     }
     private Map<String, ExecutorData> executors;
