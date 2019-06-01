@@ -173,7 +173,7 @@ class TaskInstance(
       }
     }
 
-    println(taskName + "," + (System.currentTimeMillis() - envelope.getTimestamp))
+    println(taskName + "," + (System.currentTimeMillis() - envelope.getTimestamp) + "," + System.currentTimeMillis())
   }
 
   def endOfStream(coordinator: ReadableCoordinator): Unit = {

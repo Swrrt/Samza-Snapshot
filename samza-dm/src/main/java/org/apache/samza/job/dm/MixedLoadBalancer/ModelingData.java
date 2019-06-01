@@ -50,6 +50,10 @@ public class ModelingData {
     public void setTimes(List<Long> times){
         this.times = times;
     }
+    public long getCurrentTime(){
+        if(times.size() == 0)return 0;
+        return times.get(times.size() - 1);
+    }
     public void setDelayEstimator(DelayEstimator delayEstimator){
         this.delayEstimator = delayEstimator;
     }
@@ -81,6 +85,9 @@ public class ModelingData {
         }
         if(numberOfInterval == 0)return 0;
         else return sum/numberOfInterval;
+    }
+    public double getPartitionArriveRate(String paritionId, long time){
+        return partitions.get(paritionId).arrivalRate.getOrDefault(time, 0.0);
     }
     public void updatePartitionArriveRate(String partitionId, long time, double value){
         if(!partitions.containsKey(partitionId)){

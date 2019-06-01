@@ -52,7 +52,6 @@ public class MixedLoadBalanceManager {
     private Map<String, Double> containerProcessingSpeed = null;
     private Map<String, Long> containerFlushProcessed = null;
     private Map<String, Double > Z = null;
-
     private ModelingData modelingData;
     private Config config;
    // private final int defaultVNs;  // Default number of VNs for new coming containers
@@ -506,6 +505,13 @@ public class MixedLoadBalanceManager {
         writeLog("Migrating task " + migrateTaskId + " to container " + targetContainerId);
         delayEstimator.migration(time, oldContainerId, targetContainerId, migrateTaskId);
         taskContainer.put(migrateTaskId, targetContainerId);
+        return generateJobModel();
+    }
+
+    public JobModel migratingOnce(){
+        MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
+        migratingOnceBalancer.setModelingData(modelingData);
+        taskContainer = migratingOnceBalancer.rebalance(taskContainer);
         return generateJobModel();
     }
     public JobModel generateNewJobModel(Map<String, Double> arrivalRate, Map<String, Double> backlog, Map<String, Double> processingSpeed, JobModel oldJobModel){
