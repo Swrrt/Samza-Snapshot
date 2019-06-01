@@ -121,10 +121,18 @@ public class DelayEstimator {
             long d_completed = 0;
             for (TaskName taskName : containerModel.getTasks().keySet()) {
                 String id = taskName.getTaskName();
-                long arrived = taskArrived.getOrDefault(id, 0l);
-                long processed = taskProcessed.getOrDefault(id, 0l);
-                updatePartitionArrived(id, time, arrived);
-                updatePartitionCompleted(id, time, processed);
+                long arrived = taskArrived.getOrDefault(id, -1l);
+                long processed = taskProcessed.getOrDefault(id, -1l);
+                if(arrived == -1){
+                    if(timePoints.size() > 1) arrived = getPartitionArrived(id, timePoints.get(timePoints.size() - 2));
+                    else arrived = 0;
+                }
+                else updatePartitionArrived(id, time, arrived);
+                if(processed == -1) {
+                    if(timePoints.size() > 1) processed = getPartitionCompleted(id, timePoints.get(timePoints.size() - 2));
+                    else processed = 0;
+                }
+                else updatePartitionCompleted(id, time, processed);
                 //Update partition backlog
                 long backlog = 0;
                 if (timePoints.size() > 1) {

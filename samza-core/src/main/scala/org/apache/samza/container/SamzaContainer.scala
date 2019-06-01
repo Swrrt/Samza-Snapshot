@@ -1063,9 +1063,7 @@ class SamzaContainer(
     if(offsetClient == null)offsetManager.stop
     else {
       offsetManager.stopWithOffsetClient(offsetClient)
-      if(metricsServer != null){
-        metricsServer.clear();
-      }
+
     }
   }
 

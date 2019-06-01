@@ -135,11 +135,13 @@ public class ModelingData {
                 String partitionId = taskName.getTaskName();
                 long arrived = delayEstimator.getPartitionArrived(partitionId, time);
                 long lastArrived = delayEstimator.getPartitionArrived(partitionId, lastTime);
-                double arrivalRate = (arrived - lastArrived) / ((double) time - lastTime);
+                double arrivalRate = 0;
+                if(time > lastTime) arrivalRate = (arrived - lastArrived) / ((double) time - lastTime);
                 updatePartitionArriveRate(partitionId, time, arrivalRate);
                 s_arrivalRate += arrivalRate;
             }
             updateExecutorArriveRate(containerId, time, s_arrivalRate);
+
             //Update actual service rate (capability)
             long completed = delayEstimator.getExecutorCompleted(containerId, time);
             long lastCompleted = delayEstimator.getExecutorCompleted(containerId, lastTime);
@@ -150,8 +152,10 @@ public class ModelingData {
                 //TODO: change this
                 util = 1;
             }
-            double serviceRate = (completed - lastCompleted)/(((double)time - lastTime) * util);
+            double serviceRate = 0;
+            if(time > lastTime) serviceRate = (completed - lastCompleted)/(((double)time - lastTime) * util);
             updateExecutorServiceRate(containerId, time, serviceRate);
+
             //Update avg delay
             double delay = delayEstimator.estimateDelay(containerId, time, time);
             if(!delayWindows.containsKey(containerId)){
@@ -169,6 +173,7 @@ public class ModelingData {
             }
             double avgDelay = s_Delay / alpha;
             updateAvgDelay(containerId, time, avgDelay);
+
             //Update residual
             double avgResidual = getAvgResidual(containerId, lastTime);
             double rho = s_arrivalRate / serviceRate;

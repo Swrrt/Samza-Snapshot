@@ -584,8 +584,12 @@ public class MixedLoadBalanceManager {
                 if(arrived < 0) arrived = 0;
                 if(processed < 0) processed = 0;
                 //delayEstimator.updatePartitionArrived(id, time, arrived);
+                long t = taskArrived.getOrDefault(id, 0l);
+                if(t > arrived) arrived = t;
                 taskArrived.put(id, arrived);
                 //delayEstimator.updatePartitionCompleted(id, time, processed);
+                t = taskProcessed.getOrDefault(id, 0l);
+                if(t > processed) processed = t;
                 taskProcessed.put(id, processed);
                 //delayEstimator.updatePartitionBacklog(id, time, containerId, arrived - processed);
                 s_arrived += arrived;
