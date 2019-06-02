@@ -16,6 +16,7 @@ public class MigratingOnceBalancer {
         double srcArrivalRate, tgtArrivalRate, srcServiceRate, tgtServiceRate;
         double srcResidual, tgtResidual;
         long time;
+        double otherDelay;
         List<String> srcPartitions;
         List<String> tgtPartitions;
         Set<String> migratingPartitions;
@@ -59,9 +60,9 @@ public class MigratingOnceBalancer {
         double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
 
         if(estimateTgt > estimateSrc && estimateSrc > state.bestDelay)return ;
-
+        if(state.otherDelay > state.bestDelay - 1e-9) return ;
         if(estimateSrc < state.bestDelay && estimateTgt < state.bestDelay){
-            state.bestDelay = Math.max(estimateSrc, estimateTgt);
+            state.bestDelay = Math.max(Math.max(estimateSrc, estimateTgt), state.otherDelay);
             state.bestMigration.clear();
             state.bestMigration.addAll(state.migratingPartitions);
             state.bestTgtContainer = state.tgtContainer;
@@ -97,13 +98,11 @@ public class MigratingOnceBalancer {
             double srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
             double srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
             if (srcArrivalRate < srcServiceRate - 1e-9 ) {
-                double srcRho = srcArrivalRate / srcServiceRate;
                 for (String tgtContainer : containerTasks.keySet())
                     if (!srcContainer.equals(tgtContainer)) {
                         double tgtArrivalRate = modelingData.getExecutorArrivalRate(tgtContainer, time);
                         double tgtServiceRate = modelingData.getExecutorServiceRate(tgtContainer, time);
                         if (tgtArrivalRate < tgtServiceRate - 1e-9) {
-                            double tgtRho = tgtArrivalRate / tgtServiceRate;
                             double otherDelays = 0;
                             for (String otherContainer : containerTasks.keySet()) {
                                 if (!otherContainer.equals(srcContainer) && !otherContainer.equals(tgtContainer)) {
@@ -113,6 +112,7 @@ public class MigratingOnceBalancer {
                             }
                             if(otherDelays < dfsState.bestDelay - 1e-9){
                                 int srcSize = containerTasks.get(srcContainer).size();
+                                dfsState.otherDelay = otherDelays;
                                 dfsState.srcPartitions = containerTasks.get(srcContainer);
                                 dfsState.tgtPartitions = containerTasks.get(tgtContainer);
                                 dfsState.srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
