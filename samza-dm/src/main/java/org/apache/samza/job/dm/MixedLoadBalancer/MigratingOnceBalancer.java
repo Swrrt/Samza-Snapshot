@@ -105,15 +105,16 @@ public class MigratingOnceBalancer {
             }
             containerTasks.get(containerId).add(partitionId);
         }
+        if(containerTasks.keySet().size() == 0 )return oldTaskContainer;
         DFSState dfsState = new DFSState();
         dfsState.time = time;
 
         //Find container with maximum delay
-        double initialDelay = 0;
+        double initialDelay = -1.0;
         String srcContainer = "";
         for (String containerId : containerTasks.keySet()) {
             double delay = modelingData.getAvgDelay(containerId, time);
-            if (delay < initialDelay) {
+            if (delay > initialDelay) {
                 initialDelay = delay;
                 srcContainer = containerId;
             }
