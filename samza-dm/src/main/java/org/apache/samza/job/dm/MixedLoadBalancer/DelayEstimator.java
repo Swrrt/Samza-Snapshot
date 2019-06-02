@@ -127,12 +127,22 @@ public class DelayEstimator {
                     if(timePoints.size() > 1) arrived = getPartitionArrived(id, timePoints.get(timePoints.size() - 2));
                     else arrived = 0;
                 }
-                else updatePartitionArrived(id, time, arrived);
+                else{
+                    if(timePoints.size() > 1){
+                        arrived = Math.max(arrived, getPartitionArrived(id, timePoints.get(timePoints.size() - 2)));
+                    }
+                    updatePartitionArrived(id, time, arrived);
+                }
                 if(processed == -1) {
                     if(timePoints.size() > 1) processed = getPartitionCompleted(id, timePoints.get(timePoints.size() - 2));
                     else processed = 0;
                 }
-                else updatePartitionCompleted(id, time, processed);
+                else {
+                    if(timePoints.size() > 1){
+                        arrived = Math.max(arrived, getPartitionArrived(id, timePoints.get(timePoints.size() - 2)));
+                    }
+                    updatePartitionCompleted(id, time, processed);
+                }
                 //Update partition backlog
                 long backlog = 0;
                 if (timePoints.size() > 1) {
