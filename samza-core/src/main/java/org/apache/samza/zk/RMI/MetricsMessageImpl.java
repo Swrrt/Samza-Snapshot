@@ -111,11 +111,11 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             //arrive -= beginOffset.get(id);
 
             long processe = 0;
-            if(processed.containsKey(id)){
+            if(processed.containsKey(id)) {
                 processe = processed.get(id);
+                //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
+                ret.put(id, arrive + "_" + processe);
             }
-            //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
-            ret.put(id, arrive + "_" + processe);
         }
         ret.put("Utilization", utilization.toString());
         System.out.println("Return: " + ret);

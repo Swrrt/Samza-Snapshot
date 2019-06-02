@@ -80,7 +80,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
                     migrationTimes ++;
                     loadBalanceManager.showDelayMetrics("before" + migrationTimes);
                     writeLog("Try to rebalance");
-                    if(!config.getBoolean("job.loadbalance.testmetrics", false))scheduler.updateJobModel(time);
+                    scheduler.updateJobModel();
                     loadBalanceManager.showDelayMetrics("migrated" + migrationTimes);
                     lastTime = nowTime;
                 }else{

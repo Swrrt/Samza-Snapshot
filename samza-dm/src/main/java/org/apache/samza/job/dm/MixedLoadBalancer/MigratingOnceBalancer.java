@@ -82,9 +82,9 @@ public class MigratingOnceBalancer {
         }
     }
     public Map<String, String> rebalance(Map<String, String> oldTaskContainer){
+        writeLog("Migrating once based on tasks: " + oldTaskContainer);
         Map<String, List<String>> containerTasks = new HashMap<>();
         long time = modelingData.getCurrentTime();
-
         for(String partitionId: oldTaskContainer.keySet()){
             String containerId = oldTaskContainer.get(partitionId);
             if(!containerTasks.containsKey(containerId)){

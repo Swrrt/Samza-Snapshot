@@ -18,7 +18,7 @@ public class MetricsClient {
         this.port = port;
     }
     public HashMap<String, String> getOffsets(){
-        LOG.info("Retrieving processed offsets information from server");
+        LOG.info("Retrieving processed offsets information from server " + leaderAddress);
         HashMap<String, String> offsets = new HashMap<>();
         try{
             Registry registry = LocateRegistry.getRegistry(leaderAddress, port);

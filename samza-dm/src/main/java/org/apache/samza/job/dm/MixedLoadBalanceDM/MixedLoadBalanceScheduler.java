@@ -132,9 +132,9 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             prevTime = report.getTime();
         }*/
     }
-    public void updateJobModel(long time){
-        //if(balanceManager.readyToRebalance()){
-        {   //Rebalance the JobModel
+    public void updateJobModel(){
+        if(!balanceManager.checkDelay()){
+           //Rebalance the JobModel
             JobModel oldJobModel = balanceManager.getOldJobModel();
             JobModel newJobModel = balanceManager.migratingOnce(); //randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
 
