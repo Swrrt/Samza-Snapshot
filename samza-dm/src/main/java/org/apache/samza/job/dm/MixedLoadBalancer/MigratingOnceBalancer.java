@@ -134,8 +134,9 @@ public class MigratingOnceBalancer {
             writeLog("Cannot find any better migration");
             return oldTaskContainer;
         }
-        writeLog("Find best migration with delay: " + dfsState.bestDelay + ", from container " + dfsState.srcContainer + " to container " + dfsState.tgtContainer + ", partitions: " + dfsState.bestMigration);
-        Map<String, String> newTaskContainer = new HashMap<>(oldTaskContainer);
+        writeLog("Find best migration with delay: " + dfsState.bestDelay + ", from container " + dfsState.bestSrcContainer + " to container " + dfsState.bestTgtContainer + ", partitions: " + dfsState.bestMigration);
+        Map<String, String> newTaskContainer = new HashMap<>();
+        newTaskContainer.putAll(oldTaskContainer);
         for(String parition: dfsState.bestMigration){
             newTaskContainer.put(parition, dfsState.bestTgtContainer);
         }
