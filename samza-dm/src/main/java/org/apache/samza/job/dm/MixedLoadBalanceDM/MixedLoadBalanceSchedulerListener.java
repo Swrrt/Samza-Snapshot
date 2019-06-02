@@ -51,27 +51,30 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             try{
                 Thread.sleep(retrieveInterval);
             }catch (Exception e){};
-            ConsumerRecords<String, String> records = consumer.poll(200);
-            totalRecords += records.count();
+
+            long time = System.currentTimeMillis() ;
+
+            if(!leaderComes) {
+                ConsumerRecords<String, String> records = consumer.poll(200);
+                totalRecords += records.count();
+                for (ConsumerRecord<String, String> record : records) {
+                    // writeLog("Reports: " + record.toString());
+                    if (scheduler.updateLeader(record)) {
+                        leaderComes = true;
+                    }
+                }
+                if(time - lastReportTime >= reportInterval){
+                    lastReportTime = time;
+                    writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);
+                    //loadBalanceManager.showMetrics();
+                }
+            }
             /*
             */
 
-            long time = System.currentTimeMillis() ;
             loadBalanceManager.retrieveArrivedAndProcessed(time);
             loadBalanceManager.updateDelay(time);
             loadBalanceManager.updateModelingData(time);
-            if(time - lastReportTime >= reportInterval){
-                 lastReportTime = time;
-                 writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);
-                 //loadBalanceManager.showMetrics();
-            }
-
-            for (ConsumerRecord<String, String> record : records) {
-               // writeLog("Reports: " + record.toString());
-                if (scheduler.updateLeader(record)) {
-                    leaderComes = true;
-                }
-            }
 
             //Try to rebalance periodically
             if(leaderComes) {

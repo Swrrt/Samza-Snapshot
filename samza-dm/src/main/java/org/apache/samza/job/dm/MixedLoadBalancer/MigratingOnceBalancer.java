@@ -123,11 +123,12 @@ public class MigratingOnceBalancer {
         dfsState.bestTgtContainer =  srcContainer;
         dfsState.bestMigration.clear();
         //Migrating this container
+        dfsState.srcContainer = srcContainer;
         dfsState.srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
         dfsState.srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
         dfsState.srcResidual = modelingData.getAvgResidual(srcContainer, time);
         dfsState.srcPartitions = containerTasks.get(srcContainer);
-        dfsState.srcContainer = srcContainer;
+
         for (String tgtContainer : containerTasks.keySet())
             if (!srcContainer.equals(tgtContainer)) {
                 double tgtArrivalRate = modelingData.getExecutorArrivalRate(tgtContainer, time);
