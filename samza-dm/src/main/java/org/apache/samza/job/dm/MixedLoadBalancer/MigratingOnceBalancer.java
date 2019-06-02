@@ -118,7 +118,10 @@ public class MigratingOnceBalancer {
                 srcContainer = containerId;
             }
         }
-
+        dfsState.bestDelay = initialDelay;
+        dfsState.bestSrcContainer = srcContainer;
+        dfsState.bestTgtContainer =  srcContainer;
+        dfsState.bestMigration.clear();
         //Migrating this container
         dfsState.srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
         dfsState.srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
@@ -151,7 +154,7 @@ public class MigratingOnceBalancer {
                 }
             }
 
-        if (dfsState.bestDelay > initialDelay) {
+        if (dfsState.bestDelay > initialDelay - 1e-9) {
             writeLog("Cannot find any better migration");
             return oldTaskContainer;
         }
