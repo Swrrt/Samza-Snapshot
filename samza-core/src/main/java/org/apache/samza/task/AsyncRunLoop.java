@@ -183,7 +183,7 @@ public class AsyncRunLoop implements Runnable, Throttleable {
         processTime += activeNs;
         timeInterval += totalNs;
 
-        if (currentNs - start >= 200000000) {
+        if (currentNs - start >= 500000000) {
 
           // totalNs is not 0 if timer metrics are enabled
           double utilization = ((double) processTime) / timeInterval;
