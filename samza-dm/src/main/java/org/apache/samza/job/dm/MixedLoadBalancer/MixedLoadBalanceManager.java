@@ -507,6 +507,7 @@ public class MixedLoadBalanceManager {
         HashMap<String, Double> utilization = new HashMap<>();
         HashMap<String, Double> avgDelay = new HashMap<>();
         HashMap<String, Double> residual = new HashMap<>();
+        HashMap<String, Double> partitionArrivalRate = new HashMap<>();
         for(String containerId: containerIds){
             double arrivalR = modelingData.getExecutorArrivalRate(containerId, time);
             arrivalRate.put(containerId, arrivalR);
@@ -521,7 +522,11 @@ public class MixedLoadBalanceManager {
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Service Rate: " + serviceRate);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Average Delay: " + avgDelay);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Residual: " + residual);
-
+        for(String partitionId: tasks.keySet()){
+            double arrivalR = modelingData.getPartitionArriveRate(partitionId, time);
+            partitionArrivalRate.put(partitionId, arrivalR);
+        }
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Partition Arrival Rate: " + partitionArrivalRate);
     }
     /*public void retrieveArrived(){
         Map<Integer, Long> partitionArrived = snapshotMetricsRetriever.retrieveArrived();
