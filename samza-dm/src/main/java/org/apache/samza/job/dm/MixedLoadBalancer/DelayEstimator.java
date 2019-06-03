@@ -123,26 +123,14 @@ public class DelayEstimator {
                 String id = taskName.getTaskName();
                 long arrived = taskArrived.getOrDefault(id, -1l);
                 long processed = taskProcessed.getOrDefault(id, -1l);
-                if(arrived == -1){
-                    if(timePoints.size() > 1) arrived = getPartitionArrived(id, timePoints.get(timePoints.size() - 2));
-                    else arrived = 0;
-                }
-                else{
-                    if(timePoints.size() > 1){
-                        arrived = Math.max(arrived, getPartitionArrived(id, timePoints.get(timePoints.size() - 2)));
-                    }
-                    updatePartitionArrived(id, time, arrived);
-                }
-                if(processed == -1) {
-                    if(timePoints.size() > 1) processed = getPartitionCompleted(id, timePoints.get(timePoints.size() - 2));
-                    else processed = 0;
-                }
-                else {
-                    if(timePoints.size() > 1){
-                        arrived = Math.max(arrived, getPartitionArrived(id, timePoints.get(timePoints.size() - 2)));
-                    }
-                    updatePartitionCompleted(id, time, processed);
-                }
+                long lastArrived = 0;
+                if(timePoints.size() > 1) lastArrived = getPartitionArrived(id, timePoints.get(timePoints.size() - 2));
+                if(arrived < lastArrived) arrived = lastArrived;
+                updatePartitionArrived(id, time, arrived);
+                long lastProcessed = 0;
+                if(timePoints.size() > 1) lastProcessed = getPartitionCompleted(id, timePoints.get(timePoints.size() - 2));
+                if(processed < lastProcessed) processed = lastProcessed;
+                updatePartitionCompleted(id, time, processed);
                 //Update partition backlog
                 long backlog = 0;
                 if (timePoints.size() > 1) {
