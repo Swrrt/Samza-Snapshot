@@ -13,9 +13,11 @@ public class MetricsClient {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsClient.class);
     String leaderAddress = "";
     int port = 8884;
-    public MetricsClient(String leaderAddress, int port){
+    String containerId = "";
+    public MetricsClient(String leaderAddress, int port, String containerId){
         this.leaderAddress = leaderAddress;
         this.port = port;
+        this.containerId = containerId;
     }
     public HashMap<String, String> getOffsets(){
         LOG.info("Retrieving processed offsets information from server " + leaderAddress);
@@ -28,11 +30,11 @@ public class MetricsClient {
         }catch (Exception e){
             LOG.info("Exception happened: "+ e.toString());
         }
-        LOG.info("Processed and arrived offsets information got");
+        LOG.info("Container " + containerId + " processed and arrived offsets information got");
         return offsets;
     }
     public static void main(String args[]){
-        MetricsClient metricsClient = new MetricsClient(args[0], Integer.parseInt(args[1]));
+        MetricsClient metricsClient = new MetricsClient(args[0], Integer.parseInt(args[1]), "");
         HashMap <String, String> offsets;
         while(true){
             try{

@@ -398,9 +398,12 @@ public class MixedLoadBalanceManager {
 
     public JobModel migratingOnce(){
         MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
-        migratingOnceBalancer.setModelingData(modelingData);
-        taskContainer = migratingOnceBalancer.rebalance(taskContainer);
+        migratingOnceBalancer.setModelingData(modelingData, delayEstimator);
+        taskContainer = migratingOnceBalancer.rebalance(taskContainer, threshold);
         return generateJobModel();
+    }
+    public void updateOldJobModel(JobModel jobModel){
+        oldJobModel = jobModel;
     }
 
     //Add virtual node to containerId to coordinate vn.
@@ -432,7 +435,7 @@ public class MixedLoadBalanceManager {
         containerArrived.clear();
         containerUtilization.clear();
         for(String containerId: containerIds){
-            MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId));
+            MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
             offsets = client.getOffsets();
             double utilization = -100;
             if(offsets != null && offsets.containsKey("Utilization")) {

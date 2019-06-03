@@ -6,12 +6,13 @@ import java.util.*;
 
 public class MigratingOnceBalancer {
     private ModelingData modelingData;
-
+    private DelayEstimator delayEstimator;
     public MigratingOnceBalancer() {
     }
 
-    public void setModelingData(ModelingData data) {
+    public void setModelingData(ModelingData data, DelayEstimator delay) {
         modelingData = data;
+        delayEstimator = delay;
     }
 
     private class DFSState {
@@ -94,7 +95,7 @@ public class MigratingOnceBalancer {
         }
     }
 
-    public Map<String, String> rebalance(Map<String, String> oldTaskContainer) {
+    public Map<String, String> rebalance(Map<String, String> oldTaskContainer, double threshold) {
         writeLog("Migrating once based on tasks: " + oldTaskContainer);
         Map<String, List<String>> containerTasks = new HashMap<>();
         long time = modelingData.getCurrentTime();
@@ -156,7 +157,7 @@ public class MigratingOnceBalancer {
                 }
             }
 
-        if (dfsState.bestDelay > initialDelay - 1e-9) {
+        if (dfsState.bestDelay > initialDelay - 1e-9 || dfsState.bestDelay > threshold) {
             writeLog("Cannot find any better migration");
             return oldTaskContainer;
         }
@@ -166,6 +167,7 @@ public class MigratingOnceBalancer {
         Map<String, String> newTaskContainer = new HashMap<>();
         newTaskContainer.putAll(oldTaskContainer);
         for (String parition : dfsState.bestMigration) {
+            delayEstimator.migration(time, srcContainer, dfsState.bestTgtContainer, parition);
             newTaskContainer.put(parition, dfsState.bestTgtContainer);
         }
         return newTaskContainer;
