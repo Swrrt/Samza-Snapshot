@@ -68,18 +68,18 @@ public class MigratingOnceBalancer {
     }
 
     private void DFSforBestDelay(int i, DFSState state) {
-        double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
-
-        if (estimateTgt > estimateSrc && estimateSrc > state.bestDelay) return;
         if (state.otherDelay > state.bestDelay - 1e-9) return;
-        if (estimateSrc < state.bestDelay && estimateTgt < state.bestDelay) {
-            state.bestDelay = Math.max(Math.max(estimateSrc, estimateTgt), state.otherDelay);
-            state.bestMigration.clear();
-            state.bestMigration.addAll(state.migratingPartitions);
-            state.bestTgtContainer = state.tgtContainer;
-            state.bestSrcContainer = state.srcContainer;
+        if(state.srcArrivalRate < state.srcServiceRate) {
+            double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
+            if (estimateTgt > estimateSrc && estimateSrc > state.bestDelay) return;
+            if (estimateSrc < state.bestDelay && estimateTgt < state.bestDelay) {
+                state.bestDelay = Math.max(Math.max(estimateSrc, estimateTgt), state.otherDelay);
+                state.bestMigration.clear();
+                state.bestMigration.addAll(state.migratingPartitions);
+                state.bestTgtContainer = state.tgtContainer;
+                state.bestSrcContainer = state.srcContainer;
+            }
         }
-
         if (i < 0) {
             return;
         }
