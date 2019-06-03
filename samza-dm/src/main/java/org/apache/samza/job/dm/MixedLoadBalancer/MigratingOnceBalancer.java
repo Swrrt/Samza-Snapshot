@@ -106,7 +106,9 @@ public class MigratingOnceBalancer {
             }
             containerTasks.get(containerId).add(partitionId);
         }
-        if(containerTasks.keySet().size() == 0 )return oldTaskContainer;
+        if(containerTasks.keySet().size() == 0 ){
+            return oldTaskContainer;
+        }
         DFSState dfsState = new DFSState();
         dfsState.time = time;
 
@@ -119,6 +121,14 @@ public class MigratingOnceBalancer {
                 initialDelay = delay;
                 srcContainer = containerId;
             }
+        }
+        if(srcContainer.equals("")){
+            writeLog("Cannot find container that exceeds threshold");
+            return oldTaskContainer;
+        }
+        if(containerTasks.get(srcContainer).size() <= 1){
+            writeLog("Largest delay container " + srcContainer + " has only " + containerTasks.get(srcContainer).size());
+            return oldTaskContainer;
         }
         dfsState.bestDelay = initialDelay;
         dfsState.bestSrcContainer = srcContainer;

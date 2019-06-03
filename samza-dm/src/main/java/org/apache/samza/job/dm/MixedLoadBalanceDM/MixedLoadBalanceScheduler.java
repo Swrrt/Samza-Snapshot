@@ -132,7 +132,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             prevTime = report.getTime();
         }*/
     }
-    public void updateJobModel(){
+    public boolean updateJobModel(){
         if(!balanceManager.checkDelay()){
            //Rebalance the JobModel
             JobModel oldJobModel = balanceManager.getOldJobModel();
@@ -152,9 +152,11 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 //Dispatch the new JobModel
                 balanceManager.updateOldJobModel(newJobModel);
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
+                return true;
                 //balanceManager.flushMetrics();
             }
         }
+        return false;
     }
 
     // Update leader's address from kafka metric topic
