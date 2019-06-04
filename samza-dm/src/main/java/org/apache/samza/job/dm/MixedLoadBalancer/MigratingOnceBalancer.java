@@ -67,9 +67,38 @@ public class MigratingOnceBalancer {
         return tgtDelay;
     }
 
+    private void Bruteforce(int i, DFSState state){
+        for(long migrated = (1<<i) - 1; migrated > 0; migrated --){
+            double srcArrivalRate = state.srcArrivalRate;
+            double tgtArrivalRate = state.tgtArrivalRate;
+            state.migratingPartitions.clear();
+            for(int  j = 0; j < i; j++)
+                if(((1<<j) & migrated) > 0){
+                    String partitionId = state.srcPartitions.get(j);
+                    state.migratingPartitions.add(partitionId);
+                    double partitionArrivalRate = modelingData.getPartitionArriveRate(partitionId, state.time);
+                    srcArrivalRate -= partitionArrivalRate;
+                    tgtArrivalRate += partitionArrivalRate;
+                }
+            if(srcArrivalRate < state.srcServiceRate && tgtArrivalRate < state.tgtServiceRate){
+                double srcRho = srcArrivalRate / state.srcServiceRate;
+                double srcDelay = state.srcResidual * srcRho / (1 - srcRho) + 1 / state.srcServiceRate;
+                double tgtRho = tgtArrivalRate / state.tgtServiceRate;
+                double tgtDelay = state.tgtResidual * tgtRho / (1 - tgtRho) + 1 / state.tgtServiceRate;
+                if(srcDelay < state.bestDelay && tgtDelay < state.bestDelay && state.otherDelay < state.bestDelay){
+                    state.bestDelay = Math.max(Math.max(srcDelay, tgtDelay), state.otherDelay);
+                    state.bestTgtContainer = state.tgtContainer;
+                    state.bestSrcContainer = state.srcContainer;
+                    state.bestMigration.clear();
+                    state.bestMigration.addAll(state.migratingPartitions);
+                }
+            }
+        }
+    }
+
     private void DFSforBestDelay(int i, DFSState state) {
         if (state.otherDelay > state.bestDelay - 1e-9) return;
-        if(state.srcArrivalRate < state.srcServiceRate) {
+        if(state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) {
             double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
             writeLog("If migrating partitions " + state.migratingPartitions
                     + " from " +state.srcContainer
@@ -171,12 +200,13 @@ public class MigratingOnceBalancer {
                         int srcSize = containerTasks.get(srcContainer).size();
                         dfsState.otherDelay = otherDelays;
                         dfsState.tgtPartitions = containerTasks.get(tgtContainer);
-                        dfsState.tgtArrivalRate = modelingData.getExecutorArrivalRate(tgtContainer, time);
-                        dfsState.tgtServiceRate = modelingData.getExecutorServiceRate(tgtContainer, time);
+                        dfsState.tgtArrivalRate = tgtArrivalRate;
+                        dfsState.tgtServiceRate = tgtServiceRate;
                         dfsState.tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
                         dfsState.migratingPartitions.clear();
                         dfsState.tgtContainer = tgtContainer;
-                        DFSforBestDelay(srcSize, dfsState);
+                        //DFSforBestDelay(srcSize, dfsState);
+                        Bruteforce(srcSize, dfsState);
                     }
                 }
             }

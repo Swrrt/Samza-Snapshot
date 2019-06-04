@@ -187,7 +187,7 @@ public class ModelingData {
             double rho = s_arrivalRate / serviceRate;
             double queueDelay = (avgDelay - 1 / serviceRate);
             if(queueDelay > 1e-9 && rho < 1 && rho > 1e-9){
-                avgResidual = (avgDelay - 1 / serviceRate) * (1 - rho) / rho;
+                avgResidual = queueDelay * (1 - rho) / rho;
             }
             updateAvgResidual(containerId, time, avgResidual);
         }
