@@ -3,6 +3,7 @@ package org.apache.samza.job.dm.MixedLoadBalancer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.RebalanceResult;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.SnapshotMetricsRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.metrics.reporter.Metrics;
@@ -399,8 +400,30 @@ public class MixedLoadBalanceManager {
     public JobModel migratingOnce(){
         MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
         migratingOnceBalancer.setModelingData(modelingData, delayEstimator);
-        taskContainer = migratingOnceBalancer.rebalance(taskContainer, threshold);
-        return generateJobModel();
+        RebalanceResult result = migratingOnceBalancer.rebalance(taskContainer, threshold);
+        while(true) {
+            switch (result.getCode()) {
+                case Migrating:
+                    taskContainer = result.getTaskContainer();
+                    return generateJobModel();
+                case NeedScalingOut:
+                    //TODO: Need to Scale out!
+                    return oldJobModel;
+                case ScalingIn:
+                    //TODO: Scale in!
+                    break;
+                case Unable:
+                    //TODO:
+                    writeLog("Cannot do anything to the one with largest delay");
+                    return oldJobModel;
+                case Unnecessary:
+                    writeLog("No need to migrate, everything is fine");
+                    return oldJobModel;
+                default:
+                    writeLog("Unexpected result, no change is made");
+                    return oldJobModel;
+            }
+        }
     }
     public void updateOldJobModel(JobModel jobModel){
         oldJobModel = jobModel;
