@@ -71,6 +71,12 @@ public class MigratingOnceBalancer {
         if (state.otherDelay > state.bestDelay - 1e-9) return;
         if(state.srcArrivalRate < state.srcServiceRate) {
             double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
+            writeLog("If migrating partitions " + state.migratingPartitions
+                    + " from " +state.srcContainer
+                    + " to " + state.tgtContainer
+                    + ", estimate source delay: " + estimateSrc
+                    + ", estimate target delay: " + estimateTgt
+                    + ", current best delay: " + state.bestDelay);
             if (estimateTgt > estimateSrc && estimateSrc > state.bestDelay) return;
             if (estimateSrc < state.bestDelay && estimateTgt < state.bestDelay) {
                 state.bestDelay = Math.max(Math.max(estimateSrc, estimateTgt), state.otherDelay);

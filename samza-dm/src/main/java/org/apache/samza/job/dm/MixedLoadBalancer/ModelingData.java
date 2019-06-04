@@ -182,6 +182,7 @@ public class ModelingData {
             updateAvgDelay(containerId, time, avgDelay);
 
             //Update residual
+            lastTime = getLastTime(time - interval);
             double avgResidual = getAvgResidual(containerId, lastTime);
             double rho = s_arrivalRate / serviceRate;
             double queueDelay = (avgDelay - 1 / serviceRate);
