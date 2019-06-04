@@ -85,6 +85,15 @@ public class MigratingOnceBalancer {
                 double srcDelay = state.srcResidual * srcRho / (1 - srcRho) + 1 / state.srcServiceRate;
                 double tgtRho = tgtArrivalRate / state.tgtServiceRate;
                 double tgtDelay = state.tgtResidual * tgtRho / (1 - tgtRho) + 1 / state.tgtServiceRate;
+                writeLog("Migrating " + state.migratingPartitions
+                        + " to " + state.tgtContainer
+                        + ", srcArrival: " + srcArrivalRate
+                        + ", srcDelay: " + srcDelay
+                        + ", tgtArrival: " + tgtArrivalRate
+                        + ", tgtDelay: " + tgtDelay
+                        + ", otherDelay: " + state.otherDelay
+                        + ", bestDelay: " + state.bestDelay
+                );
                 if(srcDelay < state.bestDelay && tgtDelay < state.bestDelay && state.otherDelay < state.bestDelay){
                     state.bestDelay = Math.max(Math.max(srcDelay, tgtDelay), state.otherDelay);
                     state.bestTgtContainer = state.tgtContainer;
@@ -94,6 +103,11 @@ public class MigratingOnceBalancer {
                 }
             }
         }
+        writeLog("From container " + state.srcContainer
+                + " to container " + state.tgtContainer
+                + " , best migration delay: " + state.bestDelay
+                + " , best migration: " + state.bestMigration
+        );
     }
 
     private void DFSforBestDelay(int i, DFSState state) {
