@@ -36,7 +36,7 @@ public class MigratingOnceBalancer {
 
         protected boolean okToMigratePartition(String partition) {
             double partitionArrivalRate = modelingData.getPartitionArriveRate(partition, time);
-            return (partitionArrivalRate + tgtArrivalRate < tgtServiceRate - 1e-9);
+            return (partitionArrivalRate + tgtArrivalRate < tgtServiceRate - 1e-12);
 
         }
 
@@ -76,7 +76,14 @@ public class MigratingOnceBalancer {
                     + " to " + state.tgtContainer
                     + ", estimate source delay: " + estimateSrc
                     + ", estimate target delay: " + estimateTgt
-                    + ", current best delay: " + state.bestDelay);
+                    + ", current best delay: " + state.bestDelay
+                    + ", srcArrivalRate: " + state.srcArrivalRate
+                    + ", tgtArrivalRate: " + state.tgtArrivalRate
+                    + ", srcServiceRate: " + state.srcServiceRate
+                    + ", tgtServiceRate: " + state.tgtServiceRate
+                    + ", srcResidual: " + state.srcResidual
+                    + ", tgtResidual: " +state.tgtResidual
+            );
             if (estimateTgt > estimateSrc && estimateSrc > state.bestDelay) return;
             if (estimateSrc < state.bestDelay && estimateTgt < state.bestDelay) {
                 state.bestDelay = Math.max(Math.max(estimateSrc, estimateTgt), state.otherDelay);
@@ -90,14 +97,15 @@ public class MigratingOnceBalancer {
             return;
         }
 
-        String partitionId = state.srcPartitions.get(i);
+        //String partitionId = state.srcPartitions.get(i);
 
-        DFSforBestDelay(i - 1, state); //Don't migrate i
-
-        if (state.okToMigratePartition(partitionId)) { //Migrate i
-            state.migratingPartition(partitionId);
-            DFSforBestDelay(i - 1, state);
-            state.unmigratingPartition(partitionId);
+        for(int j = i - 1; j >= 0; j--) {
+            String partitionId = state.srcPartitions.get(j);
+            if (state.okToMigratePartition(partitionId)) { //Migrate j
+                state.migratingPartition(partitionId);
+                DFSforBestDelay(j, state);
+                state.unmigratingPartition(partitionId);
+            }
         }
     }
 
@@ -168,7 +176,7 @@ public class MigratingOnceBalancer {
                         dfsState.tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
                         dfsState.migratingPartitions.clear();
                         dfsState.tgtContainer = tgtContainer;
-                        DFSforBestDelay(srcSize - 1, dfsState);
+                        DFSforBestDelay(srcSize, dfsState);
                     }
                 }
             }
