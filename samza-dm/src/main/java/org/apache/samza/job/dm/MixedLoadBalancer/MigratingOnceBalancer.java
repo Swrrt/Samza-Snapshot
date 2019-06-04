@@ -219,13 +219,13 @@ public class MigratingOnceBalancer {
                         dfsState.tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
                         dfsState.migratingPartitions.clear();
                         dfsState.tgtContainer = tgtContainer;
-                        //DFSforBestDelay(srcSize, dfsState);
-                        Bruteforce(srcSize, dfsState);
+                        DFSforBestDelay(srcSize, dfsState);
+                        //Bruteforce(srcSize, dfsState);
                     }
                 }
             }
 
-        if (dfsState.bestDelay > initialDelay - 1e-9 || dfsState.bestDelay > threshold) {
+        if (dfsState.bestDelay > initialDelay - 1e-9) {
             writeLog("Cannot find any better migration");
             return oldTaskContainer;
         }
