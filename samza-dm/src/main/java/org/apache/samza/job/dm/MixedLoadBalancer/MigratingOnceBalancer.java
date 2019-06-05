@@ -212,7 +212,7 @@ public class MigratingOnceBalancer {
             double residual = modelingData.getAvgResidual(container, time);
             if (dfsState.srcArrivalRate + arrivalRate < dfsState.srcServiceRate + serviceRate) {
                 // A = ((R2 - R1) * u1 * u2 + (u2 - u1))
-                double A = (residual - dfsState.srcResidual) * dfsState.srcServiceRate * serviceRate + (dfsState.srcServiceRate - serviceRate);
+                double A = (residual - dfsState.srcResidual) * dfsState.srcServiceRate * serviceRate + (serviceRate - dfsState.srcServiceRate);
                 //Transform to Ax^2 + Bx + c = 0
                 // B = A(n1 - n2) + u1 * u2 * (R1 * u2 + R2 * u1) - (u2 - u1)^2
                 double B = A * (arrivalRate - dfsState.srcArrivalRate)
@@ -230,6 +230,17 @@ public class MigratingOnceBalancer {
                     if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
                         x1 = (-B - rDelta) / (2 * A);
                     }
+                    writeLog("A: " + A
+                            + ", B: " + B
+                            + ", C: " + C
+                            + ", x: " + x1);
+                    writeLog("n1: " + dfsState.srcArrivalRate
+                            + ", u1: " + dfsState.srcServiceRate
+                            + ", R1: " + dfsState.srcResidual
+                            + ", n2: " + arrivalRate
+                            + ", u2: " + serviceRate
+                            + ", R2: " + residual
+                    );
                     if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
                         writeLog("Something wrong with ideal delay for " + dfsState.srcContainer + " to " + container);
                     } else {
@@ -250,6 +261,7 @@ public class MigratingOnceBalancer {
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, oldTaskContainer);
             return result;
         }
+        writeLog("Find minimal ideal container " + tgtContainer + " , ideal delay: " + minIdealDelay);
 /*        for (String tgtContainer : containerTasks.keySet())
             if (!srcContainer.equals(tgtContainer)) {*/
         double tgtArrivalRate = modelingData.getExecutorArrivalRate(tgtContainer, time);
