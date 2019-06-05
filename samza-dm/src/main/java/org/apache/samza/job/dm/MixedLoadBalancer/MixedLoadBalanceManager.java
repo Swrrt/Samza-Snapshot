@@ -245,6 +245,7 @@ public class MixedLoadBalanceManager {
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
         writeLog("Generating new job model...");
+        containerIds.addAll(taskContainer.values());
         writeLog("Containers: "+ containerIds);
         //writeLog("Task-Containers: " + taskContainer);
         //writeLog("Tasks: "+ taskContainer.keySet());

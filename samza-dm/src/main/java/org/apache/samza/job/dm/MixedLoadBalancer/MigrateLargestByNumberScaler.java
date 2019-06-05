@@ -41,6 +41,7 @@ public class MigrateLargestByNumberScaler {
                 srcContainer = containerId;
             }
         }
+
         if (srcContainer.equals("")) { //No correct container
             writeLog("Cannot find the container that exceeds threshold");
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
@@ -51,6 +52,8 @@ public class MigrateLargestByNumberScaler {
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
             return result;
         }
+
+        writeLog("Try to scale out and migrate from largest delay container " + srcContainer);
         int size = containerTasks.get(srcContainer).size();
         if(size < numberToScaleOut + 1){
             numberToScaleOut = size - 1;

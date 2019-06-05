@@ -191,7 +191,7 @@ public class MigratingOnceBalancer {
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
             return result;
         }
-
+        writeLog("Try to migrate from largest delay container " + srcContainer);
         dfsState.bestDelay = initialDelay;
         dfsState.bestSrcContainer = srcContainer;
         dfsState.bestTgtContainer = srcContainer;
@@ -207,6 +207,7 @@ public class MigratingOnceBalancer {
         double minIdealDelay = 1e100;
         String tgtContainer = "";
         for (String container : containerTasks.keySet()) {
+            if(container.equals(srcContainer)) continue;
             double R1 = dfsState.srcResidual;
             double R2 = modelingData.getAvgResidual(container, time);
             double n1 = dfsState.srcArrivalRate;
