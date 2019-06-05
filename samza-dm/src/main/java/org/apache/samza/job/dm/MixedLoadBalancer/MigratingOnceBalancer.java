@@ -227,13 +227,13 @@ public class MigratingOnceBalancer {
                 if (delta > -1e-16) {
                     double rDelta = Math.sqrt(delta + 1e-16);
                     double x1 = (-B + rDelta) / (2 * A);
-                    if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
-                        x1 = (-B - rDelta) / (2 * A);
-                    }
+                    double x2 = (-B - rDelta) / (2 * A);
                     writeLog("A: " + A
                             + ", B: " + B
                             + ", C: " + C
-                            + ", x: " + x1);
+                            + ", x1: " + x1
+                            + ", x2: " + x2
+                    );
                     writeLog("n1: " + dfsState.srcArrivalRate
                             + ", u1: " + dfsState.srcServiceRate
                             + ", R1: " + dfsState.srcResidual
@@ -241,6 +241,11 @@ public class MigratingOnceBalancer {
                             + ", u2: " + serviceRate
                             + ", R2: " + residual
                     );
+                    if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
+                        double t = x1;
+                        x1 = x2;
+                        x2 = t;
+                    }
                     if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
                         writeLog("Something wrong with ideal delay for " + dfsState.srcContainer + " to " + container);
                     } else {
