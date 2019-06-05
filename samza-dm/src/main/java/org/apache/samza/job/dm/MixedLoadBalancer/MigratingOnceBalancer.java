@@ -267,8 +267,8 @@ public class MigratingOnceBalancer {
             }
         }
         if(tgtContainer.equals("")){
-            writeLog("Cannot find any better migration");
-            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, oldTaskContainer);
+            writeLog("Cannot find available migration");
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.NeedScalingOut, oldTaskContainer);
             return result;
         }
         writeLog("Find minimal ideal container " + tgtContainer + " , ideal delay: " + minIdealDelay);
@@ -291,7 +291,7 @@ public class MigratingOnceBalancer {
 
         if (dfsState.bestDelay > initialDelay - 1e-9) {
             writeLog("Cannot find any better migration");
-            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, oldTaskContainer);
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.NeedScalingOut, oldTaskContainer);
             return result;
         }
 

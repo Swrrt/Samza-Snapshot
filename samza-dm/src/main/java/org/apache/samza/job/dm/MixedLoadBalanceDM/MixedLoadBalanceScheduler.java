@@ -1,17 +1,17 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-        import org.apache.hadoop.yarn.api.records.Resource;
-        import org.apache.kafka.clients.consumer.ConsumerRecord;
-        import org.apache.samza.config.Config;
-        import org.apache.samza.config.DMSchedulerConfig;
-        import org.apache.samza.job.dm.*;
-        import org.apache.samza.job.model.JobModel;
-        import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
-        import org.json.JSONObject;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.samza.config.Config;
+import org.apache.samza.config.DMSchedulerConfig;
+import org.apache.samza.job.dm.*;
+import org.apache.samza.job.model.JobModel;
+import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.json.JSONObject;
 
-        import java.util.concurrent.ConcurrentMap;
-        import java.util.concurrent.ConcurrentSkipListMap;
-        import java.util.logging.Logger;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.logging.Logger;
 
 public class MixedLoadBalanceScheduler implements DMScheduler {
     MixedLoadBalanceManager balanceManager;
@@ -68,12 +68,13 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
     public void submitApplication() {
         writeLog("scheduler submit application");
         // Use default schema to launch the application
-        Allocation defaultAllocation = getDefaultAllocation(config.get("job.name"), config.get("job.container.count","1"));
+        Allocation defaultAllocation = getDefaultAllocation(config.get("job.name"), config.get("job.container.count", "1"));
         dispatcher.submitApplication(defaultAllocation);
 
         // for kafka listener
         createListener(this);
-        while (true) {}
+        while (true) {
+        }
     }
 
     @Override
@@ -132,35 +133,45 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             prevTime = report.getTime();
         }*/
     }
-    public boolean updateJobModel(){
-        if(!balanceManager.checkDelay()){
-           //Rebalance the JobModel
-            JobModel oldJobModel = balanceManager.getOldJobModel();
-            JobModel newJobModel = balanceManager.migratingOnce(); //randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
 
-            if(newJobModel == null){
-                //need to scale
-                writeLog("Need to scale up");
-                newJobModel = balanceManager.scaleOutByNumber(1);
-                dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
-            }else if(newJobModel.equals(oldJobModel)){
-                writeLog("No need to rebalance");
-            }
-            else{
+    //Return true if change the jobModel
+    public boolean updateJobModel() {
+        if (!balanceManager.checkDelay()) {
+            //Rebalance the JobModel
+            JobModel oldJobModel = balanceManager.getOldJobModel();
+            RebalanceResult rebalanceResult = balanceManager.migratingOnce(); //randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
+            JobModel newJobModel = null;
+            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.Migrating) {
+                balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = balanceManager.generateJobModel();
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
                 //Dispatch the new JobModel
                 balanceManager.updateOldJobModel(newJobModel);
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
                 return true;
-                //balanceManager.flushMetrics();
+            } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
+                writeLog("Need to scale out");
+                rebalanceResult = balanceManager.scaleOutByNumber(1);
+                if (rebalanceResult.getCode() != RebalanceResult.RebalanceResultCode.ScalingOut) {
+                    writeLog("Something is wrong when try to scale out");
+                    return false;
+                }
+                balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = balanceManager.generateJobModel();
+                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                JobModelDemonstrator.demoJobModel(newJobModel);
+                dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
+                return true;
+            } else {
+                writeLog("No need to rebalance");
             }
         }
         return false;
     }
 
     // Update leader's address from kafka metric topic
-    public boolean updateLeader(ConsumerRecord<String, String> record){
+    public boolean updateLeader(ConsumerRecord<String, String> record) {
         balanceManager.updateMetrics(record);
         try {
             JSONObject json = new JSONObject(record.value());
@@ -169,15 +180,16 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
             String host = json.getJSONObject("header").getString("host");
             if (jobName.equals(config.get("job.name")) && containerName.equals("ApplicationMaster")) {
                 //writeLog("New application master ip: " + host);
-                this.dispatcher.updateEnforcerURL(jobName,  host + ":1999");
+                this.dispatcher.updateEnforcerURL(jobName, host + ":1999");
                 return true;
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             //writeLog("Error when parse json");
         }
         return false;
     }
-    private void writeLog(String log){
+
+    private void writeLog(String log) {
         System.out.println("MixedLoadBalanceScheduler: " + log);
     }
 }

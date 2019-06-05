@@ -6,14 +6,12 @@ import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.RebalanceResult;
 import org.apache.samza.job.dm.MixedLoadBalanceDM.SnapshotMetricsRetriever;
 import org.apache.samza.metrics.MetricsRegistryMap;
-import org.apache.samza.metrics.reporter.Metrics;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
 import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
@@ -280,15 +278,7 @@ public class MixedLoadBalanceManager {
     }
 
     // Scale out by change number containers, assign default number of VNs to them and generate new Job Model
-    public JobModel scaleOutByNumber(int change){
-        writeLog("Try to scale out by: " + change);
-        int currentSize = containerIds.size();
-        for(int i=0;i<change; i++){
-            insertContainer(String.format("%06d", currentSize + 2 + i));
-            containerIds.add(String.format("%06d", currentSize + 2 + i));
-        }
-        return generateJobModel();
-    }
+
 
     //Choose first change# containers from containerIds and remove them.
     /*public JobModel scaleInByNumber(int change){
@@ -397,34 +387,25 @@ public class MixedLoadBalanceManager {
         return generateJobModel();
     }
 
-    public JobModel migratingOnce(){
+    public RebalanceResult migratingOnce(){
         MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
         migratingOnceBalancer.setModelingData(modelingData, delayEstimator);
         RebalanceResult result = migratingOnceBalancer.rebalance(taskContainer, threshold);
-        while(true) {
-            switch (result.getCode()) {
-                case Migrating:
-                    taskContainer = result.getTaskContainer();
-                    return generateJobModel();
-                case NeedScalingOut:
-                    //TODO: Need to Scale out!
-                    return oldJobModel;
-                case ScalingIn:
-                    //TODO: Scale in!
-                    break;
-                case Unable:
-                    //TODO:
-                    writeLog("Cannot do anything to the one with largest delay");
-                    return oldJobModel;
-                case Unnecessary:
-                    writeLog("No need to migrate, everything is fine");
-                    return oldJobModel;
-                default:
-                    writeLog("Unexpected result, no change is made");
-                    return oldJobModel;
-            }
-        }
+        return result;
     }
+
+    public RebalanceResult scaleOutByNumber(int change){
+        MigrateLargestByNumberScaler scaler = new MigrateLargestByNumberScaler();
+        scaler.setModelingData(modelingData, delayEstimator);
+        RebalanceResult result = scaler.scaleOutByNumber(taskContainer, change);
+        return result;
+    }
+
+    public void updateTaskContainers(Map<String, String> newTaskContainers){
+        taskContainer.clear();
+        taskContainer.putAll(newTaskContainers);
+    }
+
     public void updateOldJobModel(JobModel jobModel){
         oldJobModel = jobModel;
     }
