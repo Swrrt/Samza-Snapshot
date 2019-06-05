@@ -207,21 +207,26 @@ public class MigratingOnceBalancer {
         double minIdealDelay = 1e100;
         String tgtContainer = "";
         for (String container : containerTasks.keySet()) {
-            double arrivalRate = modelingData.getExecutorArrivalRate(container, time);
-            double serviceRate = modelingData.getExecutorServiceRate(container, time);
-            double residual = modelingData.getAvgResidual(container, time);
-            if (dfsState.srcArrivalRate + arrivalRate < dfsState.srcServiceRate + serviceRate) {
+            double R1 = dfsState.srcResidual;
+            double R2 = modelingData.getAvgResidual(container, time);
+            double n1 = dfsState.srcArrivalRate;
+            double n2 = modelingData.getExecutorArrivalRate(container, time);
+            double u1 = dfsState.srcServiceRate;
+            double u2 = modelingData.getExecutorServiceRate(container, time);
+            if (n1 + n2 < u1 + u2) {
                 // A = ((R2 - R1) * u1 * u2 + (u2 - u1))
-                double A = (residual - dfsState.srcResidual) * dfsState.srcServiceRate * serviceRate + (serviceRate - dfsState.srcServiceRate);
+                double A = (R2 - R1) * u1 * u2 + (u2 - u1);
                 //Transform to Ax^2 + Bx + c = 0
                 // B = A(n1 - n2) + u1 * u2 * (R1 * u2 + R2 * u1) - (u2 - u1)^2
-                double B = A * (arrivalRate - dfsState.srcArrivalRate)
-                        + dfsState.srcServiceRate * serviceRate * (dfsState.srcResidual * serviceRate + residual * dfsState.srcServiceRate)
-                        - (serviceRate - dfsState.srcServiceRate) * (serviceRate - dfsState.srcServiceRate);
-                // C = A * n1 * n2 + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2 - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1
-                double C = A * dfsState.srcArrivalRate * arrivalRate
-                        + ((dfsState.srcResidual * dfsState.srcArrivalRate + 1) * dfsState.srcServiceRate * serviceRate + (dfsState.srcServiceRate - serviceRate) * dfsState.srcArrivalRate) * serviceRate
-                        - ((residual * arrivalRate + 1) * serviceRate * dfsState.srcServiceRate + (serviceRate - dfsState.srcServiceRate) * arrivalRate) * dfsState.srcServiceRate;
+                double B = A * (n2 - n1)
+                        + u1 * u2 * (R1 * u2 + R2 *u1)
+                        - (u2 - u1) * (u2 - u1);
+                // C = -(A * n1 * n2 + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2 - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1)
+                double C = -(
+                        A * n1 * n2
+                        + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2
+                        - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1
+                        );
                 //Solve x
                 double delta = B * B - 4 * A * C;
                 if (delta > -1e-16) {
@@ -234,24 +239,24 @@ public class MigratingOnceBalancer {
                             + ", x1: " + x1
                             + ", x2: " + x2
                     );
-                    writeLog("n1: " + dfsState.srcArrivalRate
-                            + ", u1: " + dfsState.srcServiceRate
-                            + ", R1: " + dfsState.srcResidual
-                            + ", n2: " + arrivalRate
-                            + ", u2: " + serviceRate
-                            + ", R2: " + residual
+                    writeLog("n1: " + n1
+                            + ", u1: " + u1
+                            + ", R1: " + R1
+                            + ", n2: " + n2
+                            + ", u2: " + u2
+                            + ", R2: " + R2
                     );
-                    if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
+                    if (x1 < 0 || n1 - x1 > u1 || n1 - x1 < 0 || n2 + x1 > u2 || n2 + x1 < 0) {
                         double t = x1;
                         x1 = x2;
                         x2 = t;
                     }
-                    if (dfsState.srcArrivalRate - x1 > dfsState.srcServiceRate || dfsState.srcArrivalRate - x1 < 0 || arrivalRate + x1 > serviceRate || arrivalRate + x1 < 0) {
+                    if (x1 < 0 || n1 - x1 > u1 || n1 - x1 < 0 || n2 + x1 > u2 || n2 + x1 < 0) {
                         writeLog("Something wrong with ideal delay for " + dfsState.srcContainer + " to " + container);
                     } else {
                         //Debug
-                        double d1 = estimateDelay(arrivalRate, serviceRate, residual);
-                        double d2 = estimateDelay(dfsState.srcArrivalRate, dfsState.srcServiceRate, dfsState.srcResidual);
+                        double d1 = estimateDelay(n1 - x1, u1, R1);
+                        double d2 = estimateDelay(n2 + x1, u2, R2);
                         writeLog("Estimate delays for container " + container + " : " + d1 + " , " + d2);
                         if (d1 < minIdealDelay) {
                             minIdealDelay = d1;
