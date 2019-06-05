@@ -71,6 +71,7 @@ public class MigrateLargestByNumberScaler {
             if(i < numbersOfRemainder) numberToMove ++;
             while(numberToMove > 0){
                 String taskId = containerTasks.get(srcContainer).get(currentIndex);
+                delayEstimator.migration(time, srcContainer, containerId, taskId);
                 newTaskContainer.put(taskId, containerId);
                 numberToMove --;
                 currentIndex ++;
