@@ -476,6 +476,7 @@ public class MixedLoadBalanceManager {
             //Update container JobModelVersion
             if(offsets != null && offsets.containsKey("JobModelVersion")){
                 jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
+                offsets.remove("JobModelVersion");
             }
             long oldJobModelVersion = containerJobModelVersion.getOrDefault(containerId, -1l);
             if(jobModelVersion > -1){
