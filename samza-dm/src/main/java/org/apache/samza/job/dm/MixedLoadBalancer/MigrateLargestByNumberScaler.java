@@ -65,20 +65,24 @@ public class MigrateLargestByNumberScaler {
         int averagePartitions = containerTasks.get(srcContainer).size() / (numberToScaleOut + 1);
         int numbersOfRemainder = containerTasks.get(srcContainer).size() % (numberToScaleOut + 1);
         int currentIndex = 0;
+        Map<String, String> migratingTask = new HashMap<>();
+
         for(int i = 0; i < numberToScaleOut; i++){
             String containerId = String.format("%06d", containerTasks.size() + 2); //Id start from 000002
             int numberToMove = averagePartitions;
             if(i < numbersOfRemainder) numberToMove ++;
             while(numberToMove > 0){
                 String taskId = containerTasks.get(srcContainer).get(currentIndex);
-                delayEstimator.migration(time, srcContainer, containerId, taskId);
+                //delayEstimator.migration(time, srcContainer, containerId, taskId);
+                migratingTask.put(taskId, containerId);
                 newTaskContainer.put(taskId, containerId);
                 numberToMove --;
                 currentIndex ++;
             }
         }
         writeLog("New task-container mapping: " + newTaskContainer);
-        return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, newTaskContainer);
+        MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
+        return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, newTaskContainer, migrationContext);
     }
     private void writeLog(String string) {
         System.out.println("MigrateLargestByNumberScaler: " + string);

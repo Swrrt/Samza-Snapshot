@@ -12,6 +12,7 @@ import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
@@ -39,18 +40,16 @@ public class MixedLoadBalanceManager {
     // Metrics
     private Map<String, Long> taskArrived = null;
     private Map<String, Long> containerArrived = null;
-    private Map<String, Long> containerArrivedTime = null;
     private Map<String, Long> taskProcessed = null;
     private Map<String, Long> containerProcessed = null;
     private Map<String, Double> containerUtilization = null;
     private Map<String, Double> taskArrivalRate = null;
     private Map<String, Double> taskBacklogs = null;
     private Map<String, Double> taskProcessingSpeed = null;
-    private Map<String, Double> containerArrivalRate = null;
-    private Map<String, Double> containerBacklogs = null;
-    private Map<String, Double> containerProcessingSpeed = null;
     private Map<String, Long> containerFlushProcessed = null;
-    private Map<String, Double > Z = null;
+    //private Map<String, ContainerMigratingState> containerMigratingState = null;
+    private Map<String, Long> containerJobModelVersion = null;
+    private MigrationContext migrationContext = null;
     private ModelingData modelingData;
     private Config config;
    // private final int defaultVNs;  // Default number of VNs for new coming containers
@@ -91,13 +90,11 @@ public class MixedLoadBalanceManager {
         taskArrivalRate = new HashMap<>();
         taskProcessingSpeed = new HashMap<>();
         taskBacklogs = new HashMap<>();
-        containerArrivalRate = new HashMap<>();
-        containerBacklogs = new HashMap<>();
-        containerProcessingSpeed = new HashMap<>();
         containerFlushProcessed = new HashMap<>();
-        containerArrivedTime = new HashMap<>();
-        Z = new HashMap<>();
+        //containerMigratingState = new ConcurrentHashMap<>();
+        containerJobModelVersion = new HashMap<>();
         modelingData = new ModelingData();
+        migrationContext = new MigrationContext();
     }
     /*
         TODO:
@@ -108,6 +105,7 @@ public class MixedLoadBalanceManager {
         Config coordinatorSystemConfig = Util.buildCoordinatorStreamConfig(config);
         JobModelManager jobModelManager = JobModelManager.apply(coordinatorSystemConfig, new MetricsRegistryMap());
         oldJobModel = jobModelManager.jobModel();
+        migrationContext.setDeployed();
         initial(oldJobModel, config);
     }
     /*
@@ -136,15 +134,17 @@ public class MixedLoadBalanceManager {
             }
         }
         //writeLog("Task Models:" + tasks.toString());
-        setTasks(tasks);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
-            insertContainer(containerModel.getProcessorId());
+            //insertContainer(containerModel.getProcessorId());
         }
         modelingData.setDelayEstimator(delayEstimator);
         modelingData.setTimes(delayEstimator.timePoints);
         modelingData.setTimes(config.getLong("job,loadbalance.delay.interval", 500l), config.getInt("job.loadbalance.delay.alpha", 20), config.getInt("job.loadbalance.delay.beta", 10));
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
         threshold = config.getDouble("job.loadbalance.delay.threshold", 1.0);
+        for(String containerId: containerIds){
+            containerJobModelVersion.put(containerId, -1l);
+        }
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
         localityServer.start();
@@ -216,31 +216,60 @@ public class MixedLoadBalanceManager {
         return taskContainer;
     }
 
-    // Initial consisten hashing and locality when new Container comes in
-    private void insertContainer(String container){
-        //TODO
-        writeLog("Inserting container "+container);
-        //consistentHashing.insert(container, defaultVNs);
-        //locality.insert(container, getContainerLocality(container), 1);
+    public boolean checkMigrationDeployed(){
+        if(migrationContext == null)return false;
+        return migrationContext.isDeployed();
     }
-
-    // Container left
-    private void removeContainer(String container){
-        //TODO
-        //consistentHashing.remove(container);
-        //locality.remove(container);
+    private JobModel newJobModel;
+    public void stashNewJobModel(JobModel jobModel){
+        newJobModel = jobModel;
     }
-
-    // Initial all tasks at the beginning;
-    public void setTasks(Map<String, TaskModel> tasks){
-        //consistentHashing.initTasks(tasks);
-        /*for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
-            consistentHashing.insert(task.getKey(), 1);
-            //locality.insert(task.getKey(), getTaskLocality(task.getKey()), 1);
-        }*/
+    private RebalanceResult newRebalanceResult;
+    public void stashNewRebalanceResult(RebalanceResult rebalanceResult){
+        newRebalanceResult = rebalanceResult;
     }
-
+    public void updateMigrationContext(MigrationContext newMigrationContext){
+        migrationContext = newMigrationContext;
+    }
     // Generate JobModel according to taskContainer
+    public JobModel generateJobModel(Map<String, String> taskContainer){
+        //generate new job model from current containers and tasks setting
+        //store the new job model for future use;
+        Set<String> containerIds = new HashSet<>();
+        writeLog("Generating new job model...");
+        containerIds.addAll(taskContainer.values());
+        writeLog("Containers: "+ containerIds);
+        //writeLog("Task-Containers: " + taskContainer);
+        //writeLog("Tasks: "+ taskContainer.keySet());
+        Map<String, LinkedList<TaskModel>> containerTasks = new HashMap<>();
+        Map<String, ContainerModel> containers = new HashMap<>();
+        for(String container: containerIds){
+            String processor = container.substring(container.length()-6, container.length());
+            //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
+            containerTasks.put(processor, new LinkedList<>());
+        }
+        //Add taskModel according to taskContainer
+        for(Map.Entry<String, TaskModel> task: tasks.entrySet()){
+            String containerId = taskContainer.get(task.getKey());
+            //    writeLog("containerId: " + containerId);
+            containerTasks.get(containerId).add(task.getValue());
+        }
+
+        for(String container: containerIds){
+            String processor = container.substring(container.length()-6, container.length());
+            //containers.put(processor, new ContainerModel(processor, 0, new HashMap<TaskName, TaskModel>()));
+            Map<TaskName, TaskModel> tasks = new HashMap<>();
+            for(TaskModel task: containerTasks.get(container)){
+                tasks.put(task.getTaskName(),task);
+            }
+            containers.put(processor, new ContainerModel(processor,0, tasks));
+        }
+        JobModel jobModel = new JobModel(config, containers);
+        JobModelDemonstrator.demoJobModel(jobModel);
+        //writeLog("New job model:" + oldJobModel.toString());*/
+        return jobModel;
+    }
+
     public JobModel generateJobModel(){
         //generate new job model from current containers and tasks setting
         //store the new job model for future use;
@@ -443,6 +472,27 @@ public class MixedLoadBalanceManager {
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
             offsets = client.getOffsets();
             double utilization = -100;
+            long jobModelVersion = -1;
+            //Update container JobModelVersion
+            if(offsets != null && offsets.containsKey("JobModelVersion")){
+                jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
+            }
+            long oldJobModelVersion = containerJobModelVersion.getOrDefault(containerId, -1l);
+            if(jobModelVersion > -1){
+                if(jobModelVersion > oldJobModelVersion && containerId.equals(migrationContext.getSrcContainer()) && !migrationContext.isDeployed()){
+                    //TODO:
+                    writeLog("Migration deployed! Update delay estimator");
+                    migrationContext.setDeployed();
+                    oldJobModel = newJobModel;
+                    taskContainer = newRebalanceResult.getTaskContainer();
+                    for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
+                        String partition = entry.getKey();
+                        String tgtContainer = entry.getValue();
+                        delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
+                    }
+                }
+            }
+
             if(offsets != null && offsets.containsKey("Utilization")) {
                 utilization = Double.parseDouble(offsets.get("Utilization"));
                 offsets.remove("Utilization");

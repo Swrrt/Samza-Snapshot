@@ -769,6 +769,8 @@ class SamzaContainer(
 
       jmxServer.stop
 
+
+
       shutdownConsumers
       shutdownTask
       shutdownStores
@@ -777,6 +779,7 @@ class SamzaContainer(
       shutdownProducers
       shutdownLocalityManager
       shutdownOffsetManager
+      //metricsServer.clear()
       shutdownMetrics
       shutdownSecurityManger
 

@@ -17,6 +17,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /*
     This server runs on containers and provide arrived & processed information to DM.
@@ -27,6 +30,7 @@ public class MetricsServer {
     ConcurrentHashMap<String, Long> processed;
     ConcurrentHashMap<String, Object> arrived;
     AtomicDouble utilization;
+    AtomicLong jobModelVersion;
     MetricsMessageImpl impl;
     String topic = "";
     int port = 8886;
@@ -35,8 +39,10 @@ public class MetricsServer {
         processed = new ConcurrentHashMap<>();
         arrived = new ConcurrentHashMap<>();
         utilization = new AtomicDouble();
-        utilization.set(0);
+        utilization.set(-100);
+        jobModelVersion = new AtomicLong(0);
     }
+
     public void setPort(int port){
         this.port = port;
     }
@@ -51,7 +57,7 @@ public class MetricsServer {
         LOG.info("Metrics Server starting at port: " + port + " with topic: " + topic + "...");
         try{
             Registry registry = LocateRegistry.createRegistry(port);
-            impl = new MetricsMessageImpl(metrics, arrived, processed, utilization, topic);
+            impl = new MetricsMessageImpl(metrics, arrived, processed, utilization, jobModelVersion, topic);
             registry.rebind("myMetrics", impl);
         }catch (Exception e){
             LOG.info("Excpetion happened: " + e.toString());
@@ -68,6 +74,9 @@ public class MetricsServer {
     /*public void updateOffsets(ConcurrentHashMap beginOffset, ConcurrentHashMap lastProcessedOffset){
         impl.setOffset(beginOffset, lastProcessedOffset);
     }*/
+    public void updateJobModelVersionByOne(){
+        jobModelVersion.incrementAndGet();
+    }
     public void setContainerModel(ContainerModel containerModel){
         LOG.info("Remove useless information based on container model: " + containerModel.getTasks().keySet());
         for(String id: arrived.keySet()) {

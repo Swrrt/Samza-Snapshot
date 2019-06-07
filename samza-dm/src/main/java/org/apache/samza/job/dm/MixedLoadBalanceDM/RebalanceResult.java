@@ -1,5 +1,7 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
+import org.apache.samza.job.dm.MixedLoadBalancer.MigrationContext;
+
 import java.util.Map;
 
 public class RebalanceResult {
@@ -13,9 +15,16 @@ public class RebalanceResult {
         Unnecessary,
         Unable
     }
+    private final MigrationContext migrationContext;
+    public RebalanceResult(RebalanceResultCode code, Map<String, String> taskContainer, MigrationContext migrationContext){
+        this.taskContainer = taskContainer;
+        this.code = code;
+        this.migrationContext = migrationContext;
+    }
     public RebalanceResult(RebalanceResultCode code, Map<String, String> taskContainer){
         this.taskContainer = taskContainer;
         this.code = code;
+        this.migrationContext = null;
     }
     public Map<String, String> getTaskContainer(){
         return taskContainer;
@@ -23,6 +32,11 @@ public class RebalanceResult {
     public RebalanceResultCode getCode(){
         return code;
     }
+
+    public MigrationContext getMigrationContext() {
+        return migrationContext;
+    }
+
     public boolean equals(Object obj) {
         if (obj == null) {
             return false;

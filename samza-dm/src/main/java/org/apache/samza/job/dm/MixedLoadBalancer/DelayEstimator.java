@@ -34,6 +34,15 @@ public class DelayEstimator {
     protected List<Long> getTimePoints(){
         return timePoints;
     }
+    private long getLastTime(long time){
+        long lastTime = 0;
+        for(int i = timePoints.size() - 1; i>=0; i--)
+            if(timePoints.get(i) <= time){
+                lastTime = timePoints.get(i);
+                break;
+            }
+        return lastTime;
+    }
     public void updatePartitionArrived(String partitionId, long time, long arrived){
         partitionStates.putIfAbsent(partitionId, new PartitionState());
         partitionStates.get(partitionId).arrived.put(time, arrived);
@@ -58,6 +67,7 @@ public class DelayEstimator {
         }
         return completed;
     }
+    //Use last
     public long getPartitionArrived(String partitionId, long time){
         long arrived = 0;
         if(partitionStates.containsKey(partitionId) && partitionStates.get(partitionId).arrived.containsKey(time)){

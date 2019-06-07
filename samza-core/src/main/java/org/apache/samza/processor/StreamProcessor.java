@@ -297,7 +297,7 @@ public class StreamProcessor {
             stop();
           }
         };
-        // If this container has no task.
+        // If this container has task.
         if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
           container = createSamzaContainer(processorId, jobModel, storeSuffix++);
           container.setContainerListener(containerListener);

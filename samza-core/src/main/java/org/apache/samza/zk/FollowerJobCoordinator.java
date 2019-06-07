@@ -235,6 +235,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             reporter.stop();
         }
     }
+    public String getJobModelVersion(){return zkUtils.getJobModelVersion();}
     public OffsetClient getOffsetClient(){
         return offsetClient;
     }
@@ -318,11 +319,13 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
             if (!newJobModel.getContainers().containsKey(processorId)) {
                 LOG.info("New JobModel does not contain pid={}. Stopping this processor. New JobModel: {}",
                         processorId, newJobModel);
+                metricsServer.updateJobModelVersionByOne();
                 stop();
             } else if(oldJobModel != null && newJobModel.getContainers().get(processorId).equals(oldJobModel.getContainers().get(processorId))){ // If this container is not affected, join the barrier
                 LOG.info("New JobModel does not change this container, do nothing");
                 isJobModelChanged = false;
                 barrier.join(version, processorId);
+                metricsServer.updateJobModelVersionByOne();
             }else {
                 // stop current work
                 if (coordinatorListener != null) {
@@ -345,6 +348,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if(!isJobModelChanged){ // If this container is not affected, do not need to restart samzacontainer
             LOG.info("Still use old job model, no need to restart");
         }else if (coordinatorListener != null) {
+            metricsServer.updateJobModelVersionByOne();
             coordinatorListener.onNewJobModel(processorId, jobModel);
         }
     }

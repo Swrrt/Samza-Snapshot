@@ -136,18 +136,25 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
 
     //Return true if change the jobModel
     public boolean updateJobModel() {
+        if(!balanceManager.checkMigrationDeployed()){
+            writeLog("Last migration is not deployed, cannot rebalance");
+            return false;
+        }
         if (!balanceManager.checkDelay()) {
             //Rebalance the JobModel
             JobModel oldJobModel = balanceManager.getOldJobModel();
             RebalanceResult rebalanceResult = balanceManager.migratingOnce(); //randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
             JobModel newJobModel = null;
             if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.Migrating) {
-                balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = balanceManager.generateJobModel();
+                //balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
+                balanceManager.stashNewJobModel(newJobModel);
+                balanceManager.stashNewRebalanceResult(rebalanceResult);
+                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
+                //balanceManager.updateOldJobModel(newJobModel);
                 //Dispatch the new JobModel
-                balanceManager.updateOldJobModel(newJobModel);
                 dispatcher.updateJobModel(getDefaultAllocation(config.get("job.name")), newJobModel);
                 return true;
             } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
@@ -157,10 +164,13 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                     writeLog("Something is wrong when try to scale out");
                     return false;
                 }
-                balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = balanceManager.generateJobModel();
+                //balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
+                balanceManager.stashNewJobModel(newJobModel);
+                balanceManager.stashNewRebalanceResult(rebalanceResult);
+                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
                 dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
                 return true;
             } else {

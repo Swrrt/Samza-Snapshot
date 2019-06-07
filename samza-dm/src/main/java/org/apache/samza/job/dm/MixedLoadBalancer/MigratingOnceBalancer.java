@@ -300,11 +300,14 @@ public class MigratingOnceBalancer {
 
         Map<String, String> newTaskContainer = new HashMap<>();
         newTaskContainer.putAll(oldTaskContainer);
+        Map<String, String> migratingTasks = new HashMap<>();
         for (String parition : dfsState.bestMigration) {
-            delayEstimator.migration(time, srcContainer, dfsState.bestTgtContainer, parition);
+            //delayEstimator.migration(time, srcContainer, dfsState.bestTgtContainer, parition);
+            migratingTasks.put(parition, dfsState.bestTgtContainer);
             newTaskContainer.put(parition, dfsState.bestTgtContainer);
         }
-        RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Migrating, newTaskContainer);
+        MigrationContext migrationContext = new MigrationContext(srcContainer, dfsState.bestTgtContainer, migratingTasks);
+        RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Migrating, newTaskContainer, migrationContext);
         return result;
     }
 

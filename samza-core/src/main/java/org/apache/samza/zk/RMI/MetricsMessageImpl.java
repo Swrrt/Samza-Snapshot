@@ -11,6 +11,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMessage {
     List<Pair<String, ReadableMetricsRegistry>> metrics;
@@ -18,13 +19,15 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
     ConcurrentHashMap<String, Object> arrived;
     ConcurrentHashMap<String, Long> processed;
     AtomicDouble utilization;
+    AtomicLong jobModelVersion;
     String topic;
-    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, ConcurrentHashMap<String, Object> arrived, ConcurrentHashMap<String, Long> processed, AtomicDouble utilization, String topic)throws RemoteException {
+    public MetricsMessageImpl(List<Pair<String, ReadableMetricsRegistry>> metrics, ConcurrentHashMap<String, Object> arrived, ConcurrentHashMap<String, Long> processed, AtomicDouble utilization, AtomicLong jobModelVersion, String topic)throws RemoteException {
         this.metrics = metrics;
         this.arrived = arrived;
         this.processed = processed;
         this.topic = topic;
         this.utilization = utilization;
+        this.jobModelVersion = jobModelVersion;
         //this.beginOffset = new ConcurrentHashMap<>();
         //this.lastProcessedOffset = new ConcurrentHashMap<>();
     }
@@ -41,21 +44,23 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             if(pair.getKey().startsWith("TaskName-Partition")){
                 String id = pair.getKey().substring(9);
                 if(pair.getValue().getGroups().contains("org.apache.samza.container.TaskInstanceMetrics")) { // Has processed metrics
-          //          System.out.println(pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics"));
-                    pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-total-processed").visit(new MetricsVisitor() {
-                        @Override
-                        public void counter(Counter counter) {
-                            processed.put(id, counter.getCount());
-                        }
+                    //          System.out.println(pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics"));
+                    if (pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").containsKey("messages-total-processed")) {
+                        pair.getValue().getGroup("org.apache.samza.container.TaskInstanceMetrics").get("messages-total-processed").visit(new MetricsVisitor() {
+                            @Override
+                            public void counter(Counter counter) {
+                                processed.put(id, counter.getCount());
+                            }
 
-                        @Override
-                        public <T> void gauge(Gauge<T> gauge) {
-                        }
+                            @Override
+                            public <T> void gauge(Gauge<T> gauge) {
+                            }
 
-                        @Override
-                        public void timer(Timer timer) {
-                        }
-                    });
+                            @Override
+                            public void timer(Timer timer) {
+                            }
+                        });
+                    }
                 }
             }else if(pair.getKey().startsWith("samza-container-")){ // Has arrived metrics
                 //System.out.println("samza-container- : " + pair.getValue().getGroups());
@@ -85,19 +90,23 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
                     }
                 }
 
-                if(pair.getValue().getGroups().contains("org.apache.samza.container.SamzaContainerMetrics")){
-                    pair.getValue().getGroup("org.apache.samza.container.SamzaContainerMetrics").get("average-utilization").visit(new MetricsVisitor() {
-                        @Override
-                        public void counter(Counter counter) {
-                        }
-                        @Override
-                        public <T> void gauge(Gauge<T> gauge) {
-                            utilization.set(Double.parseDouble(gauge.toString()));
-                        }
-                        @Override
-                        public void timer(Timer timer) {
-                        }
-                    });
+                if(pair.getValue().getGroups().contains("org.apache.samza.container.SamzaContainerMetrics")) {
+                    if (pair.getValue().getGroup("org.apache.samza.container.SamzaContainerMetrics").containsKey("average-utilization")) {
+                        pair.getValue().getGroup("org.apache.samza.container.SamzaContainerMetrics").get("average-utilization").visit(new MetricsVisitor() {
+                            @Override
+                            public void counter(Counter counter) {
+                            }
+
+                            @Override
+                            public <T> void gauge(Gauge<T> gauge) {
+                                utilization.set(Double.parseDouble(gauge.toString()));
+                            }
+
+                            @Override
+                            public void timer(Timer timer) {
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -118,6 +127,7 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             }
         }
         ret.put("Utilization", utilization.toString());
+        ret.put("JobModelVersion", jobModelVersion.toString());
         System.out.println("Return: " + ret);
         return ret;
     }
