@@ -482,13 +482,14 @@ public class MixedLoadBalanceManager {
             if(jobModelVersion > -1){
                 if(jobModelVersion > oldJobModelVersion && containerId.equals(migrationContext.getSrcContainer()) && !migrationContext.isDeployed()){
                     //TODO:
-                    writeLog("Migration deployed! Update delay estimator");
+                    writeLog("Migration deployed! from container " + containerId + "Update delay estimator");
                     migrationContext.setDeployed();
                     oldJobModel = newJobModel;
                     taskContainer = newRebalanceResult.getTaskContainer();
                     for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
                         String partition = entry.getKey();
                         String tgtContainer = entry.getValue();
+                        writeLog("Migration deployed! task " + partition + " to container " + tgtContainer);
                         delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
                     }
                 }

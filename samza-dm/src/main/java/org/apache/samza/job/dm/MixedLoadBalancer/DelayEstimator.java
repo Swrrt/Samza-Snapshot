@@ -204,6 +204,13 @@ public class DelayEstimator {
     public void migration(long time, String srcExecutorId, String tgtExecutorId, String partionId){
         //TODO:
         //Reduce source containers' backlog
+        for(int i = timePoints.size() - 1; i >= 0;i--){
+            if(time >= timePoints.get(i)){
+                time = timePoints.get(i);
+                break;
+            }
+        }
+
         long backlog = getPartitionBacklog(partionId, time, srcExecutorId);
         long arrived = getPartitionArrived(partionId, time);
         for(int i = timePoints.size() - 1 ; i >=0 ; i--){
