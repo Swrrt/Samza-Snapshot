@@ -474,6 +474,10 @@ public class MixedLoadBalanceManager {
             MetricsClient client = new MetricsClient(localityServer.getLocality(srcId), 8900 + Integer.parseInt(srcId), srcId);
             offsets = client.getOffsets();
             long jobModelVersion = -1;
+            if(offsets != null && offsets.containsKey("JobModelVersion")){
+                jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
+                offsets.remove("JobModelVersion");
+            }
             //Update container JobModelVersion
             long oldJobModelVersion = containerJobModelVersion.getOrDefault(srcId, -1l);
             if(jobModelVersion > -1){
