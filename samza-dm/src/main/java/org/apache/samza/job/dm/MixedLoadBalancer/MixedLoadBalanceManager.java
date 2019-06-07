@@ -468,6 +468,32 @@ public class MixedLoadBalanceManager {
         containerProcessed.clear();
         containerArrived.clear();
         containerUtilization.clear();
+
+        if(migrationContext != null && !checkMigrationDeployed()){
+            String srcId = migrationContext.getSrcContainer();
+            MetricsClient client = new MetricsClient(localityServer.getLocality(srcId), 8900 + Integer.parseInt(srcId), srcId);
+            offsets = client.getOffsets();
+            long jobModelVersion = -1;
+            //Update container JobModelVersion
+            long oldJobModelVersion = containerJobModelVersion.getOrDefault(srcId, -1l);
+            if(jobModelVersion > -1){
+                if(jobModelVersion > oldJobModelVersion){
+                    //TODO:
+                    writeLog("Migration deployed! from container " + srcId + "Update delay estimator");
+                    migrationContext.setDeployed();
+                    oldJobModel = newJobModel;
+                    updateFromJobModel(newJobModel);
+                    //taskContainer = newRebalanceResult.getTaskContainer();
+                    for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
+                        String partition = entry.getKey();
+                        String tgtContainer = entry.getValue();
+                        writeLog("Migration deployed! task " + partition + " to container " + tgtContainer);
+                        delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
+                    }
+                }
+            }
+        }
+
         for(String containerId: containerIds){
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
             offsets = client.getOffsets();
@@ -485,8 +511,8 @@ public class MixedLoadBalanceManager {
                     writeLog("Migration deployed! from container " + containerId + "Update delay estimator");
                     migrationContext.setDeployed();
                     oldJobModel = newJobModel;
-                    updateFromJobModel(newJobModel);
-                    //taskContainer = newRebalanceResult.getTaskContainer();
+                    //updateFromJobModel(newJobModel);
+                    taskContainer = newRebalanceResult.getTaskContainer();
                     for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
                         String partition = entry.getKey();
                         String tgtContainer = entry.getValue();
