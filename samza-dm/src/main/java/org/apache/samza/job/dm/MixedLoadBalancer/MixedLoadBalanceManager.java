@@ -388,6 +388,16 @@ public class MixedLoadBalanceManager {
 
     //Return false if any container's avg delay is higher than threshold
     // and  1/(u-n)>threshold
+    public boolean checkDelay(String containerId){
+        double delay = modelingData.getAvgDelay(containerId, modelingData.getCurrentTime());
+        double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
+        double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
+        if(delay > threshold && (service < arrival + 1e-9 || 1/(service - arrival) > threshold)){
+            return false;
+        }
+        return true;
+    }
+
     public boolean checkDelay(){
         List<String> tasks = new LinkedList<>();
         for(String containerId: containerIds){
@@ -395,13 +405,12 @@ public class MixedLoadBalanceManager {
             double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
             double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
 
-            if(delay > threshold){
-                if(service < arrival + 1e-9 || 1/(service - arrival) > threshold) {
+            if(checkDelay(containerId)){
                     writeLog("Container " + containerId
                             + " delay is " + delay + " exceeds threshold: " + threshold
                             + ", arrival is " + arrival + ", service is " + service);
                     return false;
-                }
+            }else if(delay > threshold){
                 tasks.add(containerId);
             }
         }
@@ -430,14 +439,14 @@ public class MixedLoadBalanceManager {
 
     public RebalanceResult migratingOnce(){
         MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
-        migratingOnceBalancer.setModelingData(modelingData, delayEstimator);
+        migratingOnceBalancer.setModelingData(modelingData, delayEstimator, this);
         RebalanceResult result = migratingOnceBalancer.rebalance(taskContainer, threshold);
         return result;
     }
 
     public RebalanceResult scaleOutByNumber(int change){
         MigrateLargestByNumberScaler scaler = new MigrateLargestByNumberScaler();
-        scaler.setModelingData(modelingData, delayEstimator);
+        scaler.setModelingData(modelingData, delayEstimator, this);
         RebalanceResult result = scaler.scaleOutByNumber(taskContainer, change);
         return result;
     }

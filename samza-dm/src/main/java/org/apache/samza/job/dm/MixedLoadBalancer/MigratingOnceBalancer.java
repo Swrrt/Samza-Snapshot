@@ -8,13 +8,14 @@ import java.util.*;
 public class MigratingOnceBalancer {
     private ModelingData modelingData;
     private DelayEstimator delayEstimator;
-
+    private MixedLoadBalanceManager loadBalanceManager;
     public MigratingOnceBalancer() {
     }
 
-    public void setModelingData(ModelingData data, DelayEstimator delay) {
+    public void setModelingData(ModelingData data, DelayEstimator delay, MixedLoadBalanceManager loadBalanceManager) {
         modelingData = data;
         delayEstimator = delay;
+        this.loadBalanceManager = loadBalanceManager;
     }
 
     private class DFSState {
@@ -111,6 +112,7 @@ public class MigratingOnceBalancer {
         );
     }
 
+
     private void DFSforBestDelay(int i, DFSState state) {
         if (state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) {
             double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
@@ -152,6 +154,19 @@ public class MigratingOnceBalancer {
         }
     }
 
+    private Pair<String, Double> findMaxDelay(Map<String, List<String>> containerTasks, long time){
+        double initialDelay = -1.0;
+        String maxContainer = "";
+        for (String containerId : containerTasks.keySet()) {
+            double delay = modelingData.getAvgDelay(containerId, time);
+            if (delay > initialDelay && loadBalanceManager.checkDelay(containerId)) {
+                initialDelay = delay;
+                maxContainer = containerId;
+            }
+        }
+        return new Pair(maxContainer, initialDelay);
+    }
+
     public RebalanceResult rebalance(Map<String, String> oldTaskContainer, double threshold) {
         writeLog("Migrating once based on tasks: " + oldTaskContainer);
         Map<String, List<String>> containerTasks = new HashMap<>();
@@ -171,15 +186,9 @@ public class MigratingOnceBalancer {
         dfsState.time = time;
 
         //Find container with maximum delay
-        double initialDelay = -1.0;
-        String srcContainer = "";
-        for (String containerId : containerTasks.keySet()) {
-            double delay = modelingData.getAvgDelay(containerId, time);
-            if (delay > initialDelay) {
-                initialDelay = delay;
-                srcContainer = containerId;
-            }
-        }
+        Pair<String, Double> a = findMaxDelay(containerTasks, time);
+        String srcContainer = a.getKey();
+        double initialDelay = a.getValue();
         if (srcContainer.equals("")) { //No correct container
             writeLog("Cannot find the container that exceeds threshold");
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
