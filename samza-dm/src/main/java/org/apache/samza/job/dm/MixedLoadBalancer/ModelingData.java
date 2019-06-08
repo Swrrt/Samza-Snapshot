@@ -169,7 +169,7 @@ public class ModelingData {
                 delayWindows.put(containerId, new LinkedList<>());
             }
             Deque<Pair<Long, Double>> window = delayWindows.get(containerId);
-            if(delay > -1e-9)window.addLast(new Pair(time, delay)); //Only if it has processed
+            window.addLast(new Pair(time, delay)); //Only if it has processed
             while(window.size() > 0 && time - window.getFirst().getKey() > alpha * interval){
                 window.pollFirst();
             }
