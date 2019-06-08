@@ -169,8 +169,8 @@ public class ModelingData {
                 delayWindows.put(containerId, new LinkedList<>());
             }
             Deque<Pair<Long, Double>> window = delayWindows.get(containerId);
-            window.addLast(new Pair(time, delay));
-            while(window.size() > alpha){
+            if(delay > -1e-9)window.addLast(new Pair(time, delay)); //Only if it has processed
+            while(time - window.getFirst().getKey() > alpha * interval){
                 window.pollFirst();
             }
             Iterator<Pair<Long, Double>> iterator = window.iterator();
@@ -178,7 +178,8 @@ public class ModelingData {
             while(iterator.hasNext()){
                 s_Delay += iterator.next().getValue();
             }
-            double avgDelay = s_Delay / alpha;
+            double avgDelay = 0;
+            if(window.size() > 0)avgDelay = s_Delay / window.size();
             updateAvgDelay(containerId, time, avgDelay);
 
             //Update residual

@@ -580,6 +580,7 @@ public class MixedLoadBalanceManager {
         HashMap<String, Double> delays = new HashMap<>();
         for(String containerId: containerIds){
             double delay = delayEstimator.estimateDelay(containerId, time, time);
+            //if(delay < 0)delay = 0;
             delays.put(containerId, delay);
         }
 

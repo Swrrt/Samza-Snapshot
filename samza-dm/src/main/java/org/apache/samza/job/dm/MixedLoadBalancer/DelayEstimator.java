@@ -182,7 +182,12 @@ public class DelayEstimator {
         double delay = 0;
         long size = 0;
         long tTime, tLastTime = 0;
-        for(int i = 0; i < timePoints.size(); i++){
+        int startPoint = timePoints.size() - 1;
+        while(startPoint > 0){
+            if(timePoints.get(startPoint) < lastTime)break;
+            startPoint--;
+        }
+        for(int i = startPoint; i < timePoints.size(); i++){
             tTime = timePoints.get(i);
             if(tTime > time){
                 break;
@@ -197,6 +202,7 @@ public class DelayEstimator {
             }
             tLastTime = tTime;
         }
+        if(size <= 0 )return -1; //No processed :(
         if(size > 0) delay /= size;
         if(delay < 1e-10) delay = 0;
         return delay;
