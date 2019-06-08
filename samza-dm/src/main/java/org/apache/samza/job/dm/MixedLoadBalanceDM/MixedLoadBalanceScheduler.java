@@ -1,5 +1,6 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
+import com.sun.org.apache.regexp.internal.RE;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.config.Config;
@@ -173,22 +174,22 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
                 dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
                 return true;
-            } else {
-                writeLog("No need to rebalance, try to scale in");
-                rebalanceResult = balanceManager.scaleInByOne();
-                if(rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn){
-                    writeLog("Need to Scale In");
-                    newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
-                    writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
-                    JobModelDemonstrator.demoJobModel(newJobModel);
-                    balanceManager.stashNewJobModel(newJobModel);
-                    balanceManager.stashNewRebalanceResult(rebalanceResult);
-                    balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
-                    dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
-                    return true;
-                }
-                writeLog("Cannot scale in");
             }
+        }else if(balanceManager.getOldJobModel().getContainers().size() > 5){   //Otherwise stop all containers.
+            writeLog("No need to rebalance, try to scale in");
+            RebalanceResult rebalanceResult = balanceManager.scaleInByOne();
+            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn) {
+                writeLog("Need to Scale In");
+                JobModel newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
+                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                JobModelDemonstrator.demoJobModel(newJobModel);
+                balanceManager.stashNewJobModel(newJobModel);
+                balanceManager.stashNewRebalanceResult(rebalanceResult);
+                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
+                dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
+                return true;
+            }
+            writeLog("Cannot scale in");
         }
         return false;
     }
