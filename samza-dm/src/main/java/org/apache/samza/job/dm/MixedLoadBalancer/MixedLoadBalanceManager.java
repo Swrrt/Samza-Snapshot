@@ -405,7 +405,7 @@ public class MixedLoadBalanceManager {
             double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
             double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
 
-            if(checkDelay(containerId)){
+            if(!checkDelay(containerId)){
                     writeLog("Container " + containerId
                             + " delay is " + delay + " exceeds threshold: " + threshold
                             + ", arrival is " + arrival + ", service is " + service);

@@ -24,7 +24,7 @@ public class MigrateLargestByNumberScaler {
         String maxContainer = "";
         for (String containerId : containerTasks.keySet()) {
             double delay = modelingData.getAvgDelay(containerId, time);
-            if (delay > initialDelay && loadBalanceManager.checkDelay(containerId)) {
+            if (delay > initialDelay && !loadBalanceManager.checkDelay(containerId)) {
                 initialDelay = delay;
                 maxContainer = containerId;
             }
