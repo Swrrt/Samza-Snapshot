@@ -202,7 +202,7 @@ public class DelayEstimator {
             }
             tLastTime = tTime;
         }
-        if(size <= 0 )return -1; //No processed :(
+        if(size <= 0)return -1; //No processed :(
         if(size > 0) delay /= size;
         if(delay < 1e-10) delay = 0;
         return delay;
