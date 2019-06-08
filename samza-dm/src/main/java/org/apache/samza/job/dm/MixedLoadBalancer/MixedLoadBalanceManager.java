@@ -476,14 +476,13 @@ public class MixedLoadBalanceManager {
             long jobModelVersion = -1;
             if(offsets != null && offsets.containsKey("JobModelVersion")){
                 jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
-                offsets.remove("JobModelVersion");
             }
             //Update container JobModelVersion
             long oldJobModelVersion = containerJobModelVersion.getOrDefault(srcId, -1l);
             if(jobModelVersion > -1){
                 if(jobModelVersion > oldJobModelVersion){
                     //TODO:
-                    writeLog("Migration deployed! from container " + srcId + "Update delay estimator");
+                    writeLog("Migration deployed! from container " + srcId + " Update delay estimator");
                     migrationContext.setDeployed();
                     oldJobModel = newJobModel;
                     updateFromJobModel(newJobModel);
@@ -509,24 +508,9 @@ public class MixedLoadBalanceManager {
                 offsets.remove("JobModelVersion");
             }
             long oldJobModelVersion = containerJobModelVersion.getOrDefault(containerId, -1l);
-            if(jobModelVersion > -1){
-                if(jobModelVersion > oldJobModelVersion && containerId.equals(migrationContext.getSrcContainer()) && !migrationContext.isDeployed()){
-                    //TODO:
-                    writeLog("Migration deployed! from container " + containerId + "Update delay estimator");
-                    migrationContext.setDeployed();
-                    oldJobModel = newJobModel;
-                    //updateFromJobModel(newJobModel);
-                    taskContainer = newRebalanceResult.getTaskContainer();
-                    for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
-                        String partition = entry.getKey();
-                        String tgtContainer = entry.getValue();
-                        writeLog("Migration deployed! task " + partition + " to container " + tgtContainer);
-                        delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
-                    }
-
-                }
+            if(jobModelVersion > -1 && jobModelVersion > oldJobModelVersion){
+                containerJobModelVersion.put(containerId, jobModelVersion);
             }
-
             if(offsets != null && offsets.containsKey("Utilization")) {
                 utilization = Double.parseDouble(offsets.get("Utilization"));
                 offsets.remove("Utilization");
