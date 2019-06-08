@@ -170,7 +170,7 @@ public class ModelingData {
             }
             Deque<Pair<Long, Double>> window = delayWindows.get(containerId);
             if(delay > -1e-9)window.addLast(new Pair(time, delay)); //Only if it has processed
-            while(time - window.getFirst().getKey() > alpha * interval){
+            while(window.size() > 0 && time - window.getFirst().getKey() > alpha * interval){
                 window.pollFirst();
             }
             Iterator<Pair<Long, Double>> iterator = window.iterator();
