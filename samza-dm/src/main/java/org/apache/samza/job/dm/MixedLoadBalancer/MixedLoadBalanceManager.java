@@ -387,15 +387,26 @@ public class MixedLoadBalanceManager {
      */
 
     //Return false if any container's avg delay is higher than threshold
+    // and  1/(u-n)>threshold
     public boolean checkDelay(){
+        List<String> tasks = new LinkedList<>();
         for(String containerId: containerIds){
             double delay = modelingData.getAvgDelay(containerId, modelingData.getCurrentTime());
+            double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
+            double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
+
             if(delay > threshold){
-                writeLog("Container " + containerId + " delay is " + delay + " exceeds threshold: " + threshold);
-                return false;
+                if(service < arrival + 1e-9 || 1/(service - arrival) > threshold) {
+                    writeLog("Container " + containerId
+                            + " delay is " + delay + " exceeds threshold: " + threshold
+                            + ", arrival is " + arrival + ", service is " + service);
+                    return false;
+                }
+                tasks.add(containerId);
             }
         }
-        writeLog("All containers' delay is smaller than threshold");
+        if(tasks.size()==0)writeLog("All containers' delay is smaller than threshold");
+        else writeLog("Containers delay is greater than threshold, but estimated to decrease: " + tasks);
         return true;
     }
 
