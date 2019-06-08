@@ -451,6 +451,12 @@ public class MixedLoadBalanceManager {
         return result;
     }
 
+    public RebalanceResult scaleInByOne(){
+        MigrateLargestByNumberScaler scaler = new MigrateLargestByNumberScaler();
+        scaler.setModelingData(modelingData, delayEstimator, this);
+        RebalanceResult result = scaler.scaleInByOne(taskContainer, threshold);
+        return result;
+    }
     public void updateTaskContainers(Map<String, String> newTaskContainers){
         taskContainer.clear();
         taskContainer.putAll(newTaskContainers);

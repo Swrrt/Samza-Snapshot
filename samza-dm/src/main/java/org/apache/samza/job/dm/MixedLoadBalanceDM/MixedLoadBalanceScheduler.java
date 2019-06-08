@@ -174,7 +174,20 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
                 return true;
             } else {
-                writeLog("No need to rebalance");
+                writeLog("No need to rebalance, try to scale in");
+                rebalanceResult = balanceManager.scaleInByOne();
+                if(rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn){
+                    writeLog("Need to Scale In");
+                    newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
+                    writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                    JobModelDemonstrator.demoJobModel(newJobModel);
+                    balanceManager.stashNewJobModel(newJobModel);
+                    balanceManager.stashNewRebalanceResult(rebalanceResult);
+                    balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
+                    dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
+                    return true;
+                }
+                writeLog("Cannot scale in");
             }
         }
         return false;

@@ -57,7 +57,7 @@ public class MigratingOnceBalancer {
         }
     }
 
-    public double estimateDelay(double arrivalRate, double serviceRate, double residual) {
+    public static double estimateDelay(double arrivalRate, double serviceRate, double residual) {
         double rho = arrivalRate / serviceRate;
         return rho / (1 - rho) * residual + 1 / serviceRate;
     }

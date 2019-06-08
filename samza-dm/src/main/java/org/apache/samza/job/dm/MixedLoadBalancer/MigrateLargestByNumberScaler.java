@@ -31,6 +31,55 @@ public class MigrateLargestByNumberScaler {
         }
         return new Pair(maxContainer, initialDelay);
     }
+
+    public RebalanceResult scaleInByOne(Map<String, String> oldTaskContainer, double threshold){
+        Map<String, List<String>> containerTasks = new HashMap<>();
+        writeLog("Try to scale in");
+        long time = modelingData.getCurrentTime();
+        for (String partitionId : oldTaskContainer.keySet()) {
+            String containerId = oldTaskContainer.get(partitionId);
+            if (!containerTasks.containsKey(containerId)) {
+                containerTasks.put(containerId, new ArrayList<>());
+            }
+            containerTasks.get(containerId).add(partitionId);
+        }
+        if (containerTasks.keySet().size() == 0) { //No container to move
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
+            return result;
+        }
+        //Find container with maximum delay
+
+        for(String srcContainer: containerTasks.keySet()) {
+            double srcArrival = modelingData.getExecutorArrivalRate(srcContainer, time);
+            double srcService = modelingData.getExecutorServiceRate(srcContainer, time);
+            for (String tgtContainer : containerTasks.keySet())
+                if (!srcContainer.equals(tgtContainer)) {
+                    double tgtArrival = modelingData.getExecutorArrivalRate(tgtContainer, time);
+                    double tgtService = modelingData.getExecutorServiceRate(tgtContainer, time);
+                    double tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
+                    if(srcArrival + tgtArrival < tgtService){
+                        double estimatedDelay = MigratingOnceBalancer.estimateDelay(srcArrival + tgtArrival, tgtService, tgtResidual);
+                        //Scale In
+                        if(estimatedDelay < threshold){
+                            HashMap<String, String> newTaskContainer = new HashMap<>();
+                            newTaskContainer.putAll(oldTaskContainer);
+                            Map<String, String> migratingTask = new HashMap<>();
+                            for(String task: containerTasks.get(srcContainer)){
+                                newTaskContainer.put(task, tgtContainer);
+                                migratingTask.put(task, tgtContainer);
+                            }
+                            writeLog("New task-container mapping: " + newTaskContainer);
+                            MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
+                            return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingIn, newTaskContainer, migrationContext);
+                        }
+                    }
+                }
+        }
+        writeLog("Cannot scale in");
+        RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
+        return result;
+    }
+
     public RebalanceResult scaleOutByNumber(Map<String, String> oldTaskContainer, int numberToScaleOut){
         Map<String, List<String>> containerTasks = new HashMap<>();
         writeLog("Scale out " + numberToScaleOut + " containers");
