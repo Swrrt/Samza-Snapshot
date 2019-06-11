@@ -32,7 +32,7 @@ public class MigrateLargestByNumberScaler {
         return new Pair(maxContainer, initialDelay);
     }
 
-    public RebalanceResult scaleInByOne(Map<String, String> oldTaskContainer, double threshold){
+    public RebalanceResult scaleInByOne(Map<String, String> oldTaskContainer, double instantaneousThreshold, double longtermThreshold){
         Map<String, List<String>> containerTasks = new HashMap<>();
         writeLog("Try to scale in");
         long time = modelingData.getCurrentTime();
@@ -43,12 +43,13 @@ public class MigrateLargestByNumberScaler {
             }
             containerTasks.get(containerId).add(partitionId);
         }
-        if (containerTasks.keySet().size() == 0) { //No container to move
+        if (containerTasks.keySet().size() <= 1) { //No container to move
+            writeLog("Has one or less containers, cannot scale in");
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
             return result;
         }
-        //Find container with maximum delay
 
+        //Enumerate through all pairs of containers
         for(String srcContainer: containerTasks.keySet()) {
             double srcArrival = modelingData.getExecutorArrivalRate(srcContainer, time);
             double srcService = modelingData.getExecutorServiceRate(srcContainer, time);
@@ -60,7 +61,7 @@ public class MigrateLargestByNumberScaler {
                     if(srcArrival + tgtArrival < tgtService){
                         double estimatedDelay = MigratingOnceBalancer.estimateDelay(srcArrival + tgtArrival, tgtService, tgtResidual);
                         //Scale In
-                        if(estimatedDelay < threshold){
+                        if(estimatedDelay < longtermThreshold){
                             HashMap<String, String> newTaskContainer = new HashMap<>();
                             newTaskContainer.putAll(oldTaskContainer);
                             Map<String, String> migratingTask = new HashMap<>();

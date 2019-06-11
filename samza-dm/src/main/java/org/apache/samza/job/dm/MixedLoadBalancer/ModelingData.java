@@ -57,6 +57,15 @@ public class ModelingData {
     public void setDelayEstimator(DelayEstimator delayEstimator){
         this.delayEstimator = delayEstimator;
     }
+
+    // 1 / ( u - n ). Return  1e100 if u <= n
+    public double getLongTermDelay(String executorId, long time){
+        double arrival = getExecutorArrivalRate(executorId, time);
+        double service = getExecutorServiceRate(executorId, time);
+        if(service < arrival + 1e-15)return 1e100;
+        return 1.0/(service - arrival);
+    }
+
     public double getExecutorArrivalRate(String executorId, long time){
         return executors.get(executorId).arrivalRate.getOrDefault(time, 0.0);
     }

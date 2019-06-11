@@ -25,7 +25,8 @@ import org.apache.samza.zk.RMI.OffsetServer;
 public class MixedLoadBalanceManager {
     //private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
     private final int LOCALITY_RETRY_TIMES = 2;
-    private double threshold;
+    private double instantaneousThreshold;
+    private double longTermThreshold;
     //TODO: reorganize all classes and tables;
     //private ConsistentHashing consistentHashing;
     //private LocalityDistance locality;  //TODO: update Locality part.
@@ -141,7 +142,8 @@ public class MixedLoadBalanceManager {
         modelingData.setTimes(delayEstimator.timePoints);
         modelingData.setTimes(config.getLong("job,loadbalance.delay.interval", 500l), config.getInt("job.loadbalance.delay.alpha", 20), config.getInt("job.loadbalance.delay.beta", 10));
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
-        threshold = config.getDouble("job.loadbalance.delay.threshold", 1.0);
+        instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 500.0);
+        longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 1000.0);
         for(String containerId: containerIds){
             containerJobModelVersion.put(containerId, -1l);
         }
@@ -390,9 +392,8 @@ public class MixedLoadBalanceManager {
     // and  1/(u-n)>threshold
     public boolean checkDelay(String containerId){
         double delay = modelingData.getAvgDelay(containerId, modelingData.getCurrentTime());
-        double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
-        double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
-        if(delay > threshold && (service < arrival + 1e-9 || 1/(service - arrival) > threshold)){
+        double longTermDelay = modelingData.getLongTermDelay(containerId, modelingData.getCurrentTime());
+        if(delay > instantaneousThreshold && longTermDelay > longTermThreshold){
             return false;
         }
         return true;
@@ -404,13 +405,14 @@ public class MixedLoadBalanceManager {
             double delay = modelingData.getAvgDelay(containerId, modelingData.getCurrentTime());
             double arrival = modelingData.getExecutorArrivalRate(containerId, modelingData.getCurrentTime());
             double service = modelingData.getExecutorServiceRate(containerId, modelingData.getCurrentTime());
-
+            double longtermDelay = modelingData.getLongTermDelay(containerId, modelingData.getCurrentTime());
             if(!checkDelay(containerId)){
                     writeLog("Container " + containerId
-                            + " delay is " + delay + " exceeds threshold: " + threshold
+                            + " instant delay is " + delay + " exceeds threshold: " + instantaneousThreshold
+                            + " longterm delay is " + longtermDelay + " exceeds threshold: " + longTermThreshold
                             + ", arrival is " + arrival + ", service is " + service);
                     return false;
-            }else if(delay > threshold){
+            }else if(delay > instantaneousThreshold){
                 tasks.add(containerId);
             }
         }
@@ -440,7 +442,7 @@ public class MixedLoadBalanceManager {
     public RebalanceResult migratingOnce(){
         MigratingOnceBalancer migratingOnceBalancer = new MigratingOnceBalancer();
         migratingOnceBalancer.setModelingData(modelingData, delayEstimator, this);
-        RebalanceResult result = migratingOnceBalancer.rebalance(taskContainer, threshold);
+        RebalanceResult result = migratingOnceBalancer.rebalance(taskContainer, instantaneousThreshold, longTermThreshold);
         return result;
     }
 
@@ -454,7 +456,7 @@ public class MixedLoadBalanceManager {
     public RebalanceResult scaleInByOne(){
         MigrateLargestByNumberScaler scaler = new MigrateLargestByNumberScaler();
         scaler.setModelingData(modelingData, delayEstimator, this);
-        RebalanceResult result = scaler.scaleInByOne(taskContainer, threshold);
+        RebalanceResult result = scaler.scaleInByOne(taskContainer, instantaneousThreshold, longTermThreshold);
         return result;
     }
     public void updateTaskContainers(Map<String, String> newTaskContainers){

@@ -9,6 +9,7 @@ public class MigratingOnceBalancer {
     private ModelingData modelingData;
     private DelayEstimator delayEstimator;
     private MixedLoadBalanceManager loadBalanceManager;
+    private double instantThreshold, longtermThreshold;
     public MigratingOnceBalancer() {
     }
 
@@ -16,6 +17,10 @@ public class MigratingOnceBalancer {
         modelingData = data;
         delayEstimator = delay;
         this.loadBalanceManager = loadBalanceManager;
+    }
+    public void setThreshold(double instantThreshold, double longtermThreshold){
+        this.instantThreshold = instantThreshold;
+        this.longtermThreshold = longtermThreshold;
     }
 
     private class DFSState {
@@ -57,17 +62,31 @@ public class MigratingOnceBalancer {
         }
     }
 
-    public static double estimateDelay(double arrivalRate, double serviceRate, double residual) {
+    public static double estimateInstantaneousDelay(double arrivalRate, double serviceRate, double residual) {
         double rho = arrivalRate / serviceRate;
         return rho / (1 - rho) * residual + 1 / serviceRate;
     }
 
-    private double estimateSrcDelay(DFSState state) {
-        return estimateDelay(state.srcArrivalRate, state.srcServiceRate, state.srcResidual);
+    public static double estimateLongtermDelay(double arrivalRate, double serviceRate) {
+        if(arrivalRate > serviceRate - 1e-12)return 1e100;
+        return 1.0/(arrivalRate - serviceRate);
     }
 
-    private double estimateTgtDelay(DFSState state) {
-        return estimateDelay(state.tgtArrivalRate, state.tgtServiceRate, state.tgtResidual);
+    private double estimateSrcLongtermDelay(DFSState state) {
+        return estimateLongtermDelay(state.srcArrivalRate, state.srcServiceRate);
+    }
+
+    private double estimateTgtLongtermDelay(DFSState state) {
+        return estimateLongtermDelay(state.tgtArrivalRate, state.tgtServiceRate);
+    }
+
+
+    private double estimateSrcInstantDelay(DFSState state) {
+        return estimateInstantaneousDelay(state.srcArrivalRate, state.srcServiceRate, state.srcResidual);
+    }
+
+    private double estimateTgtInstantDelay(DFSState state) {
+        return estimateInstantaneousDelay(state.tgtArrivalRate, state.tgtServiceRate, state.tgtResidual);
     }
 
     private void Bruteforce(int i, DFSState state) {
@@ -112,10 +131,9 @@ public class MigratingOnceBalancer {
         );
     }
 
-
-    private void DFSforBestDelay(int i, DFSState state) {
+    private void DFSforBestLongtermDelay(int i, DFSState state) {
         if (state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) {
-            double estimateSrc = estimateSrcDelay(state), estimateTgt = estimateTgtDelay(state);
+            double estimateSrc = estimateSrcLongtermDelay(state), estimateTgt = estimateTgtLongtermDelay(state);
             writeLog("If migrating partitions " + state.migratingPartitions
                     + " from " + state.srcContainer
                     + " to " + state.tgtContainer
@@ -148,13 +166,54 @@ public class MigratingOnceBalancer {
             String partitionId = state.srcPartitions.get(j);
             if (state.okToMigratePartition(partitionId)) { //Migrate j
                 state.migratingPartition(partitionId);
-                DFSforBestDelay(j, state);
+                DFSforBestLongtermDelay(j, state);
                 state.unmigratingPartition(partitionId);
             }
         }
     }
 
-    private Pair<String, Double> findMaxDelay(Map<String, List<String>> containerTasks, long time){
+    private void DFSforBestInstantDelay(int i, DFSState state) {
+        if (state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) {
+            double estimateSrc = estimateSrcInstantDelay(state), estimateTgt = estimateTgtInstantDelay(state);
+            writeLog("If migrating partitions " + state.migratingPartitions
+                    + " from " + state.srcContainer
+                    + " to " + state.tgtContainer
+                    + ", estimate source delay: " + estimateSrc
+                    + ", estimate target delay: " + estimateTgt
+                    + ", current best delay: " + state.bestDelay
+                    + ", srcArrivalRate: " + state.srcArrivalRate
+                    + ", tgtArrivalRate: " + state.tgtArrivalRate
+                    + ", srcServiceRate: " + state.srcServiceRate
+                    + ", tgtServiceRate: " + state.tgtServiceRate
+                    + ", srcResidual: " + state.srcResidual
+                    + ", tgtResidual: " + state.tgtResidual
+            );
+            if (estimateTgt > estimateSrc && estimateSrc > state.bestDelay) return;
+            if (estimateSrc < state.bestDelay && estimateTgt < state.bestDelay) {
+                state.bestDelay = Math.max(estimateSrc, estimateTgt);
+                state.bestMigration.clear();
+                state.bestMigration.addAll(state.migratingPartitions);
+                state.bestTgtContainer = state.tgtContainer;
+                state.bestSrcContainer = state.srcContainer;
+            }
+        }
+        if (i < 0) {
+            return;
+        }
+
+        //String partitionId = state.srcPartitions.get(i);
+
+        for (int j = i - 1; j >= 0; j--) {
+            String partitionId = state.srcPartitions.get(j);
+            if (state.okToMigratePartition(partitionId)) { //Migrate j
+                state.migratingPartition(partitionId);
+                DFSforBestInstantDelay(j, state);
+                state.unmigratingPartition(partitionId);
+            }
+        }
+    }
+
+    private Pair<String, Double> findMaxInstantDelay(Map<String, List<String>> containerTasks, long time){
         double initialDelay = -1.0;
         String maxContainer = "";
         for (String containerId : containerTasks.keySet()) {
@@ -167,52 +226,46 @@ public class MigratingOnceBalancer {
         return new Pair(maxContainer, initialDelay);
     }
 
-    public RebalanceResult rebalance(Map<String, String> oldTaskContainer, double threshold) {
-        writeLog("Migrating once based on tasks: " + oldTaskContainer);
-        Map<String, List<String>> containerTasks = new HashMap<>();
-        long time = modelingData.getCurrentTime();
-        for (String partitionId : oldTaskContainer.keySet()) {
-            String containerId = oldTaskContainer.get(partitionId);
-            if (!containerTasks.containsKey(containerId)) {
-                containerTasks.put(containerId, new ArrayList<>());
+    private Pair<String, Double> findMaxLongtermDelay(Map<String, List<String>> containerTasks, long time){
+        double initialDelay = -1.0;
+        String maxContainer = "";
+        for (String containerId : containerTasks.keySet()) {
+            double delay = modelingData.getLongTermDelay(containerId, time);
+            if (delay > initialDelay && !loadBalanceManager.checkDelay(containerId)) {
+                initialDelay = delay;
+                maxContainer = containerId;
             }
-            containerTasks.get(containerId).add(partitionId);
         }
-        if (containerTasks.keySet().size() == 0) { //No container to move
-            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
-            return result;
-        }
-        DFSState dfsState = new DFSState();
-        dfsState.time = time;
+        return new Pair(maxContainer, initialDelay);
+    }
 
-        //Find container with maximum delay
-        Pair<String, Double> a = findMaxDelay(containerTasks, time);
-        String srcContainer = a.getKey();
-        double initialDelay = a.getValue();
-        if (srcContainer.equals("")) { //No correct container
-            writeLog("Cannot find the container that exceeds threshold");
-            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
-            return result;
+    private Pair<String, Double> findIdealLongtermContainer(DFSState dfsState, String srcContainer, Map<String, List<String>> containerTasks, long time) {
+        double minIdealDelay = 1e100;
+        String tgtContainer = "";
+        for (String container : containerTasks.keySet()) {
+            if (container.equals(srcContainer)) continue;
+            double n1 = dfsState.srcArrivalRate;
+            double n2 = modelingData.getExecutorArrivalRate(container, time);
+            double u1 = dfsState.srcServiceRate;
+            double u2 = modelingData.getExecutorServiceRate(container, time);
+            double instantDelay = modelingData.getAvgDelay(container, time);
+            if(instantDelay < instantThreshold && u2 > n2 && u2 - n2 > u1 - n1){
+                double x = ((u2 - n2) - (u1 - n1))/2;
+                if(u2 > n2 + x && u1 > n1 - x){
+                    double d1 = 1/(u2 - (n2 + x));
+                    double d2 = 1/(u1 - (n1 + x));
+                    writeLog("Estimate ideal long term delay: " + d1 + " , " + d2);
+                    if(d1 < minIdealDelay){
+                        minIdealDelay = d1;
+                        tgtContainer = container;
+                    }
+                }
+            }
         }
+        return new Pair(tgtContainer, minIdealDelay);
+    }
 
-        if (containerTasks.get(srcContainer).size() <= 1) { //Container has only one partition
-            writeLog("Largest delay container " + srcContainer + " has only " + containerTasks.get(srcContainer).size());
-            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
-            return result;
-        }
-        writeLog("Try to migrate from largest delay container " + srcContainer);
-        dfsState.bestDelay = initialDelay;
-        dfsState.bestSrcContainer = srcContainer;
-        dfsState.bestTgtContainer = srcContainer;
-        dfsState.bestMigration.clear();
-        //Migrating this container
-        dfsState.srcContainer = srcContainer;
-        dfsState.srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
-        dfsState.srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
-        dfsState.srcResidual = modelingData.getAvgResidual(srcContainer, time);
-        dfsState.srcPartitions = containerTasks.get(srcContainer);
-
-        //Choose target container based on ideal delay (minimize ideal delay)
+    private Pair<String, Double> findIdealInstantContainer(DFSState dfsState, String srcContainer, Map<String, List<String>> containerTasks, long time){
         double minIdealDelay = 1e100;
         String tgtContainer = "";
         for (String container : containerTasks.keySet()) {
@@ -234,9 +287,9 @@ public class MigratingOnceBalancer {
                 // C = -(A * n1 * n2 + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2 - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1)
                 double C = -(
                         A * n1 * n2
-                        + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2
-                        - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1
-                        );
+                                + ((R1 * n1 + 1) * u1 * u2 + (u1 - u2) * n1) * u2
+                                - ((R2 * n2 + 1) * u2 * u1 + (u2 - u1) * n2) * u1
+                );
                 //Solve x
                 double delta = B * B - 4 * A * C;
                 if (delta > -1e-16) {
@@ -265,8 +318,8 @@ public class MigratingOnceBalancer {
                         writeLog("Something wrong with ideal delay for " + dfsState.srcContainer + " to " + container);
                     } else {
                         //Debug
-                        double d1 = estimateDelay(n1 - x1, u1, R1);
-                        double d2 = estimateDelay(n2 + x1, u2, R2);
+                        double d1 = estimateInstantaneousDelay(n1 - x1, u1, R1);
+                        double d2 = estimateInstantaneousDelay(n2 + x1, u2, R2);
                         writeLog("Estimate delays for container " + container + " : " + d1 + " , " + d2);
                         if (d1 < minIdealDelay) {
                             minIdealDelay = d1;
@@ -276,6 +329,58 @@ public class MigratingOnceBalancer {
                 }
             }
         }
+        return new Pair(tgtContainer, minIdealDelay);
+    }
+
+    public RebalanceResult rebalance(Map<String, String> oldTaskContainer, double instantaneousThreshold, double longTermThreshold) {
+        writeLog("Migrating once based on tasks: " + oldTaskContainer);
+        Map<String, List<String>> containerTasks = new HashMap<>();
+        long time = modelingData.getCurrentTime();
+        for (String partitionId : oldTaskContainer.keySet()) {
+            String containerId = oldTaskContainer.get(partitionId);
+            if (!containerTasks.containsKey(containerId)) {
+                containerTasks.put(containerId, new ArrayList<>());
+            }
+            containerTasks.get(containerId).add(partitionId);
+        }
+        if (containerTasks.keySet().size() == 0) { //No container to move
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
+            return result;
+        }
+        DFSState dfsState = new DFSState();
+        dfsState.time = time;
+
+        //Find container with maximum delay
+        Pair<String, Double> a = findMaxLongtermDelay(containerTasks, time);
+        String srcContainer = a.getKey();
+        double initialDelay = a.getValue();
+        if (srcContainer.equals("")) { //No correct container
+            writeLog("Cannot find the container that exceeds threshold");
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
+            return result;
+        }
+
+        if (containerTasks.get(srcContainer).size() <= 1) { //Container has only one partition
+            writeLog("Largest delay container " + srcContainer + " has only " + containerTasks.get(srcContainer).size());
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.Unable, oldTaskContainer);
+            return result;
+        }
+        writeLog("Try to migrate from largest delay container " + srcContainer);
+        dfsState.bestDelay = initialDelay;
+        dfsState.bestSrcContainer = srcContainer;
+        dfsState.bestTgtContainer = srcContainer;
+        dfsState.bestMigration.clear();
+        //Migrating this container
+        dfsState.srcContainer = srcContainer;
+        dfsState.srcArrivalRate = modelingData.getExecutorArrivalRate(srcContainer, time);
+        dfsState.srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
+        dfsState.srcResidual = modelingData.getAvgResidual(srcContainer, time);
+        dfsState.srcPartitions = containerTasks.get(srcContainer);
+        setThreshold(instantThreshold, longtermThreshold);
+        //Choose target container based on ideal delay (minimize ideal delay)
+        a = findIdealLongtermContainer(dfsState, srcContainer, containerTasks, time);
+        String tgtContainer = a.getKey();
+        double minIdealDelay = a.getValue();
         if(tgtContainer.equals("")){
             writeLog("Cannot find available migration");
             RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.NeedScalingOut, oldTaskContainer);
@@ -294,7 +399,7 @@ public class MigratingOnceBalancer {
             dfsState.tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
             dfsState.migratingPartitions.clear();
             dfsState.tgtContainer = tgtContainer;
-            DFSforBestDelay(srcSize, dfsState);
+            DFSforBestLongtermDelay(srcSize, dfsState);
             //Bruteforce(srcSize, dfsState);
         }
 /*            } */
@@ -305,6 +410,10 @@ public class MigratingOnceBalancer {
             return result;
         }
 
+        if(dfsState.bestDelay > longTermThreshold){
+            writeLog("Cannot find migration smaller than threshold");
+
+        }
         writeLog("Find best migration with delay: " + dfsState.bestDelay + ", from container " + dfsState.bestSrcContainer + " to container " + dfsState.bestTgtContainer + ", partitions: " + dfsState.bestMigration);
 
         Map<String, String> newTaskContainer = new HashMap<>();
