@@ -175,7 +175,7 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
                 dispatcher.changeParallelism(getDefaultAllocation(config.get("job.name")), newJobModel.getContainers().size(), newJobModel);
                 return true;
             }
-        }else if(balanceManager.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
+        }else if(false && balanceManager.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
             writeLog("No need to rebalance, try to scale in");
             RebalanceResult rebalanceResult = balanceManager.scaleInByOne();
             if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn) {
