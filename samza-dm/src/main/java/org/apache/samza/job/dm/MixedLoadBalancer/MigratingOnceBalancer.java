@@ -376,7 +376,7 @@ public class MigratingOnceBalancer {
         dfsState.srcServiceRate = modelingData.getExecutorServiceRate(srcContainer, time);
         dfsState.srcResidual = modelingData.getAvgResidual(srcContainer, time);
         dfsState.srcPartitions = containerTasks.get(srcContainer);
-        setThreshold(instantThreshold, longtermThreshold);
+        setThreshold(instantaneousThreshold, longTermThreshold);
         //Choose target container based on ideal delay (minimize ideal delay)
         a = findIdealLongtermContainer(dfsState, srcContainer, containerTasks, time);
         String tgtContainer = a.getKey();

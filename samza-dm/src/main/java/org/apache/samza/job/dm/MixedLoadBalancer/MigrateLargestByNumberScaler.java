@@ -66,16 +66,15 @@ public class MigrateLargestByNumberScaler {
         //Enumerate through all pairs of containers
         for(String srcContainer: containerTasks.keySet()) {
             double srcArrival = modelingData.getExecutorArrivalRate(srcContainer, time);
-            double srcService = modelingData.getExecutorServiceRate(srcContainer, time);
             for (String tgtContainer : containerTasks.keySet())
                 if (!srcContainer.equals(tgtContainer)) {
                     double tgtArrival = modelingData.getExecutorArrivalRate(tgtContainer, time);
                     double tgtService = modelingData.getExecutorServiceRate(tgtContainer, time);
-                    double tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
-                    if(srcArrival + tgtArrival < tgtService){
-                        double estimatedDelay = MigratingOnceBalancer.estimateInstantaneousDelay(srcArrival + tgtArrival, tgtService, tgtResidual);
+                    double tgtInstantDelay = modelingData.getAvgDelay(tgtContainer, time);
+                    if(tgtInstantDelay < instantaneousThreshold && srcArrival + tgtArrival < tgtService){
+                        double estimatedLongtermDelay = MigratingOnceBalancer.estimateLongtermDelay(srcArrival + tgtArrival, tgtService);
                         //Scale In
-                        if(estimatedDelay < longtermThreshold){
+                        if(estimatedLongtermDelay < longtermThreshold){
                             HashMap<String, String> newTaskContainer = new HashMap<>();
                             newTaskContainer.putAll(oldTaskContainer);
                             Map<String, String> migratingTask = new HashMap<>();

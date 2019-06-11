@@ -182,7 +182,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         }
         JobModel jobModel = newJobModel;
         //TODO: Change this to our mechanism
-        if(processors != null && processors.size() == jobModel.getContainers().size()){
+        if(processors != null && processors.size() >= jobModel.getContainers().size()){ //Equal or scale in
             List<String> currentProcessorIds = getActualProcessorIds(processors);
             Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);
             if (currentProcessorIds.size() != uniqueProcessorIds.size()) {
@@ -190,9 +190,9 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
                 return;
             }
 
-            if (!jobModel.getContainers().keySet().contains(currentProcessorIds.get(0))){
+            /*if (!jobModel.getContainers().keySet().contains(currentProcessorIds.get(0))){
                 /* Remapping the ProcessorsID */
-                LOG.info("Need to map processorID to job model");
+            /*    LOG.info("Need to map processorID to job model");
                 if(containerToProcessorMap == null){
                     containerToProcessorMap = new HashMap<String, String>();
                 }
@@ -217,7 +217,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
                 }
                 jobModel = new JobModel(jobModel.getConfig(),models);
                 LOG.info("JobModel after remapping: " + jobModel);
-            }
+            }*/
 
             if (!hasCreatedChangeLogStreams) {
                 JobModelManager.createChangeLogStreams(new StorageConfig(config), jobModel.maxChangeLogStreamPartitions);
