@@ -19,13 +19,27 @@ public class MigrateLargestByNumberScaler {
         this.delayEstimator = delayEstimator;
         this.loadBalanceManager = loadBalanceManager;
     }
-    private Pair<String, Double> findMaxDelay(Map<String, List<String>> containerTasks, long time){
+
+    private Pair<String, Double> findMaxInstantDelay(Map<String, List<String>> containerTasks, long time){
         double initialDelay = -1.0;
         String maxContainer = "";
         for (String containerId : containerTasks.keySet()) {
-            double delay = modelingData.getAvgDelay(containerId, time);
-            if (delay > initialDelay && !loadBalanceManager.checkDelay(containerId)) {
-                initialDelay = delay;
+            double instantDelay = modelingData.getAvgDelay(containerId, time);
+            if (instantDelay > initialDelay && !loadBalanceManager.checkDelay(containerId)) {
+                initialDelay = instantDelay;
+                maxContainer = containerId;
+            }
+        }
+        return new Pair(maxContainer, initialDelay);
+    }
+
+    private Pair<String, Double> findMaxLongtermDelay(Map<String, List<String>> containerTasks, long time){
+        double initialDelay = -1.0;
+        String maxContainer = "";
+        for (String containerId : containerTasks.keySet()) {
+            double longtermDelay = modelingData.getLongTermDelay(containerId, time);
+            if (longtermDelay > initialDelay && !loadBalanceManager.checkDelay(containerId)) {
+                initialDelay = longtermDelay;
                 maxContainer = containerId;
             }
         }
@@ -59,7 +73,7 @@ public class MigrateLargestByNumberScaler {
                     double tgtService = modelingData.getExecutorServiceRate(tgtContainer, time);
                     double tgtResidual = modelingData.getAvgResidual(tgtContainer, time);
                     if(srcArrival + tgtArrival < tgtService){
-                        double estimatedDelay = MigratingOnceBalancer.estimateDelay(srcArrival + tgtArrival, tgtService, tgtResidual);
+                        double estimatedDelay = MigratingOnceBalancer.estimateInstantaneousDelay(srcArrival + tgtArrival, tgtService, tgtResidual);
                         //Scale In
                         if(estimatedDelay < longtermThreshold){
                             HashMap<String, String> newTaskContainer = new HashMap<>();
@@ -98,7 +112,7 @@ public class MigrateLargestByNumberScaler {
         }
         //Find container with maximum delay
 
-        Pair<String, Double> a = findMaxDelay(containerTasks, time);
+        Pair<String, Double> a = findMaxLongtermDelay(containerTasks, time);
         String srcContainer = a.getKey();
         double initialDelay = a.getValue();
 
