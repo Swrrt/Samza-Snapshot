@@ -142,8 +142,8 @@ public class MixedLoadBalanceManager {
         modelingData.setTimes(delayEstimator.timePoints);
         modelingData.setTimes(config.getLong("job,loadbalance.delay.interval", 500l), config.getInt("job.loadbalance.delay.alpha", 20), config.getInt("job.loadbalance.delay.beta", 10));
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
-        instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 500.0);
-        longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 1000.0);
+        instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 100.0);
+        longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 100.0);
         for(String containerId: containerIds){
             containerJobModelVersion.put(containerId, -1l);
         }
@@ -588,7 +588,7 @@ public class MixedLoadBalanceManager {
         HashMap<String, Double> delays = new HashMap<>();
         for(String containerId: containerIds){
             double delay = delayEstimator.estimateDelay(containerId, time, time);
-            //if(delay < 0)delay = 0;
+            if(delay < 0)delay = 0;
             delays.put(containerId, delay);
         }
 
@@ -608,6 +608,7 @@ public class MixedLoadBalanceManager {
         HashMap<String, Double> serviceRate = new HashMap<>();
         HashMap<String, Double> utilization = new HashMap<>();
         HashMap<String, Double> avgDelay = new HashMap<>();
+        HashMap<String, Double> longtermDelay = new HashMap<>();
         HashMap<String, Double> residual = new HashMap<>();
         HashMap<String, Double> partitionArrivalRate = new HashMap<>();
         for(String containerId: containerIds){
@@ -617,12 +618,15 @@ public class MixedLoadBalanceManager {
             serviceRate.put(containerId, serviceR);
             double delay = modelingData.getAvgDelay(containerId, time);
             avgDelay.put(containerId, delay);
+            delay = modelingData.getLongTermDelay(containerId, time);
+            longtermDelay.put(containerId, delay);
             double res = modelingData.getAvgResidual(containerId, time);
             residual.put(containerId, res);
         }
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrival Rate: " + arrivalRate);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Service Rate: " + serviceRate);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Average Delay: " + avgDelay);
+        System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Longterm Delay: " + longtermDelay);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Residual: " + residual);
         for(String partitionId: tasks.keySet()){
             double arrivalR = modelingData.getPartitionArriveRate(partitionId, time);
