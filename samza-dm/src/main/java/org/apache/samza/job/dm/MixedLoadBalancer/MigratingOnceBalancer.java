@@ -68,8 +68,8 @@ public class MigratingOnceBalancer {
     }
 
     public static double estimateLongtermDelay(double arrivalRate, double serviceRate) {
-        if(arrivalRate > serviceRate - 1e-12)return 1e100;
-        return 1.0/(arrivalRate - serviceRate);
+        if(serviceRate < arrivalRate + 1e-15)return 1e100;
+        return 1.0/(serviceRate - arrivalRate);
     }
 
     private double estimateSrcLongtermDelay(DFSState state) {
@@ -253,7 +253,7 @@ public class MigratingOnceBalancer {
                 double x = ((u2 - n2) - (u1 - n1))/2;
                 if(u2 > n2 + x && u1 > n1 - x){
                     double d1 = 1/(u2 - (n2 + x));
-                    double d2 = 1/(u1 - (n1 + x));
+                    double d2 = 1/(u1 - (n1 - x));
                     writeLog("Estimate ideal long term delay: " + d1 + " , " + d2);
                     if(d1 < minIdealDelay){
                         minIdealDelay = d1;
