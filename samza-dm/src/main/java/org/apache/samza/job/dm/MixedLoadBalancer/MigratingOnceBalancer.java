@@ -412,7 +412,8 @@ public class MigratingOnceBalancer {
 
         if(dfsState.bestDelay > longTermThreshold){
             writeLog("Cannot find migration smaller than threshold");
-
+            RebalanceResult result = new RebalanceResult(RebalanceResult.RebalanceResultCode.NeedScalingOut, oldTaskContainer);
+            return result;
         }
         writeLog("Find best migration with delay: " + dfsState.bestDelay + ", from container " + dfsState.bestSrcContainer + " to container " + dfsState.bestTgtContainer + ", partitions: " + dfsState.bestMigration);
 
