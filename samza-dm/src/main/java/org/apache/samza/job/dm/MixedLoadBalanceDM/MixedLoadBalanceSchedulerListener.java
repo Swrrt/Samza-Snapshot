@@ -78,7 +78,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             loadBalanceManager.updateModelingData(time);
 
             //Try to rebalance periodically
-            if(leaderComes && time > warmupTime) {
+            if(leaderComes && time - startTime > warmupTime) {
                 long nowTime = System.currentTimeMillis();
                 if(nowTime - lastTime >= rebalanceInterval) {
                     migrationTimes ++;
