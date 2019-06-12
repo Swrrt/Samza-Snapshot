@@ -128,7 +128,7 @@ public class MigrateLargestByNumberScaler {
 
         writeLog("Try to scale out and migrate from largest delay container " + srcContainer);
         int size = containerTasks.get(srcContainer).size();
-        if(size < numberToScaleOut + 1){
+        if(numberToScaleOut > size - 1){
             numberToScaleOut = size - 1;
             writeLog("Does not have enough partitions to divide, now only scale out " + numberToScaleOut + " containers");
         }
@@ -139,9 +139,13 @@ public class MigrateLargestByNumberScaler {
         int numbersOfRemainder = containerTasks.get(srcContainer).size() % (numberToScaleOut + 1);
         int currentIndex = 0;
         Map<String, String> migratingTask = new HashMap<>();
+        int tgtId = containerTasks.size() + 2;
+        while(containerTasks.containsKey(String.format("%06d", tgtId))){
+            tgtId++;
+        }
 
         for(int i = 0; i < numberToScaleOut; i++){
-            String containerId = String.format("%06d", containerTasks.size() + 2); //Id start from 000002
+            String containerId = String.format("%06d", tgtId); //Id start from 000002
             int numberToMove = averagePartitions;
             if(i < numbersOfRemainder) numberToMove ++;
             while(numberToMove > 0){

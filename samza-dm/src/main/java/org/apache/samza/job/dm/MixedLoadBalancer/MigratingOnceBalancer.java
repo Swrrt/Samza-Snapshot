@@ -132,7 +132,7 @@ public class MigratingOnceBalancer {
     }
 
     private void DFSforBestLongtermDelay(int i, DFSState state) {
-        if (state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) {
+        if (state.srcArrivalRate > 1e-12 && state.srcArrivalRate < state.srcServiceRate && state.tgtArrivalRate < state.tgtServiceRate) { //Cannot move all partitions out
             double estimateSrc = estimateSrcLongtermDelay(state), estimateTgt = estimateTgtLongtermDelay(state);
             writeLog("If migrating partitions " + state.migratingPartitions
                     + " from " + state.srcContainer
