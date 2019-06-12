@@ -72,7 +72,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
             /*
             */
 
-            loadBalanceManager.retrieveArrivedAndProcessed(time);
+            if(loadBalanceManager.retrieveArrivedAndProcessed(time))lastTime = time;
             loadBalanceManager.updateDelay(time);
             loadBalanceManager.updateModelingData(time);
 
@@ -85,7 +85,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
                     writeLog("Try to rebalance");
                     if(scheduler.updateJobModel()) lastTime = nowTime;
                     //loadBalanceManager.showDelayMetrics("migrated" + migrationTimes);
-                    lastTime = nowTime;
+                    //lastTime = nowTime;
                 }else{
                     //writeLog("Smaller than rebalanceInterval, wait for next loop");
                 }

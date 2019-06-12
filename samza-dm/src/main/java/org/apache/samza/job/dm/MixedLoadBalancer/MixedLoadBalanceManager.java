@@ -488,8 +488,9 @@ public class MixedLoadBalanceManager {
         return dis;
     }*/
 
-    public void retrieveArrivedAndProcessed(long time){
+    public boolean retrieveArrivedAndProcessed(long time){
         HashMap<String, String> offsets;
+        boolean isMigration = false;
         //timePoints.add(time);
         taskProcessed.clear();
         taskArrived.clear();
@@ -511,6 +512,7 @@ public class MixedLoadBalanceManager {
                 if(jobModelVersion > oldJobModelVersion){
                     //TODO:
                     writeLog("Migration deployed! from container " + srcId + " Update delay estimator");
+                    isMigration = true;
                     migrationContext.setDeployed();
                     oldJobModel = newJobModel;
                     updateFromJobModel(newJobModel);
@@ -573,6 +575,7 @@ public class MixedLoadBalanceManager {
             containerArrived.put(containerId, s_arrived);
             containerProcessed.put(containerId, s_processed);
         }
+        return isMigration;
 
         /*
         //Raw information
