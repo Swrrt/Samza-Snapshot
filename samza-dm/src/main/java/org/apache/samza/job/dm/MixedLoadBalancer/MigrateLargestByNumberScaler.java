@@ -139,11 +139,7 @@ public class MigrateLargestByNumberScaler {
         int numbersOfRemainder = containerTasks.get(srcContainer).size() % (numberToScaleOut + 1);
         int currentIndex = 0;
         Map<String, String> migratingTask = new HashMap<>();
-        int tgtId = containerTasks.size() + 2;
-        while(containerTasks.containsKey(String.format("%06d", tgtId))){
-            tgtId++;
-        }
-
+        int tgtId = loadBalanceManager.getNextContainerId();
         for(int i = 0; i < numberToScaleOut; i++){
             String containerId = String.format("%06d", tgtId); //Id start from 000002
             int numberToMove = averagePartitions;

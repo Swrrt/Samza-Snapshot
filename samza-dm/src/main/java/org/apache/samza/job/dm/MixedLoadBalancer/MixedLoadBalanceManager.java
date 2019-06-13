@@ -13,6 +13,7 @@ import org.apache.samza.config.Config;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
@@ -35,6 +36,7 @@ public class MixedLoadBalanceManager {
     //private Map<String,String> containerHost = null;
     private Map<String, String> taskContainer = null;
     private Set<String> containerIds = null;
+    private AtomicInteger nextContainerId;
     private Map<Integer, String> partitionTask = null;
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
@@ -96,6 +98,7 @@ public class MixedLoadBalanceManager {
         containerJobModelVersion = new HashMap<>();
         modelingData = new ModelingData();
         migrationContext = new MigrationContext();
+        nextContainerId = new AtomicInteger();
     }
     /*
         TODO:
@@ -108,6 +111,12 @@ public class MixedLoadBalanceManager {
         oldJobModel = jobModelManager.jobModel();
         migrationContext.setDeployed();
         initial(oldJobModel, config);
+    }
+    public int getNextContainerId(){
+        return nextContainerId.get();
+    }
+    public void setNextContainerId(int id){
+        nextContainerId.set(id);
     }
     /*
         initial
@@ -761,8 +770,10 @@ public class MixedLoadBalanceManager {
         taskContainer.clear();
         containerIds.clear();
         partitionTask.clear();
+        int maxContainerId = 0;
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             String container = containerModel.getProcessorId();
+            if(Integer.parseInt(container) > maxContainerId) maxContainerId = Integer.parseInt(container);
             containerIds.add(container);
             for(TaskModel taskModel: containerModel.getTasks().values()){
                 String task = taskModel.getTaskName().getTaskName();
@@ -773,6 +784,7 @@ public class MixedLoadBalanceManager {
                 }
             }
         }
+        setNextContainerId(maxContainerId + 1);
     }
     /*public double getUtil(String processorId){
         return utilizationServer.getUtilization(processorId);
