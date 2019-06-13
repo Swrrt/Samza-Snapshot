@@ -44,7 +44,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 1000);
         long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
         long lastReportTime = 0, reportInterval = 500, totalRecords = 0;
-        long startTime = lastTime;
+        long startTime = -1; // The time AM is coming.
         long warmupTime = config.getLong("job.loadbalance.warmup.time", 30000);
         long migrationTimes = 0;
         while (true) {
@@ -62,6 +62,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
                     // writeLog("Reports: " + record.toString());
                     if (scheduler.updateLeader(record)) {
                         leaderComes = true;
+                        if(startTime == -1)startTime = time;
                     }
                 }
                 if(time - lastReportTime >= reportInterval){
