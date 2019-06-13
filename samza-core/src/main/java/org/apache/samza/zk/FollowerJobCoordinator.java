@@ -213,13 +213,13 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         }
         //Setting the isLeader metric to false when the stream processor shuts down because it does not remain the leader anymore
         metrics.isLeader.set(false);
-        debounceTimer.stopScheduler();
         zkController.stop();
 
         shutdownMetrics();
-        if (coordinatorListener != null) {
+        debounceTimer.stopScheduler();
+        /*if (coordinatorListener != null) {
             coordinatorListener.onCoordinatorStop();
-        }
+        }*/
         //jvmMonitor.stop();
     }
 
