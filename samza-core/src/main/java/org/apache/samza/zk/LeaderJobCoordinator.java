@@ -182,7 +182,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         }
         JobModel jobModel = newJobModel;
         //TODO: Change this to our mechanism
-        if(processors != null && processors.size() >= jobModel.getContainers().size()){ //Equal or scale in
+        if(processors != null && processors.size() == jobModel.getContainers().size()){ //Equal or scale in
             List<String> currentProcessorIds = getActualProcessorIds(processors);
             Set<String> uniqueProcessorIds = new HashSet<String>(currentProcessorIds);
             if (currentProcessorIds.size() != uniqueProcessorIds.size()) {
@@ -231,12 +231,47 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
             } else {
                 nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
             }
-            LOG.info("Leader generated new Job Model. Version = " + nextJMVersion);
+            LOG.info("Leader received new Job Model. Version = " + nextJMVersion);
             // Publish the new job model
             zkUtils.publishJobModel(nextJMVersion, jobModel);
 
             // Start the barrier for the job model update
             barrier.create(nextJMVersion, currentProcessorIds);
+
+            // Notify all processors about the new JobModel by updating JobModel Version number
+            zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
+
+            LOG.info("Leader Published new Job Model. Version = " + nextJMVersion);
+
+            //LOG.info("Job Model: " + jobModel);
+            debounceTimer.scheduleAfterDebounceTime(ON_ZK_CLEANUP, 0, () -> zkUtils.cleanupZK(NUM_VERSIONS_TO_LEAVE));
+        }else if(processors != null && processors.size() > jobModel.getContainers().size()) {
+            //Scale in
+            LOG.info("Need to scale in");
+            List<String> currentProcessorIds = getActualProcessorIds(processors);
+            List<String> newProcessorId = new ArrayList<>();
+            for(String processor: currentProcessorIds){
+                if(jobModel.getContainers().containsKey(processor))newProcessorId.add(processor);
+            }
+            if (!hasCreatedChangeLogStreams) {
+                JobModelManager.createChangeLogStreams(new StorageConfig(config), jobModel.maxChangeLogStreamPartitions);
+                hasCreatedChangeLogStreams = true;
+            }
+            // Assign the next version of JobModel
+            String currentJMVersion = zkUtils.getJobModelVersion();
+            String nextJMVersion;
+            if (currentJMVersion == null) {
+                nextJMVersion = "1";
+            } else {
+                nextJMVersion = Integer.toString(Integer.valueOf(currentJMVersion) + 1);
+            }
+            LOG.info("Leader received new Job Model. Version = " + nextJMVersion);
+            // Publish the new job model
+            zkUtils.publishJobModel(nextJMVersion, jobModel);
+
+            // Start the barrier for the job model update
+            LOG.info("Only need to wait for confirmation from: " + newProcessorId);
+            barrier.create(nextJMVersion, newProcessorId);
 
             // Notify all processors about the new JobModel by updating JobModel Version number
             zkUtils.publishJobModelVersion(currentJMVersion, nextJMVersion);
