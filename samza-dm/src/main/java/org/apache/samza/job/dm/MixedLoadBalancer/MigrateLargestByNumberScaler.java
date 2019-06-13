@@ -82,6 +82,7 @@ public class MigrateLargestByNumberScaler {
                                 newTaskContainer.put(task, tgtContainer);
                                 migratingTask.put(task, tgtContainer);
                             }
+                            writeLog("Scale in! from " + srcContainer + " to " + tgtContainer);
                             writeLog("New task-container mapping: " + newTaskContainer);
                             MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
                             return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingIn, newTaskContainer, migrationContext);
@@ -153,6 +154,7 @@ public class MigrateLargestByNumberScaler {
                 currentIndex ++;
             }
         }
+        writeLog("Scale out and migrate from container " + srcContainer);
         writeLog("New task-container mapping: " + newTaskContainer);
         MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
         return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, newTaskContainer, migrationContext);
