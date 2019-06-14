@@ -123,6 +123,9 @@ public class MetricsMessageImpl extends UnicastRemoteObject implements MetricsMe
             if(processed.containsKey(id)) {
                 processe = processed.get(id);
                 //processe += lastProcessedOffset.get(id) - beginOffset.get(id);
+                if(arrive <= processe){ //Arrival not updated yet
+                    arrive = processe + 1;
+                }
                 ret.put(id, arrive + "_" + processe);
             }
         }
