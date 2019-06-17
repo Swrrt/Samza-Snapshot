@@ -138,6 +138,7 @@ public class MixedLoadBalanceManager {
         //kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
 
         oldJobModel = jobModel;
+        setNextContainerId(oldJobModel.getContainers().size() + 2);
         updateFromJobModel(jobModel);
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             for(Map.Entry<TaskName, TaskModel> taskModel: containerModel.getTasks().entrySet()){
@@ -772,10 +773,8 @@ public class MixedLoadBalanceManager {
         taskContainer.clear();
         containerIds.clear();
         partitionTask.clear();
-        int maxContainerId = getNextContainerId();
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             String container = containerModel.getProcessorId();
-            if(Integer.parseInt(container) > maxContainerId) maxContainerId = Integer.parseInt(container);
             containerIds.add(container);
             for(TaskModel taskModel: containerModel.getTasks().values()){
                 String task = taskModel.getTaskName().getTaskName();
@@ -786,7 +785,6 @@ public class MixedLoadBalanceManager {
                 }
             }
         }
-        setNextContainerId(maxContainerId + 1);
     }
     /*public double getUtil(String processorId){
         return utilizationServer.getUtilization(processorId);

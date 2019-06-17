@@ -158,6 +158,7 @@ public class MigrateLargestByNumberScaler {
                 currentIndex ++;
             }
         }
+        loadBalanceManager.setNextContainerId(tgtId + 1);
         writeLog("New task-container mapping: " + newTaskContainer);
         MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
         return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, newTaskContainer, migrationContext);
