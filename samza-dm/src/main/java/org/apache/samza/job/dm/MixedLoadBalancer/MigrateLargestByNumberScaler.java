@@ -141,10 +141,14 @@ public class MigrateLargestByNumberScaler {
         int currentIndex = 0;
         Map<String, String> migratingTask = new HashMap<>();
         int tgtId = loadBalanceManager.getNextContainerId();
+        writeLog("Scale out and migrate from container " + srcContainer);
         for(int i = 0; i < numberToScaleOut; i++){
             String containerId = String.format("%06d", tgtId); //Id start from 000002
             int numberToMove = averagePartitions;
             if(i < numbersOfRemainder) numberToMove ++;
+            if(numberToMove > 0){
+                writeLog("Scale out and migrate to container " + containerId);
+            }
             while(numberToMove > 0){
                 String taskId = containerTasks.get(srcContainer).get(currentIndex);
                 //delayEstimator.migration(time, srcContainer, containerId, taskId);
@@ -154,7 +158,6 @@ public class MigrateLargestByNumberScaler {
                 currentIndex ++;
             }
         }
-        writeLog("Scale out and migrate from container " + srcContainer);
         writeLog("New task-container mapping: " + newTaskContainer);
         MigrationContext migrationContext = new MigrationContext(srcContainer, "", migratingTask);
         return new RebalanceResult(RebalanceResult.RebalanceResultCode.ScalingOut, newTaskContainer, migrationContext);
