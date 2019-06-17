@@ -116,7 +116,9 @@ public class MixedLoadBalanceManager {
         return nextContainerId.get();
     }
     public void setNextContainerId(int id){
-        nextContainerId.set(id);
+        if(id > nextContainerId.get()) {
+            nextContainerId.set(id);
+        }
     }
     /*
         initial
@@ -770,7 +772,7 @@ public class MixedLoadBalanceManager {
         taskContainer.clear();
         containerIds.clear();
         partitionTask.clear();
-        int maxContainerId = 0;
+        int maxContainerId = getNextContainerId();
         for(ContainerModel containerModel: jobModel.getContainers().values()){
             String container = containerModel.getProcessorId();
             if(Integer.parseInt(container) > maxContainerId) maxContainerId = Integer.parseInt(container);
