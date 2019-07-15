@@ -26,6 +26,13 @@ public class DefaultScheduler implements DMScheduler {
     private int prev = -1;
     private boolean scaled = false;
     private long prevTime = -1;
+    @Override
+    public void init(Config config){
+    }
+
+    @Override
+    public void start(){
+    }
 
     @Override
     public void init(Config config, DMSchedulerConfig schedulerConfig) {

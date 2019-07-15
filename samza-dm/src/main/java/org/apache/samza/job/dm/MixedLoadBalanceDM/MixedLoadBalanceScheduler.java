@@ -64,6 +64,20 @@ public class MixedLoadBalanceScheduler implements DMScheduler {
         listener.setConfig(config);
         listener.startListener();
     }
+    @Override
+    public void init(Config config){
+        this.config = config;
+        this.schedulerConfig = new DMSchedulerConfig(config);
+    }
+
+    //Running call from LoadbalanceScheduler
+    @Override
+    public void start(){
+        writeLog("Start listener");
+        createListener(this);
+        while(true){
+        }
+    }
 
     @Override
     public void submitApplication() {

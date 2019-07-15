@@ -3,11 +3,12 @@ package org.apache.samza.job.dm;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.DMSchedulerConfig;
+import org.apache.samza.scheduler.LoadScheduler;
 
 /**
  *  Decision Maker scheduler
  */
-public interface DMScheduler {
+public interface DMScheduler extends LoadScheduler{
     /**
      * start the scheduler
      */

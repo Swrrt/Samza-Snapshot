@@ -21,14 +21,16 @@ package org.apache.samza.job
 
 
 import org.apache.samza.SamzaException
-import org.apache.samza.config.Config
+import org.apache.samza.config.{Config, DMSchedulerConfig}
 import org.apache.samza.config.JobConfig.Config2Job
 import org.apache.samza.coordinator.stream.CoordinatorStreamSystemFactory
 import org.apache.samza.coordinator.stream.messages.{Delete, SetConfig}
 import org.apache.samza.job.ApplicationStatus.{Running, SuccessfulFinish}
+import org.apache.samza.job.dm.DMScheduler
 import org.apache.samza.metrics.MetricsRegistryMap
 import org.apache.samza.runtime.ApplicationRunnerMain.ApplicationRunnerCommandLine
 import org.apache.samza.runtime.ApplicationRunnerOperation
+import org.apache.samza.scheduler.LoadScheduler
 import org.apache.samza.system.StreamSpec
 import org.apache.samza.util.{Logging, Util}
 
@@ -129,6 +131,21 @@ class JobRunner(config: Config) extends Logging {
         }
       }
       case _ => warn("unable to start job successfully.")
+    }
+
+    //Start listener if needed
+    if (config.containsKey("job.loadbalance.scheduler")){
+      info("Starting scheduler")
+      val schedulerClass = config.get("job.loadbalance.scheduler") match {
+        case Some(factoryClass) => factoryClass
+        case _ => throw new SamzaException("no scheduler class defined")
+      }
+      val scheduler = Class.forName(schedulerClass).newInstance.asInstanceOf[LoadScheduler]
+      scheduler.init(config)
+
+      // Scheduler usually keep running until being killed
+
+      scheduler.start()
     }
 
     info("exiting")
