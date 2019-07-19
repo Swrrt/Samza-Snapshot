@@ -39,28 +39,13 @@ public class MixedLoadBalanceManager {
     private Map<String, TaskModel> tasks; //Existing tasks
     private JobModel oldJobModel;
     // Metrics
-    private Map<String, Long> taskArrived = null;
-    private Map<String, Long> containerArrived = null;
-    private Map<String, Long> taskProcessed = null;
-    private Map<String, Long> containerProcessed = null;
-    private Map<String, Double> containerUtilization = null;
-    private Map<String, Double> taskArrivalRate = null;
-    private Map<String, Double> taskBacklogs = null;
-    private Map<String, Double> taskProcessingSpeed = null;
-    private Map<String, Long> containerFlushProcessed = null;
     //private Map<String, ContainerMigratingState> containerMigratingState = null;
-    private Map<String, Long> containerJobModelVersion = null;
     private MigrationContext migrationContext = null;
     private ModelingData modelingData;
     private Config config;
-   // private final int defaultVNs;  // Default number of VNs for new coming containers
-    private final double localityWeight = 0;   // Weight parameter for Chord and Locality
-    //private UtilizationServer utilizationServer = null;
-    //private UnprocessedMessageMonitor unprocessedMessageMonitor = null;
-    private LocalityServer localityServer = null;
-    private OffsetServer offsetServer = null;
-    //private final int LOCALITY_RETRY_TIMES = 1;
-    //private KafkaOffsetRetriever kafkaOffsetRetriever = null;
+    //private LocalityServer localityServer = null;
+    //private OffsetServer offsetServer = null;
+    private MixedLoadBalanceMetricsListener metricsListener = null;
     private SnapshotMetricsRetriever snapshotMetricsRetriever = null;
     private DelayEstimator delayEstimator = null;
     public MixedLoadBalanceManager(){
@@ -78,22 +63,13 @@ public class MixedLoadBalanceManager {
         //defaultVNs = 10;
         //utilizationServer = new UtilizationServer();
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
-        localityServer = new LocalityServer();
-        offsetServer = new OffsetServer();
+        //localityServer = new LocalityServer();
+        //offsetServer = new OffsetServer();
+        metricsListener = new MixedLoadBalanceMetricsListener();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         snapshotMetricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
-        taskArrived = new HashMap<>();
-        containerArrived = new HashMap<>();
-        taskProcessed = new HashMap<>();
-        containerProcessed = new HashMap<>();
-        containerUtilization = new HashMap<>();
-        taskArrivalRate = new HashMap<>();
-        taskProcessingSpeed = new HashMap<>();
-        taskBacklogs = new HashMap<>();
-        containerFlushProcessed = new HashMap<>();
         //containerMigratingState = new ConcurrentHashMap<>();
-        containerJobModelVersion = new HashMap<>();
         modelingData = new ModelingData();
         migrationContext = new MigrationContext();
         nextContainerId = new AtomicInteger();
@@ -154,68 +130,16 @@ public class MixedLoadBalanceManager {
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
         instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 100.0);
         longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 100.0);
-        for(String containerId: containerIds){
+        metricsListener.setJobModelVersions(containerIds);
+        metricsListener.start();
+        /*for(String containerId: containerIds){
             containerJobModelVersion.put(containerId, -1l);
-        }
+        }*/
         //unprocessedMessageMonitor.start();
         //utilizationServer.start();
-        localityServer.start();
-        offsetServer.start();
+        //localityServer.start();
+        //offsetServer.start();
     }
-    // Read container-host mapping from web
-    /*private Map<String, String> getContainerHost() {
-        return localityServer.getLocalityMap();
-    }*/
-    // Read host-rack-cluster mapping from web
-    /*private Map<String, List<String>> getHostRack(){
-        writeLog("Reading Host-Server-Rack-Cluster information from web");
-        hostRack.putAll(webReader.readHostRack());
-        writeLog("Host-Server information:" + hostRack.toString());
-        return hostRack;
-    }
-    private String getContainerHost(String container){
-        return getContainerHost(container, LOCALITY_RETRY_TIMES);
-    }*/
-    /*private String getContainerHost(String container, int retryTimes){
-        //TODO: If the container is not here, wait for it?
-        int retry = retryTimes; //Number of times to retry
-        while(localityServer.getLocality(container) == null && retry > 0 ){
-            retry--;
-            try{
-                Thread.sleep(500);
-            }catch (Exception e){
-            }
-        }
-        if(localityServer.getLocality(container) == null) {
-            writeLog("Cannot get locality information of container " + container);
-            return hostRack.keySet().iterator().next();
-        }
-        return localityServer.getLocality(container);
-        /*if(containerHost.containsKey(container))return containerHost.get(container);
-        else {
-            return containerHost.values().iterator().next();
-        }
-    }*/
-
-    // Construct the container-(container, host, rack cluster) mapping
-    /*private List<String> getContainerLocality(String item){
-        //updateContainerHost();
-        getHostRack();
-        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(item))).clone();
-        itemLocality.add(0,item);
-        return itemLocality;
-    }*/
-
-    // Construct the task-(container, host, rack cluster) mapping
-    /*private List<String> getTaskLocality(String item){
-        //updateContainerHost();
-        getHostRack();
-        String container = taskContainer.get(item);
-        List<String> itemLocality = (List)((LinkedList)hostRack.get(getContainerHost(container, 0))).clone();
-        itemLocality.add(0,container);
-        writeLog("Find Task " + item + " in " + itemLocality.toString());
-        return itemLocality;
-    }*/
 
     private Map<String, String> getTaskContainer(JobModel jobModel){
         Map<String, ContainerModel> containers = jobModel.getContainers();
@@ -319,85 +243,6 @@ public class MixedLoadBalanceManager {
         return oldJobModel;
     }
 
-    // Scale out by change number containers, assign default number of VNs to them and generate new Job Model
-
-
-    //Choose first change# containers from containerIds and remove them.
-    /*public JobModel scaleInByNumber(int change){
-        writeLog("Try to scale in by: " + change);
-        int currentSize = containerIds.size();
-        if(currentSize <= change){
-            writeLog("Only have " + currentSize + " containers, should leave one container");
-            change = currentSize - 1;
-        }
-        for(int i=0;i<change;i++){
-            String containerId = containerIds.iterator().next();
-            removeContainer(containerId);
-            containerIds.remove(containerId);
-        }
-        return generateJobModel();
-    }*/
-
-    // Generate new Job Model based on new processors list
-    /*public JobModel generateNewJobModel(List<String> processors){
-        Set<String> containers = new HashSet<>();
-        //TODO: Translate from processorID to container ID
-        writeLog("Generating new job model from processors:" + processors.toString());
-        for(String processor: processors){
-            containers.add(processor);
-            //Insert new container
-            if(!containerIds.contains(processor)){
-                insertContainer(processor);
-
-            }
-        }
-        //Remove containers no longer exist
-        for(String container: containerIds){
-            if(!containers.contains(container)){
-                removeContainer(container);
-            }
-        }
-        return generateJobModel();
-    }*/
-    /*public void showMetrics(){
-        //retrieveArrivedAndProcessed();
-        //retrieveAvgBacklog();
-        //retrieveArrivalRate();
-        //retrieveProcessingSpeed();
-        //retrieveArrived();
-        //retrieveProcessed();
-        retrieveFlushProcessed();
-        Map<String, Long> tt = new HashMap<>();
-        for(String container: containerArrived.keySet()) {
-            tt.clear();
-            tt.put(container, containerArrived.get(container));
-            System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Arrived: " + tt);
-            tt.clear();
-            tt.put(container, containerProcessed.get(container));
-            System.out.println("MixedLoadBalanceManager, time " + containerArrivedTime.get(container) + " : " + "Processed: " + tt);
-        }
-        //writeLog("Flush Processed: " + containerFlushProcessed);
-        //writeLog("Backlog: " + containerBacklogs);
-        //writeLog("Arrival rate: " + containerArrivalRate);
-        //writeLog("Processing rate: " + containerProcessingSpeed);
-    }*/
-
-
-    /*public void flushMetrics(){
-        writeLog("Flushing metrics");
-        snapshotMetricsRetriever.flush();
-    }*/
-
-    //Retrieve metrics (arrival rate, backlog, processing speed) and rebalance accordingly.
-
-    /*
-        Generate new job model with queueing theory.
-        Arrival rate by tasks.
-        Average backlog by tasks.
-        Processing Speed by containers.
-        Return null to scale up.
-     */
-
     //Return false if any container's avg delay is higher than threshold
     // and  1/(u-n)>threshold
     public boolean checkDelay(String containerId){
@@ -499,102 +344,30 @@ public class MixedLoadBalanceManager {
     }*/
 
     public boolean retrieveArrivedAndProcessed(long time){
-        HashMap<String, String> offsets;
         boolean isMigration = false;
         //timePoints.add(time);
-        taskProcessed.clear();
-        taskArrived.clear();
-        containerProcessed.clear();
-        containerArrived.clear();
-        containerUtilization.clear();
-
         if(migrationContext != null && !checkMigrationDeployed()){
             String srcId = migrationContext.getSrcContainer();
-            MetricsClient client = new MetricsClient(localityServer.getLocality(srcId), 8900 + Integer.parseInt(srcId), srcId);
-            offsets = client.getOffsets();
-            long jobModelVersion = -1;
-            if(offsets != null && offsets.containsKey("JobModelVersion")){
-                jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
-            }
-            //Update container JobModelVersion
-            long oldJobModelVersion = containerJobModelVersion.getOrDefault(srcId, -1l);
-            if(jobModelVersion > -1){
-                if(jobModelVersion > oldJobModelVersion){
-                    //TODO:
-                    writeLog("Migration deployed! from container " + srcId + " Update delay estimator");
-                    isMigration = true;
-                    migrationContext.setDeployed();
-                    oldJobModel = newJobModel;
-                    updateFromJobModel(newJobModel);
-                    //taskContainer = newRebalanceResult.getTaskContainer();
-                    for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
-                        String partition = entry.getKey();
-                        String tgtContainer = entry.getValue();
-                        writeLog("Migration deployed! task " + partition + " to container " + tgtContainer);
-                        delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
-                    }
+            boolean migrated = metricsListener.checkMigrated(srcId);
+            if(migrated){
+                //TODO:
+                writeLog("Migration deployed! from container " + srcId + " Update delay estimator");
+                isMigration = true;
+                migrationContext.setDeployed();
+                oldJobModel = newJobModel;
+                updateFromJobModel(newJobModel);
+                //taskContainer = newRebalanceResult.getTaskContainer();
+                for(Map.Entry<String, String> entry: newRebalanceResult.getMigrationContext().getMigratingTasks().entrySet()){
+                    String partition = entry.getKey();
+                    String tgtContainer = entry.getValue();
+                    writeLog("Migration deployed! task " + partition + " to container " + tgtContainer);
+                    delayEstimator.migration(time, newRebalanceResult.getMigrationContext().getSrcContainer(), tgtContainer, partition);
                 }
             }
         }
-
-        MetricsMetadata metricsMetadata = MixedLoadBalanceMetricsListener.retrieveArrivedAndProcessed(time, containerIds, localityServer, offsetServer, containerJobModelVersion);
-        taskProcessed = metricsMetadata.getTaskProcessed();
-        taskArrived = metricsMetadata.getTaskArrived();
-        containerProcessed = metricsMetadata.getTaskProcessed();
-        containerArrived = metricsMetadata.getContainerArrived();
-        containerUtilization = metricsMetadata.getContainerUtilization();
+        metricsListener.retrieveArrivedAndProcessed(containerIds); //Update metricsListeners' information
         //TODO: containerJobModelVersion store in where.
-
-        /*for(String containerId: containerIds){
-            MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
-            offsets = client.getOffsets();
-            double utilization = -100;
-            long jobModelVersion = -1;
-            //Update container JobModelVersion
-            if(offsets != null && offsets.containsKey("JobModelVersion")){
-                jobModelVersion = Long.parseLong(offsets.get("JobModelVersion"));
-                offsets.remove("JobModelVersion");
-            }
-            long oldJobModelVersion = containerJobModelVersion.getOrDefault(containerId, -1l);
-            if(jobModelVersion > -1 && jobModelVersion > oldJobModelVersion){
-                containerJobModelVersion.put(containerId, jobModelVersion);
-            }
-            if(offsets != null && offsets.containsKey("Utilization")) {
-                utilization = Double.parseDouble(offsets.get("Utilization"));
-                offsets.remove("Utilization");
-            }
-            if(utilization > -1e-9){ //Online
-                containerUtilization.put(containerId, utilization);
-            }else { //Offline
-                containerUtilization.put(containerId, 0.0);
-            }
-
-            long s_arrived = 0, s_processed = 0;
-            for(Map.Entry<String, String> entry: offsets.entrySet()){
-                String id = entry.getKey();
-                String value = entry.getValue();
-                int i = value.indexOf('_');
-                long begin = offsetServer.getBeginOffset(id);
-                long arrived = Long.parseLong(value.substring(0, i)) - begin - 1, processed = Long.parseLong(value.substring(i+1)) - begin;
-                if(arrived < 0) arrived = 0;
-                if(processed < 0) processed = 0;
-                //delayEstimator.updatePartitionArrived(id, time, arrived);
-                long t = taskArrived.getOrDefault(id, 0l);
-                if(t > arrived) arrived = t;
-                taskArrived.put(id, arrived);
-                //delayEstimator.updatePartitionCompleted(id, time, processed);
-                t = taskProcessed.getOrDefault(id, 0l);
-                if(t > processed) processed = t;
-                taskProcessed.put(id, processed);
-                //delayEstimator.updatePartitionBacklog(id, time, containerId, arrived - processed);
-                s_arrived += arrived;
-                s_processed += processed;
-            }
-            containerArrived.put(containerId, s_arrived);
-            containerProcessed.put(containerId, s_processed);
-        }*/
         return isMigration;
-
         /*
         //Raw information
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrived: " + containerArrived);
@@ -603,8 +376,7 @@ public class MixedLoadBalanceManager {
     }
 
     public void updateDelay(long time){
-        delayEstimator.updateAtTime(time, taskArrived, taskProcessed, oldJobModel);
-
+        delayEstimator.updateAtTime(time, metricsListener.getTaskArrived(), metricsListener.getTaskProcessed(), oldJobModel);
         //For testing
         HashMap<String, Double> delays = new HashMap<>();
         for(String containerId: containerIds){
@@ -622,7 +394,7 @@ public class MixedLoadBalanceManager {
     }
 
     public void updateModelingData(long time){
-        modelingData.updateAtTime(time, containerUtilization, oldJobModel);
+        modelingData.updateAtTime(time, metricsListener.getContainerUtilization(), oldJobModel);
 
         //For testing
         HashMap<String, Double> arrivalRate = new HashMap<>();
@@ -655,118 +427,6 @@ public class MixedLoadBalanceManager {
         }
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Partition Arrival Rate: " + partitionArrivalRate);
     }
-    /*public void retrieveArrived(){
-        Map<Integer, Long> partitionArrived = snapshotMetricsRetriever.retrieveArrived();
-        Map<Integer, Long> partitionArrivedTime = snapshotMetricsRetriever.retrieveArrivedTime();
-        taskArrived.clear();
-        containerArrived.clear();
-        containerArrivedTime.clear();
-        for(Map.Entry<Integer, Long> entry: partitionArrived.entrySet()){
-            int partition = entry.getKey();
-            long arrived = entry.getValue();
-            String task = partitionTask.get(partition);
-            taskArrived.put(task, arrived);
-            String container = taskContainer.get(task);
-            if(containerArrived.containsKey(container)){
-                arrived += containerArrived.get(container);
-            }
-            containerArrived.put(container, arrived);
-        }
-        for(Map.Entry<Integer, Long> entry: partitionArrivedTime.entrySet()){
-            int partition = entry.getKey();
-            long time = entry.getValue();
-            String task = partitionTask.get(partition);
-            String container = taskContainer.get(task);
-            if(containerArrivedTime.containsKey(container)){
-                long beforeTime = containerArrivedTime.get(container);
-                if(beforeTime > time)time = beforeTime;
-            }
-            containerArrivedTime.put(container, time);
-        }
-    }*/
-
-    public void retrieveFlushProcessed(){
-        containerFlushProcessed.clear();
-        Map<String, Long> processed =  snapshotMetricsRetriever.retrieveFlushProcessed();
-        for(Map.Entry<String, Long> entry: processed.entrySet()){
-            String container = entry.getKey();
-            long processe = entry.getValue();
-            /*String container = taskContainer.get(task);
-            if(containerFlushProcessed.containsKey(container)){
-                processe += containerFlushProcessed.get(container);
-            }*/
-            containerFlushProcessed.put(container, processe);
-        }
-    }
-
-    /*public void retrieveProcessed(){
-        taskProcessed.clear();
-        containerProcessed.clear();
-        Map<String, Long> processed =  snapshotMetricsRetriever.retrieveProcessed();
-        for(Map.Entry<String, Long> entry: processed.entrySet()){
-            String task = entry.getKey();
-            long processe = entry.getValue();
-            taskProcessed.put(task, processe);
-            String container = taskContainer.get(task);
-            if(containerProcessed.containsKey(container)){
-                processe += containerProcessed.get(container);
-            }
-            containerProcessed.put(container, processe);
-        }
-    }*/
-    /*
-        Using metrics
-     */
-    /*public void retrieveAvgBacklog(){
-        Map<Integer, Double> partitionBacklog = snapshotMetricsRetriever.retrieveAvgBacklog();//kafkaOffsetRetriever.retrieveBacklog();
-        taskBacklogs.clear();
-        containerBacklogs.clear();
-        for(Map.Entry<Integer, Double> entry: partitionBacklog.entrySet()){
-            int partition = entry.getKey();
-            double backlog = entry.getValue();
-            String task = partitionTask.get(partition);
-            taskBacklogs.put(task, backlog);
-            String container = taskContainer.get(task);
-            if(containerBacklogs.containsKey(container)){
-                backlog += containerBacklogs.get(container);
-            }
-            containerBacklogs.put(container, backlog);
-        }
-        writeLog("Average Backlog: " + containerBacklogs);
-    }
-    public void retrieveArrivalRate(){
-        Map<Integer, Double> partitionArrivalRate = snapshotMetricsRetriever.retrieveArrivalRate();//kafkaOffsetRetriever.retrieveBacklog();
-        taskArrivalRate.clear();
-        containerArrivalRate.clear();
-        for(Map.Entry<Integer, Double> entry: partitionArrivalRate.entrySet()){
-            int partition = entry.getKey();
-            double backlog = entry.getValue();
-            String task = partitionTask.get(partition);
-            taskArrivalRate.put(task, backlog);
-            String container = taskContainer.get(task);
-            if(containerArrivalRate.containsKey(container)){
-                backlog += containerArrivalRate.get(container);
-            }
-            containerArrivalRate.put(container, backlog);
-        }
-        writeLog("Arrival Rate: " + containerArrivalRate);
-    }
-    public void retrieveProcessingSpeed(){
-        taskProcessingSpeed.clear();
-        containerProcessingSpeed.clear();
-        Map<String, Double> retrieved =  snapshotMetricsRetriever.retrieveProcessingSpeed();
-        for(Map.Entry<String, Double> entry: retrieved.entrySet()){
-            String task = entry.getKey();
-            double speed = entry.getValue();
-            taskProcessingSpeed.put(task, speed);
-            String container = taskContainer.get(task);
-            if(containerProcessingSpeed.containsKey(container)){
-                speed += containerProcessingSpeed.get(container);
-            }
-            containerProcessingSpeed.put(container, speed);
-        }
-        writeLog("Processing Speed: " + containerProcessingSpeed);
-    }*/
 
     /*
        TODO: update all metrics and check if load is balance.
@@ -808,18 +468,6 @@ public class MixedLoadBalanceManager {
 
     }
 
-    public boolean readyToRebalance(){
-       /* retrieveAvgBacklog();
-        retrieveArrivalRate();
-        retrieveProcessingSpeed();*/
-        if(taskBacklogs.size() == taskContainer.size() && taskProcessingSpeed.size() == taskContainer.size() && taskArrivalRate.size() == taskContainer.size()){
-            writeLog("Ready to rebalance");
-            return true;
-        }
-        writeLog("Not ready to rebalance, # of tasks: " + taskContainer.size() + ", backlogs size: "+taskBacklogs.size()+" processing speed size: "+taskProcessingSpeed.size() + " arrival rate size: " + taskArrivalRate.size());
-
-        return false;
-    }
     public JobModel getOldJobModel(){
         return oldJobModel;
     }
