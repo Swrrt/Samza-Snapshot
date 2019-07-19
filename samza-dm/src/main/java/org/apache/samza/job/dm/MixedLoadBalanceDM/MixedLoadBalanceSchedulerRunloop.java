@@ -84,7 +84,7 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
                     migrationTimes ++;
                     //loadBalanceManager.showDelayMetrics("before" + migrationTimes);
                     writeLog("Try to rebalance");
-                    if(scheduler.updateJobModel()) lastTime = nowTime;
+                    if(scheduler.tryToRebalance()) lastTime = nowTime;
                     //loadBalanceManager.showDelayMetrics("migrated" + migrationTimes);
                     //lastTime = nowTime;
                 }else{

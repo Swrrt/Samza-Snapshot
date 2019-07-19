@@ -45,7 +45,7 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
     }
 
     //Return true if change the jobModel
-    public boolean updateJobModel() {
+    public boolean tryToRebalance() {
         if(!balanceManager.checkMigrationDeployed()){
             writeLog("Last migration is not deployed, cannot rebalance");
             return false;
