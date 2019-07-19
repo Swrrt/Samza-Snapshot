@@ -24,54 +24,18 @@ import java.util.logging.Logger;
 
 //import org.apache.xmlrpc.*;
 
-public class MixedLoadBalanceDispatcher implements DMDispatcher {
+public class MixedLoadBalanceDispatcher {
     //private static final Logger LOG = Logger.getLogger(MixedLoadBalanceDispatcher.class.getName());
 
-    private ConcurrentMap<String, Enforcer> enforcers;
     private ConcurrentMap<String, String> enforcerURL;
-    private Config config;
-    private DMDispatcherConfig dispatcherConfig;
 
-    @Override
-    public void init(Config config) {
-        this.config = config;
-        this.dispatcherConfig = new DMDispatcherConfig(config);
-        this.enforcers = new ConcurrentSkipListMap<String, Enforcer>();
+    public void init() {
         this.enforcerURL = new ConcurrentSkipListMap<String, String>();
     }
 
-    @Override
-    public EnforcerFactory getEnforcerFactory(String stage) {
-        writeLog("dispatcher get Enforcerfactory");
-        String EnforcerFactoryClass = "YarnJobFactory";
-        if (config.containsKey("dm.enforcerfactory." + stage)) {
-            EnforcerFactoryClass = config.get("dm.enforcerfactory." + stage, "YarnEnforcerFactory");
-        }
-        EnforcerFactory enforcerFactory = null;
+    public void updateJobModel(String stageId, JobModel jobModel){
         try {
-            enforcerFactory = (EnforcerFactory) Class.forName(EnforcerFactoryClass).newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return enforcerFactory;
-    }
-
-    @Override
-    public Enforcer getEnforcer(String stageId) {
-        return enforcers.get(stageId);
-    }
-
-    @Override
-    public void enforceSchema(Allocation allocation) {
-    }
-
-    public void updateJobModel(Allocation allocation, JobModel jobModel){
-        try {
-            String url = enforcerURL.get(allocation.getStageID());
+            String url = enforcerURL.get(stageId);
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
             enforcer.rebalance(JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
@@ -82,9 +46,9 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
             e.printStackTrace();
         }
     }
-    public void changeParallelism(Allocation allocation, int parallelism, JobModel jobModel){
+    public void changeParallelism(String stageId, int parallelism, JobModel jobModel){
         try {
-            String url = enforcerURL.get(allocation.getStageID());
+            String url = enforcerURL.get(stageId);
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
             enforcer.changeParallelism(parallelism, JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
@@ -94,16 +58,6 @@ public class MixedLoadBalanceDispatcher implements DMDispatcher {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void submitApplication(Allocation allocation) {
-        writeLog("dispatcher submit application");
-        String stageId = allocation.getStageID();
-        EnforcerFactory enfFac = getEnforcerFactory(stageId);
-        Enforcer enf = enfFac.getEnforcer(config);
-        enforcers.put(stageId, enf);
-        enf.submit();
     }
 
     public void updateEnforcerURL(String name, String url) {

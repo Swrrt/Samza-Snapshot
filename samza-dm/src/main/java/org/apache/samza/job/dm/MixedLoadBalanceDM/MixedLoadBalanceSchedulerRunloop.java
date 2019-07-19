@@ -4,22 +4,21 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.samza.config.Config;
-import org.apache.samza.job.dm.DMScheduler;
-import org.apache.samza.job.dm.DMSchedulerListener;
 import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
-import org.apache.samza.job.dm.StageReport;
+import org.apache.samza.scheduler.LoadScheduler;
+import org.apache.samza.scheduler.LoadSchedulerRunloop;
 
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.UUID;
 
-public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
+public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
     MixedLoadBalanceScheduler scheduler;
     Config config;
     MixedLoadBalanceManager loadBalanceManager;
     boolean leaderComes;
     @Override
-    public void startListener() {
+    public void start() {
         writeLog("Start load-balancer scheduler listener");
 
         String metricsTopicName = config.get("metrics.reporter.snapshot.stream", "kafka.metrics").substring(6);
@@ -96,7 +95,7 @@ public class MixedLoadBalanceSchedulerListener implements DMSchedulerListener {
     }
 
     @Override
-    public void setScheduler(DMScheduler scheduler) {
+    public void setScheduler(LoadScheduler scheduler) {
         this.scheduler = (MixedLoadBalanceScheduler)scheduler;
         this.loadBalanceManager = this.scheduler.balanceManager;
     }

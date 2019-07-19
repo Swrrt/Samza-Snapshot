@@ -2,9 +2,7 @@ package org.apache.samza.job.dm.MixedLoadBalancer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.JobModelDemonstrator;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.RebalanceResult;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.SnapshotMetricsRetriever;
+import org.apache.samza.job.dm.MixedLoadBalanceDM.*;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
@@ -539,7 +537,15 @@ public class MixedLoadBalanceManager {
             }
         }
 
-        for(String containerId: containerIds){
+        MetricsMetadata metricsMetadata = MixedLoadBalanceMetricsListener.retrieveArrivedAndProcessed(time, containerIds, localityServer, offsetServer, containerJobModelVersion);
+        taskProcessed = metricsMetadata.getTaskProcessed();
+        taskArrived = metricsMetadata.getTaskArrived();
+        containerProcessed = metricsMetadata.getTaskProcessed();
+        containerArrived = metricsMetadata.getContainerArrived();
+        containerUtilization = metricsMetadata.getContainerUtilization();
+        //TODO: containerJobModelVersion store in where.
+
+        /*for(String containerId: containerIds){
             MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
             offsets = client.getOffsets();
             double utilization = -100;
@@ -586,7 +592,7 @@ public class MixedLoadBalanceManager {
             }
             containerArrived.put(containerId, s_arrived);
             containerProcessed.put(containerId, s_processed);
-        }
+        }*/
         return isMigration;
 
         /*
