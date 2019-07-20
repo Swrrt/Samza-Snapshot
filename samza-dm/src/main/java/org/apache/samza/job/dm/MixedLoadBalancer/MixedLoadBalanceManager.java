@@ -6,19 +6,15 @@ import org.apache.samza.job.dm.MixedLoadBalanceDM.*;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;
-import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.config.Config;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
-import org.apache.samza.zk.RMI.MetricsClient;
-import org.apache.samza.zk.RMI.OffsetServer;
 
 //Need to bind
 public class MixedLoadBalanceManager {
@@ -45,7 +41,7 @@ public class MixedLoadBalanceManager {
     private Config config;
     //private LocalityServer localityServer = null;
     //private OffsetServer offsetServer = null;
-    private MixedLoadBalanceMetricsListener metricsListener = null;
+    private RMIMetricsRetriever metricsListener = null;
     private SnapshotMetricsRetriever snapshotMetricsRetriever = null;
     private DelayEstimator delayEstimator = null;
     public MixedLoadBalanceManager(){
@@ -65,7 +61,7 @@ public class MixedLoadBalanceManager {
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         //localityServer = new LocalityServer();
         //offsetServer = new OffsetServer();
-        metricsListener = new MixedLoadBalanceMetricsListener();
+        metricsListener = new RMIMetricsRetriever();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         snapshotMetricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
@@ -365,7 +361,8 @@ public class MixedLoadBalanceManager {
                 }
             }
         }
-        metricsListener.retrieveArrivedAndProcessed(containerIds); //Update metricsListeners' information
+        metricsListener.updateContainerIds(containerIds);
+        metricsListener.retrieveMetrics(); //Update metricsListeners' information
         //TODO: containerJobModelVersion store in where.
         return isMigration;
         /*

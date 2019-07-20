@@ -5,10 +5,11 @@ import org.apache.samza.zk.RMI.MetricsClient;
 import org.apache.samza.zk.RMI.OffsetServer;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class MixedLoadBalanceMetricsListener {
+public class RMIMetricsRetriever implements MetricsRetriever{
     LocalityServer localityServer;
     OffsetServer offsetServer;
     Map<String, Long> taskProcessed;
@@ -17,7 +18,8 @@ public class MixedLoadBalanceMetricsListener {
     Map<String, Long> containerArrived; //Currently not used;
     Map<String, Double> containerUtilization;
     Map<String, Long> containerJobModelVersion;
-    public MixedLoadBalanceMetricsListener(){
+    Set<String> containerIds;
+    public RMIMetricsRetriever(){
         localityServer = new LocalityServer();
         offsetServer = new OffsetServer();
         taskProcessed = new HashMap<>();
@@ -26,6 +28,7 @@ public class MixedLoadBalanceMetricsListener {
         containerArrived = new HashMap<>();
         containerUtilization = new HashMap<>();
         containerJobModelVersion = new HashMap<>();
+        containerIds = new HashSet<>();
     }
     public void start(){
         localityServer.start();
@@ -59,10 +62,10 @@ public class MixedLoadBalanceMetricsListener {
         return taskArrived;
     }
     public Map<String, Long> getContainerProcessed(){
-        return taskProcessed;
+        return containerProcessed;
     }
     public Map<String, Long> getContainerArrived(){
-        return taskArrived;
+        return containerArrived;
     }
     public Map<String, Double> getContainerUtilization(){
         return containerUtilization;
@@ -70,7 +73,10 @@ public class MixedLoadBalanceMetricsListener {
     public Map<String, Long> getContainerJobModelVersion(){
         return containerJobModelVersion;
     }
-    public void retrieveArrivedAndProcessed(Set<String> containerIds){
+    public void updateContainerIds(Set<String> containerIds){
+        this.containerIds = containerIds;
+    }
+    public void retrieveMetrics(){
         HashMap<String, String> offsets;
         boolean isMigration = false;
         //timePoints.add(time);
