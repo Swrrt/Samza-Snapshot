@@ -79,7 +79,7 @@ import org.apache.samza.util.MetricsReporterLoader
 import org.apache.samza.util.SystemClock
 import org.apache.samza.util.Util
 import org.apache.samza.util.Util.asScalaClock
-import org.apache.samza.zk.RMI.{MetricsServer, OffsetClient}
+import org.apache.samza.zk.RMI.{MetricsServer, MetricsRetrieverRMIClient}
 
 import scala.collection.JavaConverters._
 
@@ -147,7 +147,7 @@ object SamzaContainer extends Logging {
     val samzaContainerMetrics = new SamzaContainerMetrics(containerName, registry)
     val systemProducersMetrics = new SystemProducersMetrics(registry)
     val systemConsumersMetrics = new SystemConsumersMetrics(registry)
-    val offsetManagerMetrics = new OffsetManagerMetrics(registry)
+    val rmiClientManagerMetrics = new OffsetManagerMetrics(registry)
     val clock = if (config.getMetricsTimerEnabled) {
       new HighResolutionClock {
         override def nanoTime(): Long = System.nanoTime()
@@ -399,10 +399,10 @@ object SamzaContainer extends Logging {
 
     info("Got checkpointListeners : %s" format checkpointListeners)
 
-    val offsetManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
-      systemAdmins, checkpointListeners, offsetManagerMetrics)
+    val rmiClientManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
+      systemAdmins, checkpointListeners, rmiClientManagerMetrics)
 
-    info("Got offset manager: %s" format offsetManager)
+    info("Got rmiClient manager: %s" format rmiClientManager)
 
     val dropDeserializationError = config.getDropDeserialization match {
       case Some(dropError) => dropError.toBoolean
@@ -593,7 +593,7 @@ object SamzaContainer extends Logging {
           consumerMultiplexer = consumerMultiplexer,
           collector = collector,
           containerContext = containerContext,
-          offsetManager = offsetManager,
+          rmiClientManager = rmiClientManager,
           storageManager = storageManager,
           reporters = reporters,
           systemStreamPartitions = systemStreamPartitions,
@@ -662,7 +662,7 @@ object SamzaContainer extends Logging {
       runLoop = runLoop,
       consumerMultiplexer = consumerMultiplexer,
       producerMultiplexer = producerMultiplexer,
-      offsetManager = offsetManager,
+      rmiClientManager = rmiClientManager,
       localityManager = localityManager,
       securityManager = securityManager,
       metrics = samzaContainerMetrics,
@@ -683,7 +683,7 @@ class SamzaContainer(
   metrics: SamzaContainerMetrics,
   diskSpaceMonitor: DiskSpaceMonitor = null,
   hostStatisticsMonitor: SystemStatisticsMonitor = null,
-  offsetManager: OffsetManager = new OffsetManager,
+  rmiClientManager: OffsetManager = new OffsetManager,
   localityManager: LocalityManager = null,
   securityManager: SecurityManager = null,
   reporters: Map[String, MetricsReporter] = Map(),
@@ -698,7 +698,7 @@ class SamzaContainer(
   private var exceptionSeen: Throwable = null
   private var paused: Boolean = false
   private var containerListener: SamzaContainerListener = null
-  private var offsetClient: OffsetClient = null
+  private var rmiClientClient: MetricsRetrieverRMIClient = null
   private var containerModel: ContainerModel = null
   private var metricsServer: MetricsServer = null
   def getStatus(): SamzaContainerStatus = status
@@ -709,9 +709,9 @@ class SamzaContainer(
     containerListener = listener
   }
 
-  def setOffsetClientAndJobModel(client: OffsetClient,
+  def setRMIClientAndJobModel(client: MetricsRetrieverRMIClient,
                                  jobModel: JobModel): Unit ={
-    offsetClient = client
+    rmiClientClient = client
     containerModel = jobModel.getContainers.get(containerContext.id)
   }
   def setMetricsServer(server: MetricsServer): Unit ={
@@ -724,9 +724,9 @@ class SamzaContainer(
 
 
       val startTime = System.nanoTime()
-      //sendStartingTime to offset server
-      if(offsetClient != null){
-        offsetClient.sendStartTime(containerContext.id, startTime)
+      //sendStartingTime to rmiClient server
+      if(rmiClientClient != null){
+        rmiClientClient.sendStartTime(containerContext.id, startTime)
       }
 
       status = SamzaContainerStatus.STARTING
@@ -788,8 +788,8 @@ class SamzaContainer(
       }
 
       //Send shutdown timestamp
-      if(offsetClient != null){
-        offsetClient.sendShutdownTime(containerContext.id, System.nanoTime())
+      if(rmiClientClient != null){
+        rmiClientClient.sendShutdownTime(containerContext.id, System.nanoTime())
       }
 
       info("Shutdown complete.")
@@ -892,16 +892,16 @@ class SamzaContainer(
   }
 
   def startOffsetManager {
-    info("Registering task instances with offsets.")
+    info("Registering task instances with rmiClients.")
 
     taskInstances.values.foreach(_.registerOffsets)
 
-    info("Starting offset manager.")
+    info("Starting rmiClient manager.")
 
-    if(offsetClient == null) offsetManager.start
+    if(rmiClientClient == null) rmiClientManager.start
     else {
-      offsetManager.startWithOffsetClient(offsetClient, containerModel)
-      val lastOffsets = offsetClient.getProcessedOffset()
+      rmiClientManager.startWithMetricsRetrieverRMIClient(rmiClientClient, containerModel)
+      val lastOffsets = rmiClientClient.getProcessedOffset()
       //Update messages-total-processed
       taskInstances.foreach{
         case(taskName, taskInstance) =>{
@@ -1061,11 +1061,11 @@ class SamzaContainer(
   }
 
   def shutdownOffsetManager {
-    info("Shutting down offset manager.")
+    info("Shutting down rmiClient manager.")
 
-    if(offsetClient == null)offsetManager.stop
+    if(rmiClientClient == null)rmiClientManager.stop
     else {
-      offsetManager.stopWithOffsetClient(offsetClient)
+      rmiClientManager.stopWithMetricsRetrieverRMIClient(rmiClientClient)
 
     }
   }

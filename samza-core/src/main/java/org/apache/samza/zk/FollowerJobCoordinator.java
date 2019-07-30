@@ -32,7 +32,6 @@ import java.util.Set;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.samza.metrics.Metric;
-import org.apache.samza.zk.RMI.LocalityClient;
 import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
@@ -55,8 +54,8 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 //import org.apache.samza.job.dm.MixedLoadBalancer.JVMMonitor;
+import org.apache.samza.zk.RMI.MetricsRetrieverRMIClient;
 import org.apache.samza.zk.RMI.MetricsServer;
-import org.apache.samza.zk.RMI.OffsetClient;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,8 +103,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     //private JVMMonitor jvmMonitor = null;
-    private LocalityClient localityClient = null;
-    private OffsetClient offsetClient = null;
+    private MetricsRetrieverRMIClient rmiClient = null;
     private MetricsServer metricsServer = null;
     FollowerJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils) {
         this.config = config;
@@ -132,10 +130,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         //
         // jvmMonitor = new JVMMonitor();
         if(config.getBoolean("job.loadbalance.on", false)) {
-            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "8881")));
-            this.offsetClient = new OffsetClient(
-                    config.get("job.loadbalance.offsetserver.address",""),
-                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
+            this.rmiClient = new MetricsRetrieverRMIClient(
+                    config.get("job.loadbalance.dm.address",""),
+                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8881")),
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
@@ -170,10 +167,9 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         });
         //jvmMonitor = new JVMMonitor();
         if(config.getBoolean("job.loadbalance.on", false)) {
-            this.localityClient = new LocalityClient(config.get("job.loadbalance.localityserver.address", ""), Integer.parseInt(config.get("job.loadbalance.localityserver.port", "8881")));
-            this.offsetClient = new OffsetClient(
-                    config.get("job.loadbalance.offsetserver.address",""),
-                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8884")),
+            this.rmiClient = new MetricsRetrieverRMIClient(
+                    config.get("job.loadbalance.dm.address",""),
+                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8881")),
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
@@ -192,7 +188,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         zkController.register();
         //jvmMonitor.start(getLeaderAddr(), processorId);
         if(config.getBoolean("job.loadbalance.on", false)) {
-            localityClient.sendLocality(processorId, getHostName());
+            rmiClient.sendAddress(processorId, getHostName());
         }
     }
     private String getHostName() {
@@ -236,8 +232,8 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         }
     }
     public String getJobModelVersion(){return zkUtils.getJobModelVersion();}
-    public OffsetClient getOffsetClient(){
-        return offsetClient;
+    public MetricsRetrieverRMIClient getRMIClient(){
+        return rmiClient;
     }
     public MetricsServer getMetricsServer(){
         return metricsServer;

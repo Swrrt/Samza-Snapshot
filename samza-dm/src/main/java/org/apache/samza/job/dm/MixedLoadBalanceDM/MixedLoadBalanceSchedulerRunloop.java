@@ -97,7 +97,7 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
     @Override
     public void setScheduler(LoadScheduler scheduler) {
         this.scheduler = (MixedLoadBalanceScheduler)scheduler;
-        this.loadBalanceManager = this.scheduler.balanceManager;
+        this.loadBalanceManager = this.scheduler.getBalanceManager();
     }
     @Override
     public void setConfig(Config config) {

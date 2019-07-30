@@ -61,7 +61,7 @@ public class MixedLoadBalanceManager {
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         //localityServer = new LocalityServer();
         //offsetServer = new OffsetServer();
-        metricsListener = new RMIMetricsRetriever();
+        //metricsListener = new RMIMetricsRetriever();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
         snapshotMetricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
@@ -74,12 +74,13 @@ public class MixedLoadBalanceManager {
         TODO:
         Generate initial JobModel in here.
      */
-    public void initial(Config config){
+    public void initial(Config config, RMIMetricsRetriever metricsRetriever){
         //Generate initial job model according to
         Config coordinatorSystemConfig = Util.buildCoordinatorStreamConfig(config);
         JobModelManager jobModelManager = JobModelManager.apply(coordinatorSystemConfig, new MetricsRegistryMap());
         oldJobModel = jobModelManager.jobModel();
         migrationContext.setDeployed();
+        this.metricsListener = metricsRetriever;
         initial(oldJobModel, config);
     }
     public int getNextContainerId(){
@@ -127,7 +128,7 @@ public class MixedLoadBalanceManager {
         instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 100.0);
         longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 100.0);
         metricsListener.setJobModelVersions(containerIds);
-        metricsListener.start();
+        //metricsListener.start();
         /*for(String containerId: containerIds){
             containerJobModelVersion.put(containerId, -1l);
         }*/

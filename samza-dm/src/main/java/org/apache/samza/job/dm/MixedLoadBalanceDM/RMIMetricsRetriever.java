@@ -1,8 +1,7 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import org.apache.samza.zk.RMI.LocalityServer;
 import org.apache.samza.zk.RMI.MetricsClient;
-import org.apache.samza.zk.RMI.OffsetServer;
+import org.apache.samza.zk.RMI.MetricsRetrieverRMIServer;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,8 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class RMIMetricsRetriever implements MetricsRetriever{
-    LocalityServer localityServer;
-    OffsetServer offsetServer;
+    MetricsRetrieverRMIServer rmiServer;
     Map<String, Long> taskProcessed;
     Map<String, Long> taskArrived;
     Map<String, Long> containerProcessed; //Currently not used;
@@ -20,8 +18,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
     Map<String, Long> containerJobModelVersion;
     Set<String> containerIds;
     public RMIMetricsRetriever(){
-        localityServer = new LocalityServer();
-        offsetServer = new OffsetServer();
+        rmiServer = new MetricsRetrieverRMIServer();
         taskProcessed = new HashMap<>();
         taskArrived = new HashMap<>();
         containerProcessed = new HashMap<>();
@@ -31,8 +28,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
         containerIds = new HashSet<>();
     }
     public void start(){
-        localityServer.start();
-        offsetServer.start();
+        rmiServer.start();
     }
     public void setJobModelVersions(Set<String> containerIds){
         for(String containerId: containerIds){
@@ -40,7 +36,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
         }
     }
     public boolean checkMigrated(String srcId){
-        MetricsClient client = new MetricsClient(localityServer.getLocality(srcId), 8900 + Integer.parseInt(srcId), srcId);
+        MetricsClient client = new MetricsClient(rmiServer.getAddress(srcId), 8900 + Integer.parseInt(srcId), srcId);
         HashMap<String, String> offsets = client.getOffsets();
         long jobModelVersion = -1;
         if(offsets != null && offsets.containsKey("JobModelVersion")){
@@ -86,7 +82,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
         containerProcessed.clear();
         containerUtilization.clear();
         for(String containerId: containerIds){
-            MetricsClient client = new MetricsClient(localityServer.getLocality(containerId), 8900 + Integer.parseInt(containerId), containerId);
+            MetricsClient client = new MetricsClient(rmiServer.getAddress(containerId), 8900 + Integer.parseInt(containerId), containerId);
             offsets = client.getOffsets();
             double utilization = -100;
             long jobModelVersion = -1;
@@ -114,7 +110,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
                 String id = entry.getKey();
                 String value = entry.getValue();
                 int i = value.indexOf('_');
-                long begin = offsetServer.getBeginOffset(id);
+                long begin = rmiServer.getBeginOffset(id);
                 long arrived = Long.parseLong(value.substring(0, i)) - begin - 1, processed = Long.parseLong(value.substring(i+1)) - begin;
                 if(arrived < 0) arrived = 0;
                 if(processed < 0) processed = 0;

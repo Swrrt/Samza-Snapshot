@@ -33,7 +33,7 @@ import org.apache.samza.job.model.ContainerModel
 import org.apache.samza.system.SystemStreamMetadata.OffsetType
 import org.apache.samza.system.{SystemAdmin, SystemStream, SystemStreamMetadata, SystemStreamPartition}
 import org.apache.samza.util.Logging
-import org.apache.samza.zk.RMI.{MetricsServer, OffsetClient}
+import org.apache.samza.zk.RMI.{MetricsServer, MetricsRetrieverRMIClient}
 
 import scala.collection.JavaConverters._
 import scala.collection._
@@ -180,10 +180,10 @@ class OffsetManager(
     systemStreamPartitions.foreach { case (taskName, ssp) => ssp.foreach (ssp => offsetManagerMetrics.addCheckpointedOffset(ssp, "")) }
   }
 
-  def startWithOffsetClient(offsetClient: OffsetClient, containerModel: ContainerModel): Unit ={
+  def startWithOffsetClient(rmiClient: MetricsRetrieverRMIClient, containerModel: ContainerModel): Unit ={
     registerCheckpointManager
     //loadOffsetsFromCheckpointManager
-    loadOffsetsFromOffsetClient(offsetClient, containerModel)
+    loadOffsetsFromOffsetClient(rmiClient, containerModel)
     var isBegin = false
     if(lastProcessedOffsets.size() == 0 ) isBegin = true
     stripResetStreams
@@ -192,8 +192,8 @@ class OffsetManager(
     if(isBegin){
       info("First time to consume, record the begin offset")
       val beginOffsets = translateOffsetsToJava(startingOffsets)// Minus 1 here
-      offsetClient.sendBeginOffset(beginOffsets)
-      offsetClient.sendProcessedOffset(beginOffsets)
+      rmiClient.sendBeginOffset(beginOffsets)
+      rmiClient.sendProcessedOffset(beginOffsets)
       //Also update the lastProcessedOffsets.
       lastProcessedOffsets.putAll(beginOffsets)
     }
@@ -316,11 +316,11 @@ class OffsetManager(
     }
   }
 
-  def stopWithOffsetClient(offsetClient: OffsetClient) {
-    if (offsetClient != null) {
+  def stopWithOffsetClient(rmiClient: MetricsRetrieverRMIClient) {
+    if (rmiClient != null) {
       info("Offset Manager is shutting down, upload offset to offset server")
       info("Offset" + lastProcessedOffsets)
-      offsetClient.sendProcessedOffset(lastProcessedOffsets);
+      rmiClient.sendProcessedOffset(lastProcessedOffsets);
     } else {
       debug("Skipping checkpoint manager shutdown because no checkpoint manager is defined.")
     }
@@ -376,10 +376,10 @@ class OffsetManager(
     }
   }
 
-  private def loadOffsetsFromOffsetClient(offsetClient: OffsetClient, containerModel: ContainerModel) {
-    if(offsetClient != null) {
+  private def loadOffsetsFromOffsetClient(rmiClient: MetricsRetrieverRMIClient, containerModel: ContainerModel) {
+    if(rmiClient != null) {
       info("Loading offsets of " + containerModel.getTasks + " from offset client.")
-      val result = offsetClient.getLastProcessedOffset(containerModel)
+      val result = rmiClient.getLastProcessedOffset(containerModel)
       info("Loaded offsets: " + result)
       lastProcessedOffsets.putAll(result)
     }

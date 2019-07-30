@@ -43,8 +43,6 @@ import org.apache.samza.task.StreamTaskFactory;
 import org.apache.samza.util.Util;
 import org.apache.samza.zk.FollowerJobCoordinator;
 import org.apache.samza.zk.FollowerJobCoordinatorFactory;
-import org.apache.samza.zk.RMI.OffsetClient;
-import org.apache.zookeeper.server.quorum.Follower;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -301,7 +299,7 @@ public class StreamProcessor {
         if(jobModel.getContainers().get(processorId).getTasks().size()>0) {
           container = createSamzaContainer(processorId, jobModel, storeSuffix++);
           container.setContainerListener(containerListener);
-          container.setOffsetClientAndJobModel(((FollowerJobCoordinator) jobCoordinator).getOffsetClient(), jobModel);
+          container.setRMIClientAndJobModel(((FollowerJobCoordinator) jobCoordinator).getRMIClient(), jobModel);
           container.setMetricsServer(((FollowerJobCoordinator)jobCoordinator).getMetricsServer());
           LOGGER.info("Starting container " + container.toString());
           executorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()

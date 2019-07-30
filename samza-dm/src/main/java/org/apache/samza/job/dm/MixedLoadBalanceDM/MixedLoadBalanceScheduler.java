@@ -10,14 +10,15 @@ import org.apache.samza.scheduler.LoadScheduler;
 import org.json.JSONObject;
 
 public class MixedLoadBalanceScheduler implements LoadScheduler {
-    MixedLoadBalanceManager balanceManager;
+    private MixedLoadBalanceManager balanceManager;
     //private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 
     private Config config;
 
     private MixedLoadBalanceDispatcher dispatcher;
+    private RMIMetricsRetriever metricsRetriever;
 
-    public void createListener(LoadScheduler scheduler) {
+    public void createAndStartRunloop(LoadScheduler scheduler) {
         writeLog("starting listener in scheduler");
         MixedLoadBalanceSchedulerRunloop runloop = new MixedLoadBalanceSchedulerRunloop();
         runloop.setScheduler(scheduler);
@@ -31,15 +32,19 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
         this.dispatcher = new MixedLoadBalanceDispatcher();
         this.dispatcher.init();
 
-        balanceManager = new MixedLoadBalanceManager();
-        balanceManager.initial(config);
+        this.metricsRetriever = new RMIMetricsRetriever();
+
+        this.balanceManager = new MixedLoadBalanceManager();
+        this.balanceManager.initial(config, this.metricsRetriever);
+
+        this.metricsRetriever.start();
     }
 
     //Running call from LoadbalanceScheduler
     @Override
     public void start(){
-        writeLog("Start listener");
-        createListener(this);
+        writeLog("Starting Scheduler");
+        createAndStartRunloop(this);
         while(true){
         }
     }
@@ -119,6 +124,10 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
             //writeLog("Error when parse json");
         }
         return false;
+    }
+
+    public MixedLoadBalanceManager getBalanceManager() {
+        return balanceManager;
     }
 
     private void writeLog(String log) {

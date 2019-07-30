@@ -332,6 +332,7 @@ public class MigratingOnceBalancer {
         return new Pair(tgtContainer, minIdealDelay);
     }
 
+    //Migrating from the largest longterm delay executors, dfs to enumerate all possible partitions set.
     public RebalanceResult rebalance(Map<String, String> oldTaskContainer, double instantaneousThreshold, double longTermThreshold) {
         writeLog("Migrating once based on tasks: " + oldTaskContainer);
         Map<String, List<String>> containerTasks = new HashMap<>();
