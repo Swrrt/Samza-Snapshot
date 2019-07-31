@@ -1,11 +1,7 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.samza.config.Config;
-import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
-import org.apache.samza.job.dm.StageReport;
 import org.apache.samza.zk.RMI.OffsetClient;
 import org.json.JSONObject;
 

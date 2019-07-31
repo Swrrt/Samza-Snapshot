@@ -1,21 +1,14 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.samza.config.Config;
-import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.apache.samza.job.dm.MixedLoadBalancer.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
 import org.apache.samza.scheduler.LoadSchedulerRunloop;
 
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.UUID;
-
-public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
-    MixedLoadBalanceScheduler scheduler;
+public class DelayGuaranteeSchedulerRunloop implements LoadSchedulerRunloop {
+    DelayGuaranteeScheduler scheduler;
     Config config;
-    MixedLoadBalanceManager loadBalanceManager;
+    DelayGuaranteeDecisionModel loadBalanceManager;
     boolean leaderComes;
     @Override
     public void start() {
@@ -67,7 +60,7 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
 
     @Override
     public void setScheduler(LoadScheduler scheduler) {
-        this.scheduler = (MixedLoadBalanceScheduler)scheduler;
+        this.scheduler = (DelayGuaranteeScheduler)scheduler;
         this.loadBalanceManager = this.scheduler.getBalanceManager();
     }
     @Override

@@ -1,26 +1,22 @@
 package org.apache.samza.job.dm.MixedLoadBalanceDM;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.config.Config;
-import org.apache.samza.config.DMSchedulerConfig;
-import org.apache.samza.job.dm.*;
 import org.apache.samza.job.model.JobModel;
-import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.apache.samza.job.dm.MixedLoadBalancer.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
-import org.json.JSONObject;
 
-public class MixedLoadBalanceScheduler implements LoadScheduler {
-    private MixedLoadBalanceManager balanceManager;
+public class DelayGuaranteeScheduler implements LoadScheduler {
+    private DelayGuaranteeDecisionModel decisionModel;
     //private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 
     private Config config;
 
-    private MixedLoadBalanceDispatcher dispatcher;
+    private DelayGuaranteeDispatcher dispatcher;
     private RMIMetricsRetriever metricsRetriever;
 
     public void createAndStartRunloop(LoadScheduler scheduler) {
         writeLog("starting listener in scheduler");
-        MixedLoadBalanceSchedulerRunloop runloop = new MixedLoadBalanceSchedulerRunloop();
+        DelayGuaranteeSchedulerRunloop runloop = new DelayGuaranteeSchedulerRunloop();
         runloop.setScheduler(scheduler);
         runloop.setConfig(config);
         runloop.start();
@@ -29,13 +25,13 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
     public void init(Config config){
         this.config = config;
 
-        this.dispatcher = new MixedLoadBalanceDispatcher();
+        this.dispatcher = new DelayGuaranteeDispatcher();
         this.dispatcher.init();
 
         this.metricsRetriever = new RMIMetricsRetriever();
 
-        this.balanceManager = new MixedLoadBalanceManager();
-        this.balanceManager.initial(config, this.metricsRetriever);
+        this.decisionModel = new DelayGuaranteeDecisionModel();
+        this.decisionModel.initial(config, this.metricsRetriever);
 
         this.metricsRetriever.start();
     }
@@ -51,54 +47,54 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
 
     //Return true if change the jobModel
     public boolean tryToRebalance() {
-        if(!balanceManager.checkMigrationDeployed()){
+        if(!decisionModel.checkMigrationDeployed()){
             writeLog("Last migration is not deployed, cannot rebalance");
             return false;
         }
-        if (!balanceManager.checkDelay()) {
+        if (!decisionModel.checkDelay()) {
             //Rebalance the JobModel
-            RebalanceResult rebalanceResult = balanceManager.migratingOnce(); //randomMoveOneTask(time);//balanceManager.rebalanceJobModel();
+            RebalanceResult rebalanceResult = decisionModel.migratingOnce(); //randomMoveOneTask(time);//decisionModel.rebalanceJobModel();
             JobModel newJobModel = null;
             if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.Migrating) {
-                //balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
+                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
-                balanceManager.stashNewJobModel(newJobModel);
-                balanceManager.stashNewRebalanceResult(rebalanceResult);
-                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
-                //balanceManager.updateOldJobModel(newJobModel);
+                decisionModel.stashNewJobModel(newJobModel);
+                decisionModel.stashNewRebalanceResult(rebalanceResult);
+                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
+                //decisionModel.updateOldJobModel(newJobModel);
                 //Dispatch the new JobModel
                 dispatcher.updateJobModel(config.get("job.name"), newJobModel);
                 return true;
             } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
                 writeLog("Need to scale out");
-                rebalanceResult = balanceManager.scaleOutByNumber(1);
+                rebalanceResult = decisionModel.scaleOutByNumber(1);
                 if (rebalanceResult.getCode() != RebalanceResult.RebalanceResultCode.ScalingOut) {
                     writeLog("Something is wrong when try to scale out");
                     return false;
                 }
-                //balanceManager.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
+                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
-                balanceManager.stashNewJobModel(newJobModel);
-                balanceManager.stashNewRebalanceResult(rebalanceResult);
-                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
+                decisionModel.stashNewJobModel(newJobModel);
+                decisionModel.stashNewRebalanceResult(rebalanceResult);
+                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
                 dispatcher.changeParallelism(config.get("job.name"), newJobModel.getContainers().size(), newJobModel);
                 return true;
             }
-        }else if(balanceManager.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
+        }else if(decisionModel.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
             writeLog("No need to rebalance, try to scale in");
-            RebalanceResult rebalanceResult = balanceManager.scaleInByOne();
+            RebalanceResult rebalanceResult = decisionModel.scaleInByOne();
             if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn) {
                 writeLog("Need to Scale In");
-                JobModel newJobModel = balanceManager.generateJobModel(rebalanceResult.getTaskContainer());
+                JobModel newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
                 writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
                 JobModelDemonstrator.demoJobModel(newJobModel);
-                balanceManager.stashNewJobModel(newJobModel);
-                balanceManager.stashNewRebalanceResult(rebalanceResult);
-                balanceManager.updateMigrationContext(rebalanceResult.getMigrationContext());
+                decisionModel.stashNewJobModel(newJobModel);
+                decisionModel.stashNewRebalanceResult(rebalanceResult);
+                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
                 dispatcher.changeParallelism(config.get("job.name"), newJobModel.getContainers().size(), newJobModel);
                 return true;
             }
@@ -118,11 +114,11 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
         return false;
     }
 
-    public MixedLoadBalanceManager getBalanceManager() {
-        return balanceManager;
+    public DelayGuaranteeDecisionModel getBalanceManager() {
+        return decisionModel;
     }
 
     private void writeLog(String log) {
-        System.out.println("MixedLoadBalanceScheduler: " + log);
+        System.out.println("DelayGuaranteeScheduler: " + log);
     }
 }

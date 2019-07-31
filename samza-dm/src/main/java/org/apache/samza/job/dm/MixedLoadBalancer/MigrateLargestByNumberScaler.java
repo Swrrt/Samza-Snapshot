@@ -11,10 +11,10 @@ import java.util.Map;
 public class MigrateLargestByNumberScaler {
     private ModelingData modelingData;
     private DelayEstimator delayEstimator;
-    private MixedLoadBalanceManager loadBalanceManager;
+    private DelayGuaranteeDecisionModel loadBalanceManager;
     public MigrateLargestByNumberScaler(){
     }
-    public void setModelingData(ModelingData modelingData, DelayEstimator delayEstimator, MixedLoadBalanceManager loadBalanceManager){
+    public void setModelingData(ModelingData modelingData, DelayEstimator delayEstimator, DelayGuaranteeDecisionModel loadBalanceManager){
         this.modelingData = modelingData;
         this.delayEstimator = delayEstimator;
         this.loadBalanceManager = loadBalanceManager;

@@ -17,7 +17,7 @@ import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
 
 //Need to bind
-public class MixedLoadBalanceManager {
+public class DelayGuaranteeDecisionModel {
     //private static final Logger LOG = LoggerFactory.getLogger(MixedLoadBalanceManager.class);
     private final int LOCALITY_RETRY_TIMES = 2;
     private double instantaneousThreshold;
@@ -41,10 +41,9 @@ public class MixedLoadBalanceManager {
     private Config config;
     //private LocalityServer localityServer = null;
     //private OffsetServer offsetServer = null;
-    private RMIMetricsRetriever metricsListener = null;
-    private SnapshotMetricsRetriever snapshotMetricsRetriever = null;
+    private RMIMetricsRetriever metricsRetriever = null;
     private DelayEstimator delayEstimator = null;
-    public MixedLoadBalanceManager(){
+    public DelayGuaranteeDecisionModel(){
         config = null;
         //consistentHashing = new ConsistentHashing();
         //locality = new LocalityDistance();
@@ -61,9 +60,8 @@ public class MixedLoadBalanceManager {
         //unprocessedMessageMonitor = new UnprocessedMessageMonitor();
         //localityServer = new LocalityServer();
         //offsetServer = new OffsetServer();
-        //metricsListener = new RMIMetricsRetriever();
+        //metricsRetriever = new RMIMetricsRetriever();
         //kafkaOffsetRetriever = new KafkaOffsetRetriever();
-        snapshotMetricsRetriever = new SnapshotMetricsRetriever();
         delayEstimator = new DelayEstimator();
         //containerMigratingState = new ConcurrentHashMap<>();
         modelingData = new ModelingData();
@@ -80,7 +78,7 @@ public class MixedLoadBalanceManager {
         JobModelManager jobModelManager = JobModelManager.apply(coordinatorSystemConfig, new MetricsRegistryMap());
         oldJobModel = jobModelManager.jobModel();
         migrationContext.setDeployed();
-        this.metricsListener = metricsRetriever;
+        this.metricsRetriever = metricsRetriever;
         initial(oldJobModel, config);
     }
     public int getNextContainerId(){
@@ -103,9 +101,7 @@ public class MixedLoadBalanceManager {
             Group id is generated randomly in SamzaContainer(KafkaSystemFactory.getConsumer())
             So we need a way to catch them.
          */
-
-        snapshotMetricsRetriever.initial(config.get("job.name"), config.get("job.loadbalance.inputtopic"));
-        snapshotMetricsRetriever.setOffsetClient(config);
+        
         //kafkaOffsetRetriever.initial(config.subset("system.kafka"),config.get("job.loadbalance.inputtopic")); //TODO: need input topic name
 
         oldJobModel = jobModel;
@@ -127,8 +123,8 @@ public class MixedLoadBalanceManager {
         //unprocessedMessageMonitor.init(config.get("systems.kafka.producer.bootstrap.servers"), "metrics", config.get("job.name"));
         instantaneousThreshold = config.getDouble("job.loadbalance.delay.instant.threshold", 100.0);
         longTermThreshold = config.getDouble("job.loadbalance.delay.longterm.threshold", 100.0);
-        metricsListener.setJobModelVersions(containerIds);
-        //metricsListener.start();
+        metricsRetriever.setJobModelVersions(containerIds);
+        //metricsRetriever.start();
         /*for(String containerId: containerIds){
             containerJobModelVersion.put(containerId, -1l);
         }*/
@@ -345,7 +341,7 @@ public class MixedLoadBalanceManager {
         //timePoints.add(time);
         if(migrationContext != null && !checkMigrationDeployed()){
             String srcId = migrationContext.getSrcContainer();
-            boolean migrated = metricsListener.checkMigrated(srcId);
+            boolean migrated = metricsRetriever.checkMigrated(srcId);
             if(migrated){
                 //TODO:
                 writeLog("Migration deployed! from container " + srcId + " Update delay estimator");
@@ -362,8 +358,8 @@ public class MixedLoadBalanceManager {
                 }
             }
         }
-        metricsListener.updateContainerIds(containerIds);
-        metricsListener.retrieveMetrics(); //Update metricsListeners' information
+        metricsRetriever.updateContainerIds(containerIds);
+        metricsRetriever.retrieveMetrics(); //Update metricsRetrievers' information
         //TODO: containerJobModelVersion store in where.
         return isMigration;
         /*
@@ -374,7 +370,7 @@ public class MixedLoadBalanceManager {
     }
 
     public void updateDelay(long time){
-        delayEstimator.updateAtTime(time, metricsListener.getTaskArrived(), metricsListener.getTaskProcessed(), oldJobModel);
+        delayEstimator.updateAtTime(time, metricsRetriever.getTaskArrived(), metricsRetriever.getTaskProcessed(), oldJobModel);
         //For testing
         HashMap<String, Double> delays = new HashMap<>();
         for(String containerId: containerIds){
@@ -392,7 +388,7 @@ public class MixedLoadBalanceManager {
     }
 
     public void updateModelingData(long time){
-        modelingData.updateAtTime(time, metricsListener.getContainerUtilization(), oldJobModel);
+        modelingData.updateAtTime(time, metricsRetriever.getContainerUtilization(), oldJobModel);
 
         //For testing
         HashMap<String, Double> arrivalRate = new HashMap<>();
@@ -459,13 +455,7 @@ public class MixedLoadBalanceManager {
     public void showDelayMetrics(String label){
         delayEstimator.showExecutors(label);
     }
-
-    public void updateMetrics(ConsumerRecord<String, String> record){
-        snapshotMetricsRetriever.update(record);
-        //TODO: update delay estimator
-
-    }
-
+    
     public JobModel getOldJobModel(){
         return oldJobModel;
     }

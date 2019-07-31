@@ -24,8 +24,8 @@ import java.util.logging.Logger;
 
 //import org.apache.xmlrpc.*;
 
-public class MixedLoadBalanceDispatcher {
-    //private static final Logger LOG = Logger.getLogger(MixedLoadBalanceDispatcher.class.getName());
+public class DelayGuaranteeDispatcher {
+    //private static final Logger LOG = Logger.getLogger(DelayGuaranteeDispatcher.class.getName());
 
     private ConcurrentMap<String, String> enforcerURL;
 
@@ -65,7 +65,7 @@ public class MixedLoadBalanceDispatcher {
         enforcerURL.put(name, url);
     }
     private void writeLog(String log){
-        System.out.println("MixedLoadBalanceDispatcher: " + log);
+        System.out.println("DelayGuaranteeDispatcher: " + log);
     }
 
 }

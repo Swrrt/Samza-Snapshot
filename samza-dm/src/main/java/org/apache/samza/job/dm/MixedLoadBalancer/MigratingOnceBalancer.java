@@ -8,12 +8,12 @@ import java.util.*;
 public class MigratingOnceBalancer {
     private ModelingData modelingData;
     private DelayEstimator delayEstimator;
-    private MixedLoadBalanceManager loadBalanceManager;
+    private DelayGuaranteeDecisionModel loadBalanceManager;
     private double instantThreshold, longtermThreshold;
     public MigratingOnceBalancer() {
     }
 
-    public void setModelingData(ModelingData data, DelayEstimator delay, MixedLoadBalanceManager loadBalanceManager) {
+    public void setModelingData(ModelingData data, DelayEstimator delay, DelayGuaranteeDecisionModel loadBalanceManager) {
         modelingData = data;
         delayEstimator = delay;
         this.loadBalanceManager = loadBalanceManager;
