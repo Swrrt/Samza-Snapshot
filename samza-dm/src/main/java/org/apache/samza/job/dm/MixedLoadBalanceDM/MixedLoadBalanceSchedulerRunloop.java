@@ -39,6 +39,7 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
             long time = System.currentTimeMillis() ;
             if(!leaderComes && scheduler.updateLeader()){
                 leaderComes = true;
+                startTime = time;
             }
             /*
             */
