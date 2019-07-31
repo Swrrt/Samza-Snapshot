@@ -180,7 +180,7 @@ class OffsetManager(
     systemStreamPartitions.foreach { case (taskName, ssp) => ssp.foreach (ssp => offsetManagerMetrics.addCheckpointedOffset(ssp, "")) }
   }
 
-  def startWithOffsetClient(rmiClient: MetricsRetrieverRMIClient, containerModel: ContainerModel): Unit ={
+  def startWithRMIClient(rmiClient: MetricsRetrieverRMIClient, containerModel: ContainerModel): Unit ={
     registerCheckpointManager
     //loadOffsetsFromCheckpointManager
     loadOffsetsFromOffsetClient(rmiClient, containerModel)
@@ -316,7 +316,7 @@ class OffsetManager(
     }
   }
 
-  def stopWithOffsetClient(rmiClient: MetricsRetrieverRMIClient) {
+  def stopWithRMIClient(rmiClient: MetricsRetrieverRMIClient) {
     if (rmiClient != null) {
       info("Offset Manager is shutting down, upload offset to offset server")
       info("Offset" + lastProcessedOffsets)

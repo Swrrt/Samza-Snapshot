@@ -79,7 +79,7 @@ import org.apache.samza.util.MetricsReporterLoader
 import org.apache.samza.util.SystemClock
 import org.apache.samza.util.Util
 import org.apache.samza.util.Util.asScalaClock
-import org.apache.samza.zk.RMI.{MetricsServer, MetricsRetrieverRMIClient}
+import org.apache.samza.zk.RMI.{MetricsRetrieverRMIClient, MetricsServer}
 
 import scala.collection.JavaConverters._
 
@@ -98,10 +98,10 @@ object SamzaContainer extends Logging {
   }
 
   /**
-   * Fetches config, task:SSP assignments, and task:changelog partition
-   * assignments, and returns objects to be used for SamzaContainer's
-   * constructor.
-   */
+    * Fetches config, task:SSP assignments, and task:changelog partition
+    * assignments, and returns objects to be used for SamzaContainer's
+    * constructor.
+    */
   def readJobModel(url: String, initialDelayMs: Int = scala.util.Random.nextInt(DEFAULT_READ_JOBMODEL_DELAY_MS) + 1) = {
     info("Fetching configuration from: %s" format url)
     SamzaObjectMapper
@@ -120,12 +120,12 @@ object SamzaContainer extends Logging {
     this.apply1(containerId, jobModel, config, customReporters, taskFactory, 0);
   }
   def apply1(
-    containerId: String,
-    jobModel: JobModel,
-    config: Config,
-    customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
-    taskFactory: Object,
-    storeSuffix: Int = 0) = {
+              containerId: String,
+              jobModel: JobModel,
+              config: Config,
+              customReporters: Map[String, MetricsReporter] = Map[String, MetricsReporter](),
+              taskFactory: Object,
+              storeSuffix: Int = 0) = {
     val containerModel = jobModel.getContainers.get(containerId)
     val containerName = "samza-container-%s" format containerId
     val maxChangeLogStreamPartitions = jobModel.maxChangeLogStreamPartitions
@@ -147,7 +147,7 @@ object SamzaContainer extends Logging {
     val samzaContainerMetrics = new SamzaContainerMetrics(containerName, registry)
     val systemProducersMetrics = new SystemProducersMetrics(registry)
     val systemConsumersMetrics = new SystemConsumersMetrics(registry)
-    val rmiClientManagerMetrics = new OffsetManagerMetrics(registry)
+    val offsetManagerMetrics = new OffsetManagerMetrics(registry)
     val clock = if (config.getMetricsTimerEnabled) {
       new HighResolutionClock {
         override def nanoTime(): Long = System.nanoTime()
@@ -245,21 +245,21 @@ object SamzaContainer extends Logging {
 
     val serializableSerde = new SerializableSerde[Serde[Object]]()
     val serdesFromSerializedInstances = config.subset(SerializerConfig.SERIALIZER_PREFIX format "").asScala
-        .filter { case (key, value) => key.endsWith(SerializerConfig.SERIALIZED_INSTANCE_SUFFIX) }
-        .flatMap { case (key, value) =>
-          val serdeName = key.replace(SerializerConfig.SERIALIZED_INSTANCE_SUFFIX, "")
-          debug(s"Trying to deserialize serde instance for $serdeName")
-          try {
-            val bytes = Base64.getDecoder.decode(value)
-            val serdeInstance = serializableSerde.fromBytes(bytes)
-            debug(s"Returning serialized instance for $serdeName")
-            Some((serdeName, serdeInstance))
-          } catch {
-            case e: Exception =>
-              warn(s"Ignoring invalid serialized instance for $serdeName: $value", e)
-              None
-          }
+      .filter { case (key, value) => key.endsWith(SerializerConfig.SERIALIZED_INSTANCE_SUFFIX) }
+      .flatMap { case (key, value) =>
+        val serdeName = key.replace(SerializerConfig.SERIALIZED_INSTANCE_SUFFIX, "")
+        debug(s"Trying to deserialize serde instance for $serdeName")
+        try {
+          val bytes = Base64.getDecoder.decode(value)
+          val serdeInstance = serializableSerde.fromBytes(bytes)
+          debug(s"Returning serialized instance for $serdeName")
+          Some((serdeName, serdeInstance))
+        } catch {
+          case e: Exception =>
+            warn(s"Ignoring invalid serialized instance for $serdeName: $value", e)
+            None
         }
+      }
     info("Got serdes from serialized instances: %s" format serdesFromSerializedInstances.keys)
 
     val serdes = serdesFromFactories ++ serdesFromSerializedInstances
@@ -338,16 +338,16 @@ object SamzaContainer extends Logging {
       .flatMap(streamId => {
         val systemStream = config.streamIdToSystemStream(streamId)
         systemStreamKeySerdes.get(systemStream)
-                .orElse(systemKeySerdes.get(systemStream.getSystem))
-                .map(serde => (systemStream, new StringSerde("UTF-8")))
+          .orElse(systemKeySerdes.get(systemStream.getSystem))
+          .map(serde => (systemStream, new StringSerde("UTF-8")))
       }).toMap
 
     val intermediateStreamMessageSerdes = intermediateStreams
       .flatMap(streamId => {
         val systemStream = config.streamIdToSystemStream(streamId)
         systemStreamMessageSerdes.get(systemStream)
-                .orElse(systemMessageSerdes.get(systemStream.getSystem))
-                .map(serde => (systemStream, new IntermediateMessageSerde(serde)))
+          .orElse(systemMessageSerdes.get(systemStream.getSystem))
+          .map(serde => (systemStream, new IntermediateMessageSerde(serde)))
       }).toMap
 
     val serdeManager = new SerdeManager(
@@ -399,10 +399,10 @@ object SamzaContainer extends Logging {
 
     info("Got checkpointListeners : %s" format checkpointListeners)
 
-    val rmiClientManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
-      systemAdmins, checkpointListeners, rmiClientManagerMetrics)
+    val offsetManager = OffsetManager(inputStreamMetadata, config, checkpointManager,
+      systemAdmins, checkpointListeners, offsetManagerMetrics)
 
-    info("Got rmiClient manager: %s" format rmiClientManager)
+    info("Got offset manager: %s" format offsetManager)
 
     val dropDeserializationError = config.getDropDeserialization match {
       case Some(dropError) => dropError.toBoolean
@@ -585,21 +585,21 @@ object SamzaContainer extends Logging {
       info("Retrieved SystemStreamPartitions " + systemStreamPartitions + " for " + taskName)
 
       def createTaskInstance(task: Any): TaskInstance = new TaskInstance(
-          task = task,
-          taskName = taskName,
-          config = config,
-          metrics = taskInstanceMetrics,
-          systemAdmins = systemAdmins,
-          consumerMultiplexer = consumerMultiplexer,
-          collector = collector,
-          containerContext = containerContext,
-          rmiClientManager = rmiClientManager,
-          storageManager = storageManager,
-          reporters = reporters,
-          systemStreamPartitions = systemStreamPartitions,
-          exceptionHandler = TaskInstanceExceptionHandler(taskInstanceMetrics, config),
-          jobModel = jobModel,
-          streamMetadataCache = streamMetadataCache)
+        task = task,
+        taskName = taskName,
+        config = config,
+        metrics = taskInstanceMetrics,
+        systemAdmins = systemAdmins,
+        consumerMultiplexer = consumerMultiplexer,
+        collector = collector,
+        containerContext = containerContext,
+        offsetManager = offsetManager,
+        storageManager = storageManager,
+        reporters = reporters,
+        systemStreamPartitions = systemStreamPartitions,
+        exceptionHandler = TaskInstanceExceptionHandler(taskInstanceMetrics, config),
+        jobModel = jobModel,
+        streamMetadataCache = streamMetadataCache)
 
       val taskInstance = createTaskInstance(task)
 
@@ -662,7 +662,7 @@ object SamzaContainer extends Logging {
       runLoop = runLoop,
       consumerMultiplexer = consumerMultiplexer,
       producerMultiplexer = producerMultiplexer,
-      rmiClientManager = rmiClientManager,
+      offsetManager = offsetManager,
       localityManager = localityManager,
       securityManager = securityManager,
       metrics = samzaContainerMetrics,
@@ -675,20 +675,20 @@ object SamzaContainer extends Logging {
 }
 
 class SamzaContainer(
-  containerContext: SamzaContainerContext,
-  taskInstances: Map[TaskName, TaskInstance],
-  runLoop: Runnable,
-  consumerMultiplexer: SystemConsumers,
-  producerMultiplexer: SystemProducers,
-  metrics: SamzaContainerMetrics,
-  diskSpaceMonitor: DiskSpaceMonitor = null,
-  hostStatisticsMonitor: SystemStatisticsMonitor = null,
-  rmiClientManager: OffsetManager = new OffsetManager,
-  localityManager: LocalityManager = null,
-  securityManager: SecurityManager = null,
-  reporters: Map[String, MetricsReporter] = Map(),
-  jvm: JvmMetrics = null,
-  taskThreadPool: ExecutorService = null) extends Runnable with Logging {
+                      containerContext: SamzaContainerContext,
+                      taskInstances: Map[TaskName, TaskInstance],
+                      runLoop: Runnable,
+                      consumerMultiplexer: SystemConsumers,
+                      producerMultiplexer: SystemProducers,
+                      metrics: SamzaContainerMetrics,
+                      diskSpaceMonitor: DiskSpaceMonitor = null,
+                      hostStatisticsMonitor: SystemStatisticsMonitor = null,
+                      offsetManager: OffsetManager = new OffsetManager,
+                      localityManager: LocalityManager = null,
+                      securityManager: SecurityManager = null,
+                      reporters: Map[String, MetricsReporter] = Map(),
+                      jvm: JvmMetrics = null,
+                      taskThreadPool: ExecutorService = null) extends Runnable with Logging {
 
   val shutdownMs = containerContext.config.getShutdownMs.getOrElse(TaskConfigJava.DEFAULT_TASK_SHUTDOWN_MS)
   var shutdownHookThread: Thread = null
@@ -698,7 +698,7 @@ class SamzaContainer(
   private var exceptionSeen: Throwable = null
   private var paused: Boolean = false
   private var containerListener: SamzaContainerListener = null
-  private var rmiClientClient: MetricsRetrieverRMIClient = null
+  private var rmiClient: MetricsRetrieverRMIClient = null
   private var containerModel: ContainerModel = null
   private var metricsServer: MetricsServer = null
   def getStatus(): SamzaContainerStatus = status
@@ -711,7 +711,7 @@ class SamzaContainer(
 
   def setRMIClientAndJobModel(client: MetricsRetrieverRMIClient,
                                  jobModel: JobModel): Unit ={
-    rmiClientClient = client
+    rmiClient = client
     containerModel = jobModel.getContainers.get(containerContext.id)
   }
   def setMetricsServer(server: MetricsServer): Unit ={
@@ -724,9 +724,9 @@ class SamzaContainer(
 
 
       val startTime = System.nanoTime()
-      //sendStartingTime to rmiClient server
-      if(rmiClientClient != null){
-        rmiClientClient.sendStartTime(containerContext.id, startTime)
+      //sendStartingTime to offset server
+      if(rmiClient != null){
+        rmiClient.sendStartTime(containerContext.id, startTime)
       }
 
       status = SamzaContainerStatus.STARTING
@@ -788,8 +788,8 @@ class SamzaContainer(
       }
 
       //Send shutdown timestamp
-      if(rmiClientClient != null){
-        rmiClientClient.sendShutdownTime(containerContext.id, System.nanoTime())
+      if(rmiClient != null){
+        rmiClient.sendShutdownTime(containerContext.id, System.nanoTime())
       }
 
       info("Shutdown complete.")
@@ -817,26 +817,26 @@ class SamzaContainer(
   // TODO: We want to introduce a "PAUSED" state for SamzaContainer in the future so that StreamProcessor can pause and
   // unpause the container when the jobmodel changes.
   /**
-   * Marks the [[SamzaContainer]] as being paused by the called due to a change in [[JobModel]] and then, asynchronously
-   * shuts down this [[SamzaContainer]]
-   */
+    * Marks the [[SamzaContainer]] as being paused by the called due to a change in [[JobModel]] and then, asynchronously
+    * shuts down this [[SamzaContainer]]
+    */
   def pause(): Unit = {
     paused = true
     shutdown()
   }
 
   /**
-   * <p>
-   *   Asynchronously shuts down this [[SamzaContainer]]
-   * </p>
-   * <br>
-   * <b>Implementation</b>: Stops the [[RunLoop]], which will eventually transition the container from
-   * [[SamzaContainerStatus.STARTED]] to either [[SamzaContainerStatus.STOPPED]] or [[SamzaContainerStatus.FAILED]]].
-   * Based on the final `status`, [[SamzaContainerListener#onContainerStop(boolean)]] or
-   * [[SamzaContainerListener#onContainerFailed(Throwable)]] will be invoked respectively.
-   *
-   * @throws SamzaException, Thrown when the container has already been stopped or failed
-   */
+    * <p>
+    *   Asynchronously shuts down this [[SamzaContainer]]
+    * </p>
+    * <br>
+    * <b>Implementation</b>: Stops the [[RunLoop]], which will eventually transition the container from
+    * [[SamzaContainerStatus.STARTED]] to either [[SamzaContainerStatus.STOPPED]] or [[SamzaContainerStatus.FAILED]]].
+    * Based on the final `status`, [[SamzaContainerListener#onContainerStop(boolean)]] or
+    * [[SamzaContainerListener#onContainerFailed(Throwable)]] will be invoked respectively.
+    *
+    * @throws SamzaException, Thrown when the container has already been stopped or failed
+    */
   def shutdown(): Unit = {
     if (status == SamzaContainerStatus.STOPPED || status == SamzaContainerStatus.FAILED) {
       throw new IllegalContainerStateException("Cannot shutdown a container with status " + status)
@@ -892,16 +892,16 @@ class SamzaContainer(
   }
 
   def startOffsetManager {
-    info("Registering task instances with rmiClients.")
+    info("Registering task instances with offsets.")
 
     taskInstances.values.foreach(_.registerOffsets)
 
-    info("Starting rmiClient manager.")
+    info("Starting offset manager.")
 
-    if(rmiClientClient == null) rmiClientManager.start
+    if(rmiClient == null) offsetManager.start
     else {
-      rmiClientManager.startWithMetricsRetrieverRMIClient(rmiClientClient, containerModel)
-      val lastOffsets = rmiClientClient.getProcessedOffset()
+      offsetManager.startWithRMIClient(rmiClient, containerModel)
+      val lastOffsets = rmiClient.getProcessedOffset()
       //Update messages-total-processed
       taskInstances.foreach{
         case(taskName, taskInstance) =>{
@@ -1061,11 +1061,11 @@ class SamzaContainer(
   }
 
   def shutdownOffsetManager {
-    info("Shutting down rmiClient manager.")
+    info("Shutting down offset manager.")
 
-    if(rmiClientClient == null)rmiClientManager.stop
+    if(rmiClient == null)offsetManager.stop
     else {
-      rmiClientManager.stopWithMetricsRetrieverRMIClient(rmiClientClient)
+      offsetManager.stopWithRMIClient(rmiClient)
 
     }
   }
@@ -1106,12 +1106,12 @@ class SamzaContainer(
 }
 
 /**
- * Exception thrown when the SamzaContainer tries to transition to an illegal state.
- * {@link SamzaContainerStatus} has more details on the state transitions.
- *
- * @param s String, UtilizationMessage associated with the exception
- * @param t Throwable, Wrapped error/exception thrown, if any.
- */
+  * Exception thrown when the SamzaContainer tries to transition to an illegal state.
+  * {@link SamzaContainerStatus} has more details on the state transitions.
+  *
+  * @param s String, UtilizationMessage associated with the exception
+  * @param t Throwable, Wrapped error/exception thrown, if any.
+  */
 class IllegalContainerStateException(s: String, t: Throwable) extends SamzaException(s, t) {
   def this(s: String) = this(s, null)
 }
