@@ -69,6 +69,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
     public Map<String, Long> getContainerJobModelVersion(){
         return containerJobModelVersion;
     }
+    public String getLeaderAddress(){return rmiServer.getLeaderAddress();}
     public void updateContainerIds(Set<String> containerIds){
         this.containerIds = containerIds;
     }

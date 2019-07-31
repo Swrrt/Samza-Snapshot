@@ -108,20 +108,12 @@ public class MixedLoadBalanceScheduler implements LoadScheduler {
     }
 
     // Update leader's address from kafka metric topic
-    public boolean updateLeader(ConsumerRecord<String, String> record) {
-        balanceManager.updateMetrics(record);
-        try {
-            JSONObject json = new JSONObject(record.value());
-            String jobName = json.getJSONObject("header").getString("job-name");
-            String containerName = json.getJSONObject("header").getString("container-name");
-            String host = json.getJSONObject("header").getString("host");
-            if (jobName.equals(config.get("job.name")) && containerName.equals("ApplicationMaster")) {
+    public boolean updateLeader() {
+        String leaderAddress = metricsRetriever.getLeaderAddress();
+        if(leaderAddress != null){
                 //writeLog("New application master ip: " + host);
-                this.dispatcher.updateEnforcerURL(jobName, host + ":1999");
-                return true;
-            }
-        } catch (Exception e) {
-            //writeLog("Error when parse json");
+            this.dispatcher.updateEnforcerURL(config.get("job.name"), leaderAddress + ":1999");
+            return true;
         }
         return false;
     }

@@ -71,6 +71,9 @@ public class MetricsRetrieverRMIServer {
         processedOffsets.clear();
         return temp;
     }
+    public String getLeaderAddress(){
+        return address.get("Leader");
+    }
     public String getAddress(String processorId){
         return address.get(processorId);
     }

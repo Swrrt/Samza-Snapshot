@@ -23,26 +23,10 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
 
         String metricsTopicName = config.get("metrics.reporter.snapshot.stream", "kafka.metrics").substring(6);
 //        String metricsTopicName = "metrics";
-        Properties props = new Properties();
-        props.put("bootstrap.servers", config.get("systems.kafka.producer.bootstrap.servers"));
-        props.put("group.id", "test" + UUID.randomUUID());
-        props.put("enable.auto.commit", "true");
-        props.put("auto.commit.interval.ms", "1000");
-        props.put("session.timeout.ms", "30000");
 
-        props.put("key.deserializer",
-                "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("value.deserializer",
-                "org.apache.kafka.common.serialization.StringDeserializer");
-        KafkaConsumer<String, String> consumer = new KafkaConsumer <String, String>(props);
-
-        consumer.subscribe(Arrays.asList(metricsTopicName));
-
-        writeLog("Subscribing to kafka metrics stream: " + metricsTopicName);
         leaderComes = false;
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 1000);
         long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
-        long lastReportTime = 0, reportInterval = 500, totalRecords = 0;
         long startTime = -1; // The time AM is coming.
         long warmupTime = config.getLong("job.loadbalance.warmup.time", 30000);
         long migrationTimes = 0;
@@ -53,22 +37,8 @@ public class MixedLoadBalanceSchedulerRunloop implements LoadSchedulerRunloop {
             }catch (Exception e){};
 
             long time = System.currentTimeMillis() ;
-
-            if(!leaderComes) {
-                ConsumerRecords<String, String> records = consumer.poll(200);
-                totalRecords += records.count();
-                for (ConsumerRecord<String, String> record : records) {
-                    // writeLog("Reports: " + record.toString());
-                    if (scheduler.updateLeader(record)) {
-                        leaderComes = true;
-                        if(startTime == -1)startTime = time;
-                    }
-                }
-                if(time - lastReportTime >= reportInterval){
-                    lastReportTime = time;
-                    writeLog("Time: " + System.currentTimeMillis() +" Retrieved " + records.count() +" record, total retrieved record: " + totalRecords);
-                    //loadBalanceManager.showMetrics();
-                }
+            if(!leaderComes && scheduler.updateLeader()){
+                leaderComes = true;
             }
             /*
             */

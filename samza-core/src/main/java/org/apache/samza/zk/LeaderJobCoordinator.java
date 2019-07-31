@@ -21,10 +21,13 @@ package org.apache.samza.zk;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.samza.SamzaException;
 import org.apache.samza.config.ApplicationConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.ConfigException;
@@ -46,6 +49,8 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 //import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
+import org.apache.samza.zk.RMI.MetricsRetrieverRMIClient;
+import org.apache.samza.zk.RMI.MetricsServer;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +96,7 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
     private String cachedJobModelVersion = null;
     private Map<TaskName, Integer> changeLogPartitionMap = new HashMap<>();
     private Map<String, String> containerToProcessorMap = null;
-
+    private MetricsRetrieverRMIClient rmiClient = null;
     public LeaderJobCoordinator(Config config, MetricsRegistry metricsRegistry, ZkUtils zkUtils, JobModel jobModel) {
         this.config = config;
         //this.mixedLoadBalanceManager = new MixedLoadBalanceManager();
@@ -116,7 +121,14 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
             LOG.error("Received exception from in JobCoordinator Processing!", throwable);
             stop();
         });
-
+        if(config.getBoolean("job.loadbalance.on", false)) {
+            this.rmiClient = new MetricsRetrieverRMIClient(
+                    config.get("job.loadbalance.dm.address",""),
+                    Integer.parseInt(config.get("job.loadbalance.dm.rmiport","8881")),
+                    config.get("job.default.system"),
+                    config.get("job.loadbalance.inputtopic")
+            );
+        }
     }
 
     @Override
@@ -125,7 +137,18 @@ public class LeaderJobCoordinator implements ZkControllerListener, JobCoordinato
         startMetrics();
         streamMetadataCache = StreamMetadataCache.apply(METADATA_CACHE_TTL_MS, config);
         zkController.register();
+        if(config.getBoolean("job.loadbalance.on", false)) {
+            rmiClient.sendAddress("Leader", getHostName());
+        }
         //mixedLoadBalanceManager.initial(newJobModel, config);
+    }
+    private String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOG.error("Failed to fetch hostname of the leader", e);
+            throw new SamzaException(e);
+        }
     }
     @Override
     public JobModel getJobModel(){

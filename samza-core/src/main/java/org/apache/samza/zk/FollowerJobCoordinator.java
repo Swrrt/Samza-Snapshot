@@ -132,7 +132,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if(config.getBoolean("job.loadbalance.on", false)) {
             this.rmiClient = new MetricsRetrieverRMIClient(
                     config.get("job.loadbalance.dm.address",""),
-                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8881")),
+                    Integer.parseInt(config.get("job.loadbalance.dm.rmiport","8881")),
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
@@ -169,7 +169,7 @@ public class FollowerJobCoordinator implements JobCoordinator, ZkControllerListe
         if(config.getBoolean("job.loadbalance.on", false)) {
             this.rmiClient = new MetricsRetrieverRMIClient(
                     config.get("job.loadbalance.dm.address",""),
-                    Integer.parseInt(config.get("job.loadbalance.offsetserver.port","8881")),
+                    Integer.parseInt(config.get("job.loadbalance.dm.rmiport","8881")),
                     config.get("job.default.system"),
                     config.get("job.loadbalance.inputtopic")
             );
