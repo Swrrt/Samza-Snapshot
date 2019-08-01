@@ -25,9 +25,6 @@ public class DelayGuaranteeSchedulerRunloop implements LoadSchedulerRunloop {
         long migrationTimes = 0;
         while (true) {
             //writeLog("Try to retrieve report");
-            try{
-                Thread.sleep(retrieveInterval);
-            }catch (Exception e){};
 
             long time = System.currentTimeMillis() ;
             if(!leaderComes && scheduler.updateLeader()){
@@ -55,6 +52,9 @@ public class DelayGuaranteeSchedulerRunloop implements LoadSchedulerRunloop {
                     //writeLog("Smaller than rebalanceInterval, wait for next loop");
                 }
             }
+            try{
+                Thread.sleep(retrieveInterval);
+            }catch (Exception e){};
         }
     }
 
