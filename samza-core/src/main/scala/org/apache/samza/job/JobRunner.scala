@@ -132,18 +132,6 @@ class JobRunner(config: Config) extends Logging {
       case _ => warn("unable to start job successfully.")
     }
 
-    //Start listener if needed
-    if (config.containsKey("job.loadbalance.scheduler")){
-      info("Starting scheduler")
-      val schedulerClass = config.get("job.loadbalance.scheduler")
-      val scheduler = Class.forName(schedulerClass).newInstance.asInstanceOf[LoadScheduler]
-      scheduler.init(config)
-
-      // Scheduler usually keep running until being killed
-
-      scheduler.start()
-    }
-
     info("exiting")
     job
   }

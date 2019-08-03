@@ -5,27 +5,61 @@ import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.dm.MixedLoadBalancer.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
 
-public class DelayGuaranteeScheduler implements LoadScheduler {
+public class StreamSwitch implements LoadScheduler {
     private DelayGuaranteeDecisionModel decisionModel;
     //private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 
     private Config config;
 
-    private DelayGuaranteeDispatcher dispatcher;
+    private LeaderDispatcher dispatcher;
     private RMIMetricsRetriever metricsRetriever;
 
     public void createAndStartRunloop(LoadScheduler scheduler) {
-        writeLog("starting listener in scheduler");
-        DelayGuaranteeSchedulerRunloop runloop = new DelayGuaranteeSchedulerRunloop();
-        runloop.setScheduler(scheduler);
-        runloop.setConfig(config);
-        runloop.start();
+        writeLog("Scheduler's runloop starting");
+
+        boolean leaderComes = false;
+        long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 1000);
+        long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
+        long startTime = -1; // The time AM is coming.
+        long warmupTime = config.getLong("job.loadbalance.warmup.time", 30000);
+        long migrationTimes = 0;
+        while (true) {
+            //writeLog("Try to retrieve report");
+
+            long time = System.currentTimeMillis() ;
+            if(!leaderComes && updateLeader()){
+                leaderComes = true;
+                startTime = time;
+            }
+
+            if(decisionModel.retrieveArrivedAndProcessed(time))lastTime = time;
+            decisionModel.updateDelay(time);
+            decisionModel.updateModelingData(time);
+
+            //Try to rebalance periodically
+            if(leaderComes && time - startTime > warmupTime) {
+                long nowTime = System.currentTimeMillis();
+                if(nowTime - lastTime >= rebalanceInterval) {
+                    migrationTimes ++;
+                    //loadBalanceManager.showDelayMetrics("before" + migrationTimes);
+                    writeLog("Try to rebalance");
+                    if(tryToRebalance()) lastTime = nowTime;
+                    //loadBalanceManager.showDelayMetrics("migrated" + migrationTimes);
+                    //lastTime = nowTime;
+                }else{
+                    //writeLog("Smaller than rebalanceInterval, wait for next loop");
+                }
+            }
+            try{
+                Thread.sleep(retrieveInterval);
+            }catch (Exception e){};
+        }
     }
     @Override
     public void init(Config config){
         this.config = config;
 
-        this.dispatcher = new DelayGuaranteeDispatcher();
+        this.dispatcher = new LeaderDispatcher();
         this.dispatcher.init();
 
         this.metricsRetriever = new RMIMetricsRetriever();

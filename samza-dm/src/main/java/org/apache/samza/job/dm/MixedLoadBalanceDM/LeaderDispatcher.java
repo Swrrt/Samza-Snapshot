@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 
 //import org.apache.xmlrpc.*;
 
-public class DelayGuaranteeDispatcher {
+public class LeaderDispatcher {
     //private static final Logger LOG = Logger.getLogger(DelayGuaranteeDispatcher.class.getName());
 
     private ConcurrentMap<String, String> enforcerURL;
