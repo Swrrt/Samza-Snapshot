@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
 import org.apache.samza.zk.RMI.MetricsClient;
 import org.apache.samza.zk.RMI.MetricsRetrieverRMIServer;

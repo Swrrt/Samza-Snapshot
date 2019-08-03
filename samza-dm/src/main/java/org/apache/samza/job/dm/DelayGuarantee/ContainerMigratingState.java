@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
 public class ContainerMigratingState {
     public enum ContainerMigratingStateCode{

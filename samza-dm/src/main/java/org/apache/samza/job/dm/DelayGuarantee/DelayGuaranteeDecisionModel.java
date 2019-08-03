@@ -1,8 +1,7 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.coordinator.JobModelManager;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.*;
+import org.apache.samza.job.dm.StreamSwitch.*;
 import org.apache.samza.metrics.MetricsRegistryMap;
 import org.apache.samza.system.SystemStreamPartition;
 import org.apache.samza.util.Util;

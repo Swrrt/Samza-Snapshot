@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM
+package org.apache.samza.job.dm.StreamSwitch
 
 import org.apache.hadoop.hdfs.DistributedFileSystem
 import org.apache.samza.job.StreamJobFactory

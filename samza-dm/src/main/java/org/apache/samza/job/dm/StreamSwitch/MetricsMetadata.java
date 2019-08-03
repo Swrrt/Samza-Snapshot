@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
 import java.util.HashMap;
 import java.util.Map;

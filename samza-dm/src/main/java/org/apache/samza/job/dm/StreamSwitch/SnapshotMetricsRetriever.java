@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.config.Config;

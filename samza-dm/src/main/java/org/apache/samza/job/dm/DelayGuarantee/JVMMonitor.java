@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
 import org.apache.samza.zk.RMI.UtilizationClient;
 import org.slf4j.Logger;

@@ -1,6 +1,6 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
-import org.apache.samza.job.dm.MixedLoadBalancer.MigrationContext;
+import org.apache.samza.job.dm.DelayGuarantee.MigrationContext;
 
 import java.util.Map;
 

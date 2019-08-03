@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.serializers.model.SamzaObjectMapper;

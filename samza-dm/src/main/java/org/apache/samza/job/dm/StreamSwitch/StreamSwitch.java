@@ -1,8 +1,8 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
 import org.apache.samza.config.Config;
 import org.apache.samza.job.model.JobModel;
-import org.apache.samza.job.dm.MixedLoadBalancer.DelayGuaranteeDecisionModel;
+import org.apache.samza.job.dm.DelayGuarantee.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
 
 public class StreamSwitch implements LoadScheduler {

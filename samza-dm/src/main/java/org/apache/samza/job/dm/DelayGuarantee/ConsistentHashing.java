@@ -1,10 +1,8 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
 import com.google.common.hash.Hashing;
 import org.apache.commons.io.Charsets;
 import org.apache.samza.job.model.TaskModel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;

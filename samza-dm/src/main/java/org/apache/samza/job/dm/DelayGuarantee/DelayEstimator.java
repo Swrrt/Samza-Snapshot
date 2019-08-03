@@ -1,6 +1,5 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;

@@ -1,7 +1,4 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package org.apache.samza.job.dm.DelayGuarantee;
 
 import java.util.ArrayList;
 import java.util.HashMap;

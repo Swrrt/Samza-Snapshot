@@ -1,7 +1,7 @@
-package org.apache.samza.job.dm.MixedLoadBalancer;
+package org.apache.samza.job.dm.DelayGuarantee;
 
 import javafx.util.Pair;
-import org.apache.samza.job.dm.MixedLoadBalanceDM.RebalanceResult;
+import org.apache.samza.job.dm.StreamSwitch.RebalanceResult;
 
 import java.util.*;
 

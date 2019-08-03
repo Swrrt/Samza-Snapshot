@@ -1,16 +1,6 @@
-package org.apache.samza.job.dm.MixedLoadBalanceDM;
+package org.apache.samza.job.dm.StreamSwitch;
 
-import org.apache.commons.logging.Log;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.samza.clustermanager.dm.DMListenerEnforcer;
-import org.apache.samza.config.Config;
-import org.apache.samza.config.DMDispatcherConfig;
-import org.apache.samza.config.DMSchedulerConfig;
-import org.apache.samza.job.ApplicationStatus;
-import org.apache.samza.job.dm.Allocation;
-import org.apache.samza.job.dm.DMDispatcher;
-import org.apache.samza.job.dm.Enforcer;
-import org.apache.samza.job.dm.EnforcerFactory;
 import org.apache.samza.job.model.JobModel;
 
 import java.net.MalformedURLException;
@@ -19,7 +9,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.logging.Logger;
 
 
 //import org.apache.xmlrpc.*;
