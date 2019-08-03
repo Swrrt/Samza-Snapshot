@@ -1,5 +1,6 @@
 package org.apache.samza.job.dm.StreamSwitch;
 
+import org.apache.samza.config.Config;
 import org.apache.samza.zk.RMI.MetricsClient;
 import org.apache.samza.zk.RMI.MetricsRetrieverRMIServer;
 
@@ -17,6 +18,7 @@ public class RMIMetricsRetriever implements MetricsRetriever{
     Map<String, Double> containerUtilization;
     Map<String, Long> containerJobModelVersion;
     Set<String> containerIds;
+    LeaderDispatcher dispatcher;
     public RMIMetricsRetriever(){
         rmiServer = new MetricsRetrieverRMIServer();
         taskProcessed = new HashMap<>();
@@ -137,6 +139,16 @@ public class RMIMetricsRetriever implements MetricsRetriever{
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Arrived: " + containerArrived);
         System.out.println("MixedLoadBalanceManager, time " + time + " : " + "Processed: " + containerProcessed);
         */
+    }
+    public void setDispatcher(LeaderDispatcher dispatcher){
+        this.dispatcher = dispatcher;
+    }
+    public boolean isApplicationRunning(){
+        if(getLeaderAddress() != null) {
+            this.dispatcher.updateLeaderAddress(getLeaderAddress() + ":1999");
+            return true;
+        }
+        return false;
     }
 
 }

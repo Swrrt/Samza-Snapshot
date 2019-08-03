@@ -16,15 +16,15 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class LeaderDispatcher {
     //private static final Logger LOG = Logger.getLogger(DelayGuaranteeDispatcher.class.getName());
 
-    private ConcurrentMap<String, String> enforcerURL;
+    private String leaderAddress;
 
     public void init() {
-        this.enforcerURL = new ConcurrentSkipListMap<String, String>();
+        this.leaderAddress = null;
     }
 
-    public void updateJobModel(String stageId, JobModel jobModel){
+    public void updateJobModel(JobModel jobModel){
         try {
-            String url = enforcerURL.get(stageId);
+            String url = leaderAddress;
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
             enforcer.rebalance(JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
@@ -35,9 +35,9 @@ public class LeaderDispatcher {
             e.printStackTrace();
         }
     }
-    public void changeParallelism(String stageId, int parallelism, JobModel jobModel){
+    public void changeParallelism(int parallelism, JobModel jobModel){
         try {
-            String url = enforcerURL.get(stageId);
+            String url = leaderAddress;
             DMListenerEnforcer enforcer = (DMListenerEnforcer) Naming.lookup("rmi://" + url + "/listener");
             enforcer.changeParallelism(parallelism, JobModelSerializer.jobModelToString(jobModel));
         } catch (RemoteException e) {
@@ -48,10 +48,11 @@ public class LeaderDispatcher {
             e.printStackTrace();
         }
     }
-
-    public void updateEnforcerURL(String name, String url) {
-        // TODO: update the Enforcer URL for later use of updateing paralellism
-        enforcerURL.put(name, url);
+    public void updateLeaderAddress(String url){
+        leaderAddress = url;
+    }
+    public boolean okToDispatch(){
+        return leaderAddress != null;
     }
     private void writeLog(String log){
         System.out.println("DelayGuaranteeDispatcher: " + log);

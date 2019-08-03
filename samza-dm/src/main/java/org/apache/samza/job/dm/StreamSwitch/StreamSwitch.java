@@ -20,24 +20,28 @@ public class StreamSwitch implements LoadScheduler {
         boolean leaderComes = false;
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 1000);
         long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
-        long startTime = -1; // The time AM is coming.
+        long startTime = -1; // The time AM is coming. -1 for offline
         long warmupTime = config.getLong("job.loadbalance.warmup.time", 30000);
         long migrationTimes = 0;
         while (true) {
             //writeLog("Try to retrieve report");
 
             long time = System.currentTimeMillis() ;
-            if(!leaderComes && updateLeader()){
-                leaderComes = true;
+            if(startTime == - 1 && metricsRetriever.isApplicationRunning()){
                 startTime = time;
             }
+
+            /*if(!leaderComes && updateLeader()){
+                leaderComes = true;
+                startTime = time;
+            }*/
 
             if(decisionModel.retrieveArrivedAndProcessed(time))lastTime = time;
             decisionModel.updateDelay(time);
             decisionModel.updateModelingData(time);
 
             //Try to rebalance periodically
-            if(leaderComes && time - startTime > warmupTime) {
+            if(dispatcher.okToDispatch() && time - startTime > warmupTime) {
                 long nowTime = System.currentTimeMillis();
                 if(nowTime - lastTime >= rebalanceInterval) {
                     migrationTimes ++;
@@ -66,7 +70,7 @@ public class StreamSwitch implements LoadScheduler {
 
         this.decisionModel = new DelayGuaranteeDecisionModel();
         this.decisionModel.initial(config, this.metricsRetriever);
-
+        this.metricsRetriever.setDispatcher(dispatcher);
         this.metricsRetriever.start();
     }
 
@@ -99,7 +103,7 @@ public class StreamSwitch implements LoadScheduler {
                 decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
                 //decisionModel.updateOldJobModel(newJobModel);
                 //Dispatch the new JobModel
-                dispatcher.updateJobModel(config.get("job.name"), newJobModel);
+                dispatcher.updateJobModel(newJobModel);
                 return true;
             } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
                 writeLog("Need to scale out");
@@ -115,7 +119,7 @@ public class StreamSwitch implements LoadScheduler {
                 decisionModel.stashNewJobModel(newJobModel);
                 decisionModel.stashNewRebalanceResult(rebalanceResult);
                 decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
-                dispatcher.changeParallelism(config.get("job.name"), newJobModel.getContainers().size(), newJobModel);
+                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
                 return true;
             }
         }else if(decisionModel.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
@@ -129,7 +133,7 @@ public class StreamSwitch implements LoadScheduler {
                 decisionModel.stashNewJobModel(newJobModel);
                 decisionModel.stashNewRebalanceResult(rebalanceResult);
                 decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
-                dispatcher.changeParallelism(config.get("job.name"), newJobModel.getContainers().size(), newJobModel);
+                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
                 return true;
             }
             writeLog("Cannot scale in");
@@ -138,15 +142,6 @@ public class StreamSwitch implements LoadScheduler {
     }
 
     // Update leader's address from kafka metric topic
-    public boolean updateLeader() {
-        String leaderAddress = metricsRetriever.getLeaderAddress();
-        if(leaderAddress != null){
-                //writeLog("New application master ip: " + host);
-            this.dispatcher.updateEnforcerURL(config.get("job.name"), leaderAddress + ":1999");
-            return true;
-        }
-        return false;
-    }
 
     public DelayGuaranteeDecisionModel getBalanceManager() {
         return decisionModel;
