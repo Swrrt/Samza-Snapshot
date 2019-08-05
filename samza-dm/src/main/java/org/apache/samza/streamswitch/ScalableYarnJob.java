@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.StreamSwitch;
+package org.apache.samza.streamswitch;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.samza.config.Config;

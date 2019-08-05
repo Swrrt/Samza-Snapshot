@@ -1,6 +1,6 @@
-package org.apache.samza.job.dm.StreamSwitch;
+package org.apache.samza.streamswitch;
 
-import org.apache.samza.job.dm.DelayGuarantee.MigrationContext;
+import org.apache.samza.model.delayguarantee.MigrationContext;
 
 import java.util.Map;
 

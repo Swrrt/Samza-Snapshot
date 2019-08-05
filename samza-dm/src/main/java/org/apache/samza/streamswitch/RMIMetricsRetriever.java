@@ -1,6 +1,5 @@
-package org.apache.samza.job.dm.StreamSwitch;
+package org.apache.samza.streamswitch;
 
-import org.apache.samza.config.Config;
 import org.apache.samza.zk.RMI.MetricsClient;
 import org.apache.samza.zk.RMI.MetricsRetrieverRMIServer;
 

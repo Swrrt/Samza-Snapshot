@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.StreamSwitch;
+package org.apache.samza.streamswitch;
 
 import org.apache.samza.clustermanager.dm.DMListenerEnforcer;
 import org.apache.samza.job.model.JobModel;
@@ -7,8 +7,6 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 
 //import org.apache.xmlrpc.*;

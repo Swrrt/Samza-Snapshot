@@ -1,4 +1,4 @@
-package org.apache.samza.job.dm.StreamSwitch;
+package org.apache.samza.streamswitch;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,12 +1,12 @@
-package org.apache.samza.job.dm.StreamSwitch
+package org.apache.samza.streamswitch
 
 import org.apache.hadoop.hdfs.DistributedFileSystem
-import org.apache.samza.job.StreamJobFactory
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.samza.config.Config
+import org.apache.samza.job.StreamJobFactory
 import org.apache.samza.job.yarn.FileSystemImplConfig
-import org.apache.samza.util.hadoop.HttpFileSystem
 import org.apache.samza.util.Logging
+import org.apache.samza.util.hadoop.HttpFileSystem
 
 import scala.collection.JavaConverters._
 
