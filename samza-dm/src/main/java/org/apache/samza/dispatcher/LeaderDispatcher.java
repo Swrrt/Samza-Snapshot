@@ -1,7 +1,8 @@
-package org.apache.samza.streamswitch;
+package org.apache.samza.dispatcher;
 
 import org.apache.samza.clustermanager.dm.DMListenerEnforcer;
 import org.apache.samza.job.model.JobModel;
+import org.apache.samza.serializers.JobModelSerializer;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;

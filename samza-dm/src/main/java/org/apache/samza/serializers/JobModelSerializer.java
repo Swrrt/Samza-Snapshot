@@ -1,4 +1,4 @@
-package org.apache.samza.streamswitch;
+package org.apache.samza.serializers;
 
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.serializers.model.SamzaObjectMapper;

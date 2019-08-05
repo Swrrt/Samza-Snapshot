@@ -1,8 +1,9 @@
-package org.apache.samza.streamswitch;
+package org.apache.samza.job.yarn;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.samza.config.Config;
 import org.apache.samza.job.yarn.YarnJob;
+import org.apache.samza.streamswitch.StreamSwitch;
 
 public class ScalableYarnJob extends YarnJob {
     Config config;

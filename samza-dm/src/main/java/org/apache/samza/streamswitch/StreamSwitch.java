@@ -1,7 +1,9 @@
 package org.apache.samza.streamswitch;
 
 import org.apache.samza.config.Config;
-import org.apache.samza.model.delayguarantee.DelayGuaranteeDecisionModel;
+import org.apache.samza.dispatcher.LeaderDispatcher;
+import org.apache.samza.metrics.RMIMetricsRetriever;
+import org.apache.samza.models.delayguarantee.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
 
 public class StreamSwitch implements LoadScheduler {

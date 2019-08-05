@@ -1,4 +1,4 @@
-package org.apache.samza.streamswitch;
+package org.apache.samza.metrics;
 
 import java.util.HashMap;
 import java.util.Map;
