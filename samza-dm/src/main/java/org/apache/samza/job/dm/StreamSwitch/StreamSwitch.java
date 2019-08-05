@@ -14,13 +14,12 @@ public class StreamSwitch implements LoadScheduler {
     private LeaderDispatcher dispatcher;
     private RMIMetricsRetriever metricsRetriever;
 
-    public void createAndStartRunloop(LoadScheduler scheduler) {
+    public void startRunloop() {
         writeLog("Scheduler's runloop starting");
 
-        boolean leaderComes = false;
         long lastTime = System.currentTimeMillis(), rebalanceInterval = config.getInt("job.loadbalance.interval", 1000);
         long retrieveInterval = config.getInt("job.loadbalance.delay.interval", 500);
-        long startTime = -1; // The time AM is coming. -1 for offline
+        long startTime = -1; // The time Application starts running. -1 for not start yet.
         long warmupTime = config.getLong("job.loadbalance.warmup.time", 30000);
         long migrationTimes = 0;
         while (true) {
@@ -36,9 +35,9 @@ public class StreamSwitch implements LoadScheduler {
                 startTime = time;
             }*/
 
-            if(decisionModel.retrieveArrivedAndProcessed(time))lastTime = time;
-            decisionModel.updateDelay(time);
-            decisionModel.updateModelingData(time);
+            if(decisionModel.retrieveMetrics(time))lastTime = time;
+            decisionModel.updateModel(time);
+
 
             //Try to rebalance periodically
             if(dispatcher.okToDispatch() && time - startTime > warmupTime) {
@@ -47,7 +46,7 @@ public class StreamSwitch implements LoadScheduler {
                     migrationTimes ++;
                     //loadBalanceManager.showDelayMetrics("before" + migrationTimes);
                     writeLog("Try to rebalance");
-                    if(tryToRebalance()) lastTime = nowTime;
+                    if(decisionModel.tryToRebalance()) lastTime = nowTime;
                     //loadBalanceManager.showDelayMetrics("migrated" + migrationTimes);
                     //lastTime = nowTime;
                 }else{
@@ -69,7 +68,7 @@ public class StreamSwitch implements LoadScheduler {
         this.metricsRetriever = new RMIMetricsRetriever();
 
         this.decisionModel = new DelayGuaranteeDecisionModel();
-        this.decisionModel.initial(config, this.metricsRetriever);
+        this.decisionModel.initial(config, this.metricsRetriever, this.dispatcher);
         this.metricsRetriever.setDispatcher(dispatcher);
         this.metricsRetriever.start();
     }
@@ -78,73 +77,9 @@ public class StreamSwitch implements LoadScheduler {
     @Override
     public void start(){
         writeLog("Starting Scheduler");
-        createAndStartRunloop(this);
+        startRunloop();
         while(true){
         }
-    }
-
-    //Return true if change the jobModel
-    public boolean tryToRebalance() {
-        if(!decisionModel.checkMigrationDeployed()){
-            writeLog("Last migration is not deployed, cannot rebalance");
-            return false;
-        }
-        if (!decisionModel.checkDelay()) {
-            //Rebalance the JobModel
-            RebalanceResult rebalanceResult = decisionModel.migratingOnce(); //randomMoveOneTask(time);//decisionModel.rebalanceJobModel();
-            JobModel newJobModel = null;
-            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.Migrating) {
-                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
-                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
-                JobModelDemonstrator.demoJobModel(newJobModel);
-                decisionModel.stashNewJobModel(newJobModel);
-                decisionModel.stashNewRebalanceResult(rebalanceResult);
-                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
-                //decisionModel.updateOldJobModel(newJobModel);
-                //Dispatch the new JobModel
-                dispatcher.updateJobModel(newJobModel);
-                return true;
-            } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
-                writeLog("Need to scale out");
-                rebalanceResult = decisionModel.scaleOutByNumber(1);
-                if (rebalanceResult.getCode() != RebalanceResult.RebalanceResultCode.ScalingOut) {
-                    writeLog("Something is wrong when try to scale out");
-                    return false;
-                }
-                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
-                newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
-                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
-                JobModelDemonstrator.demoJobModel(newJobModel);
-                decisionModel.stashNewJobModel(newJobModel);
-                decisionModel.stashNewRebalanceResult(rebalanceResult);
-                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
-                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
-                return true;
-            }
-        }else if(decisionModel.getOldJobModel().getContainers().size() > 1){   ////Try to scale in
-            writeLog("No need to rebalance, try to scale in");
-            RebalanceResult rebalanceResult = decisionModel.scaleInByOne();
-            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn) {
-                writeLog("Need to Scale In");
-                JobModel newJobModel = decisionModel.generateJobModel(rebalanceResult.getTaskContainer());
-                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
-                JobModelDemonstrator.demoJobModel(newJobModel);
-                decisionModel.stashNewJobModel(newJobModel);
-                decisionModel.stashNewRebalanceResult(rebalanceResult);
-                decisionModel.updateMigrationContext(rebalanceResult.getMigrationContext());
-                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
-                return true;
-            }
-            writeLog("Cannot scale in");
-        }
-        return false;
-    }
-
-    // Update leader's address from kafka metric topic
-
-    public DelayGuaranteeDecisionModel getBalanceManager() {
-        return decisionModel;
     }
 
     private void writeLog(String log) {

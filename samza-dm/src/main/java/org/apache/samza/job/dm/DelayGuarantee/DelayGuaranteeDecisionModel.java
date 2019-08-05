@@ -14,6 +14,7 @@ import org.apache.samza.container.TaskName;
 import org.apache.samza.job.model.ContainerModel;
 import org.apache.samza.job.model.JobModel;
 import org.apache.samza.job.model.TaskModel;
+import org.apache.zookeeper.server.quorum.Leader;
 
 //Need to bind
 public class DelayGuaranteeDecisionModel {
@@ -41,6 +42,7 @@ public class DelayGuaranteeDecisionModel {
     //private LocalityServer localityServer = null;
     //private OffsetServer offsetServer = null;
     private RMIMetricsRetriever metricsRetriever = null;
+    private LeaderDispatcher dispatcher = null;
     private DelayEstimator delayEstimator = null;
     public DelayGuaranteeDecisionModel(){
         config = null;
@@ -71,13 +73,14 @@ public class DelayGuaranteeDecisionModel {
         TODO:
         Generate initial JobModel in here.
      */
-    public void initial(Config config, RMIMetricsRetriever metricsRetriever){
+    public void initial(Config config, RMIMetricsRetriever metricsRetriever, LeaderDispatcher dispatcher){
         //Generate initial job model according to
         Config coordinatorSystemConfig = Util.buildCoordinatorStreamConfig(config);
         JobModelManager jobModelManager = JobModelManager.apply(coordinatorSystemConfig, new MetricsRegistryMap());
         oldJobModel = jobModelManager.jobModel();
         migrationContext.setDeployed();
         this.metricsRetriever = metricsRetriever;
+        this.dispatcher = dispatcher;
         initial(oldJobModel, config);
     }
     public int getNextContainerId(){
@@ -334,8 +337,12 @@ public class DelayGuaranteeDecisionModel {
         //writeLog("Overall distance between "+ t1 +" and " + t2+" is: "+dis);
         return dis;
     }*/
+    public void updateModel(long time){
+        updateDelay(time);
+        updateModelingData(time);
+    }
 
-    public boolean retrieveArrivedAndProcessed(long time){
+    public boolean retrieveMetrics(long time){
         boolean isMigration = false;
         //timePoints.add(time);
         if(migrationContext != null && !checkMigrationDeployed()){
@@ -460,5 +467,62 @@ public class DelayGuaranteeDecisionModel {
     }
     private void writeLog(String log){
         System.out.println("MixedLoadBalanceManager, time " + System.currentTimeMillis() +" : " + log);
+    }
+    //Return true if change the jobModel
+    public boolean tryToRebalance() {
+        if(!checkMigrationDeployed()){
+            writeLog("Last migration is not deployed, cannot rebalance");
+            return false;
+        }
+        if (!checkDelay()) {
+            //Rebalance the JobModel
+            RebalanceResult rebalanceResult = migratingOnce(); //randomMoveOneTask(time);//decisionModel.rebalanceJobModel();
+            JobModel newJobModel = null;
+            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.Migrating) {
+                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = generateJobModel(rebalanceResult.getTaskContainer());
+                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                JobModelDemonstrator.demoJobModel(newJobModel);
+                stashNewJobModel(newJobModel);
+                stashNewRebalanceResult(rebalanceResult);
+                updateMigrationContext(rebalanceResult.getMigrationContext());
+                //decisionModel.updateOldJobModel(newJobModel);
+                //Dispatch the new JobModel
+                dispatcher.updateJobModel(newJobModel);
+                return true;
+            } else if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.NeedScalingOut) {
+                writeLog("Need to scale out");
+                rebalanceResult = scaleOutByNumber(1);
+                if (rebalanceResult.getCode() != RebalanceResult.RebalanceResultCode.ScalingOut) {
+                    writeLog("Something is wrong when try to scale out");
+                    return false;
+                }
+                //decisionModel.updateTaskContainers(rebalanceResult.getTaskContainer());
+                newJobModel = generateJobModel(rebalanceResult.getTaskContainer());
+                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                JobModelDemonstrator.demoJobModel(newJobModel);
+                stashNewJobModel(newJobModel);
+                stashNewRebalanceResult(rebalanceResult);
+                updateMigrationContext(rebalanceResult.getMigrationContext());
+                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
+                return true;
+            }
+        }else if(getOldJobModel().getContainers().size() > 1){   ////Try to scale in
+            writeLog("No need to rebalance, try to scale in");
+            RebalanceResult rebalanceResult = scaleInByOne();
+            if (rebalanceResult.getCode() == RebalanceResult.RebalanceResultCode.ScalingIn) {
+                writeLog("Need to Scale In");
+                JobModel newJobModel = generateJobModel(rebalanceResult.getTaskContainer());
+                writeLog("New Job Model is:" + newJobModel.toString() + ", prepare to dispatch");
+                JobModelDemonstrator.demoJobModel(newJobModel);
+                stashNewJobModel(newJobModel);
+                stashNewRebalanceResult(rebalanceResult);
+                updateMigrationContext(rebalanceResult.getMigrationContext());
+                dispatcher.changeParallelism(newJobModel.getContainers().size(), newJobModel);
+                return true;
+            }
+            writeLog("Cannot scale in");
+        }
+        return false;
     }
 }
