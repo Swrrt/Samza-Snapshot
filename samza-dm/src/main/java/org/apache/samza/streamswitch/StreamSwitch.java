@@ -6,7 +6,7 @@ import org.apache.samza.metrics.RMIMetricsRetriever;
 import org.apache.samza.models.delayguarantee.DelayGuaranteeDecisionModel;
 import org.apache.samza.scheduler.LoadScheduler;
 
-public class StreamSwitch implements LoadScheduler {
+public class StreamSwitch{
     private DelayGuaranteeDecisionModel decisionModel;
     //private static final Logger LOG = Logger.getLogger(DefaultScheduler.class.getName());
 

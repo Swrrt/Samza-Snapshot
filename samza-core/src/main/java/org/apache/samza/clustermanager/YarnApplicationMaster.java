@@ -20,13 +20,11 @@ package org.apache.samza.clustermanager;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import java.net.Inet4Address;
 import java.util.*;
 
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
-import org.apache.samza.clustermanager.dm.DMListener;
-import org.apache.samza.clustermanager.dm.DMListenerRMI;
+import org.apache.samza.util.RMI.DecisionListener;
 import org.apache.samza.config.*;
 import org.apache.samza.coordinator.JobModelManager;
 import org.apache.samza.coordinator.StreamPartitionCountMonitor;
@@ -120,7 +118,7 @@ public class YarnApplicationMaster {
      */
     private final LeaderJobCoordinator leaderJobCoordinator;
 
-    private DMListener listener;
+    private DecisionListener listener;
     private int numberOfContainers;
     /**
      *
@@ -186,7 +184,7 @@ public class YarnApplicationMaster {
             // init and start the listener
             if(config.getBoolean("job.loadbalance.on",false)) {
                 log.info("Load Balance mode is on, start listening to decision maker");
-                listener = new DMListenerRMI();
+                listener = new DecisionListener();
                 listener.setYarnApplicationMaster(this);
                 listener.startListener();
             }else{
@@ -278,21 +276,6 @@ public class YarnApplicationMaster {
         numberOfContainers = n;
     }
 
-    private JobModel scaleDownByOne(JobModel jobModel){
-        List<String> processors = new ArrayList<>(jobModel.getContainers().keySet());
-        processors.remove(0);
-        //jobModel = jobModelManager.jobModel();
-        log.info("Generate new JobModel with processors: {}", processors);
-        jobModel = leaderJobCoordinator.testingGenerateNewJobModel(processors);
-        ObjectMapper mmapper = SamzaObjectMapper.getObjectMapper();
-        try {
-            log.info("Generate new JobModel : {}", mmapper.writerWithDefaultPrettyPrinter().writeValueAsString(jobModel));
-        }catch (Exception e){
-        }
-        log.info("Requesting more containers");
-        containerProcessManager.releaseOne();
-        return jobModel;
-    }
     /* For testing */
 
     private boolean checkAndThrowException() throws Exception {

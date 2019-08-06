@@ -1,4 +1,4 @@
-package org.apache.samza.clustermanager.dm;
+package org.apache.samza.util.RMI;
 
 import org.apache.samza.clustermanager.YarnApplicationMaster;
 import org.slf4j.Logger;
@@ -9,15 +9,13 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 
-public class DMListenerRMI implements DMListener, Runnable {
-    private static final Logger log = LoggerFactory.getLogger(DMListenerRMI.class);
+public class DecisionListener implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(DecisionListener.class);
     private YarnApplicationMaster jc;
-    @Override
     public void registerToDM() {
 
     }
 
-    @Override
     public void startListener() {
 //        Thread thread = new Thread(server);
 //        thread.setDaemon(true);
@@ -25,7 +23,6 @@ public class DMListenerRMI implements DMListener, Runnable {
         thread.start();
     }
 
-    @Override
     public void setYarnApplicationMaster(YarnApplicationMaster jc) {
         this.jc = jc;
     }
@@ -34,7 +31,7 @@ public class DMListenerRMI implements DMListener, Runnable {
     public void run() {
         log.info("Starting RMI server");
         try {
-            DMListenerEnforcer enforcer = new DMListenerEnforcerRMIImpl(jc);
+            DecisionMessage enforcer = new DecisionMessageImpl(jc);
             LocateRegistry.createRegistry(1999);
             Naming.rebind("rmi://localhost:1999/listener", enforcer);
 

@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.samza.SamzaException;
 import org.apache.samza.PartitionChangeException;
-import org.apache.samza.clustermanager.dm.DMListener;
-import org.apache.samza.clustermanager.dm.DMListenerRMI;
 import org.apache.samza.config.ClusterManagerConfig;
 import org.apache.samza.config.Config;
 import org.apache.samza.config.JavaSystemConfig;
@@ -186,10 +184,6 @@ public class ClusterBasedJobCoordinator {
     try {
       //initialize JobCoordinator state
       log.info("Starting Cluster Based Job Coordinator");
-
-      // init and start the listener
-      DMListener listener = new DMListenerRMI();
-      listener.startListener();
 
       containerProcessManager.start();
       partitionMonitor.start();

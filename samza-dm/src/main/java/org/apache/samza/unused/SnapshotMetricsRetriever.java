@@ -2,7 +2,7 @@ package org.apache.samza.unused;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.samza.config.Config;
-import org.apache.samza.zk.RMI.MetricsRetrieverRMIClient;
+import org.apache.samza.util.RMI.MetricsRetrieverRMIClient;
 import org.json.JSONObject;
 
 

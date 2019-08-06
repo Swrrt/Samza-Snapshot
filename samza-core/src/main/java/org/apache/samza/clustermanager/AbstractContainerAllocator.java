@@ -265,13 +265,5 @@ public abstract class AbstractContainerAllocator implements Runnable {
   public void stop() {
     isRunning = false;
   }
-  // test
-  public final void releaseContainer(){
-    resourceRequestState.releaseContainer();
-    state.containerRequests.decrementAndGet();
-  }
-  public final void releaseContainer(String containerID) {
-    resourceRequestState.releaseContainer(containerID);
-    state.containerRequests.decrementAndGet();
-  }
+
 }

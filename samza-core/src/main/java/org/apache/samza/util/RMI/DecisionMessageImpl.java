@@ -1,17 +1,17 @@
-package org.apache.samza.clustermanager.dm;
+package org.apache.samza.util.RMI;
 
 import org.apache.samza.clustermanager.YarnApplicationMaster;
-import org.apache.samza.job.model.JobModel;
+import org.apache.samza.serializers.model.JobModelDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-public class DMListenerEnforcerRMIImpl extends UnicastRemoteObject implements DMListenerEnforcer {
-    private static final Logger log = LoggerFactory.getLogger(DMListenerEnforcerRMIImpl.class);
+public class DecisionMessageImpl extends UnicastRemoteObject implements DecisionMessage {
+    private static final Logger log = LoggerFactory.getLogger(DecisionMessageImpl.class);
     YarnApplicationMaster jc;
-    DMListenerEnforcerRMIImpl(YarnApplicationMaster jc) throws RemoteException{
+    DecisionMessageImpl(YarnApplicationMaster jc) throws RemoteException{
         super();
         this.jc = jc;
     }

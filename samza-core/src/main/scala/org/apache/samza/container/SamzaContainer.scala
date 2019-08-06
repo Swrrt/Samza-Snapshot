@@ -79,7 +79,7 @@ import org.apache.samza.util.MetricsReporterLoader
 import org.apache.samza.util.SystemClock
 import org.apache.samza.util.Util
 import org.apache.samza.util.Util.asScalaClock
-import org.apache.samza.zk.RMI.{MetricsRetrieverRMIClient, MetricsServer}
+import org.apache.samza.util.RMI.{MetricsRetrieverRMIClient, MetricsServer}
 
 import scala.collection.JavaConverters._
 

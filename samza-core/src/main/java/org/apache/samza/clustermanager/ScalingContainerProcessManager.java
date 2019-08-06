@@ -421,10 +421,4 @@ public class ScalingContainerProcessManager implements ClusterResourceManager.Ca
         state.neededContainers.addAndGet(1);
         containerAllocator.requestResource(String.format("%06d", containerCount + 1),ResourceRequestState.ANY_HOST);
     }
-    public void releaseOne(){
-        log.info("Releasing one container!");
-        int containerCount = state.containerCount.decrementAndGet();
-        state.neededContainers.decrementAndGet();
-        containerAllocator.releaseContainer();
-    }
 }

@@ -1,8 +1,8 @@
 package org.apache.samza.metrics;
 
 import org.apache.samza.dispatcher.LeaderDispatcher;
-import org.apache.samza.zk.RMI.MetricsClient;
-import org.apache.samza.zk.RMI.MetricsRetrieverRMIServer;
+import org.apache.samza.util.RMI.MetricsClient;
+import org.apache.samza.util.RMI.MetricsRetrieverRMIServer;
 
 import java.util.HashMap;
 import java.util.HashSet;

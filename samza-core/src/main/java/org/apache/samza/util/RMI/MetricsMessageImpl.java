@@ -1,9 +1,7 @@
-package org.apache.samza.zk.RMI;
+package org.apache.samza.util.RMI;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import javafx.util.Pair;
-import org.apache.samza.job.model.ContainerModel;
-import org.apache.samza.job.model.JobModel;
 import org.apache.samza.metrics.*;
 import org.apache.samza.metrics.Timer;
 

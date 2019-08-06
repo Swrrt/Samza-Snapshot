@@ -1,4 +1,4 @@
-package org.apache.samza.clustermanager.dm;
+package org.apache.samza.serializers.model;
 
 import org.apache.samza.SamzaException;
 import org.apache.samza.job.model.JobModel;

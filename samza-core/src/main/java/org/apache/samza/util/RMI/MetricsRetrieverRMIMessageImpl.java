@@ -1,4 +1,4 @@
-package org.apache.samza.zk.RMI;
+package org.apache.samza.util.RMI;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;

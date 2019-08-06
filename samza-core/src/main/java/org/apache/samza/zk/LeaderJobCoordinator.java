@@ -20,7 +20,6 @@ package org.apache.samza.zk;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -49,8 +48,8 @@ import org.apache.samza.system.StreamMetadataCache;
 import org.apache.samza.util.ClassLoaderHelper;
 import org.apache.samza.util.MetricsReporterLoader;
 //import org.apache.samza.job.dm.MixedLoadBalancer.MixedLoadBalanceManager;
-import org.apache.samza.zk.RMI.MetricsRetrieverRMIClient;
-import org.apache.samza.zk.RMI.MetricsServer;
+import org.apache.samza.util.RMI.MetricsRetrieverRMIClient;
+import org.apache.samza.util.RMI.MetricsServer;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

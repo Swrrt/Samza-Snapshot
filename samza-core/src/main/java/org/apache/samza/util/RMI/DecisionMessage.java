@@ -1,11 +1,9 @@
-package org.apache.samza.clustermanager.dm;
-
-import org.apache.samza.job.model.JobModel;
+package org.apache.samza.util.RMI;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-public interface DMListenerEnforcer extends Remote {
+public interface DecisionMessage extends Remote {
 
     /**
      * Enforce the schema/parallelism sent by the dispatcher

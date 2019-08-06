@@ -1,4 +1,4 @@
-package org.apache.samza.zk.RMI;
+package org.apache.samza.util.RMI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

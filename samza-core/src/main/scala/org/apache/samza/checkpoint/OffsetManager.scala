@@ -33,7 +33,7 @@ import org.apache.samza.job.model.ContainerModel
 import org.apache.samza.system.SystemStreamMetadata.OffsetType
 import org.apache.samza.system.{SystemAdmin, SystemStream, SystemStreamMetadata, SystemStreamPartition}
 import org.apache.samza.util.Logging
-import org.apache.samza.zk.RMI.{MetricsServer, MetricsRetrieverRMIClient}
+import org.apache.samza.util.RMI.{MetricsServer, MetricsRetrieverRMIClient}
 
 import scala.collection.JavaConverters._
 import scala.collection._

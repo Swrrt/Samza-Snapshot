@@ -42,7 +42,7 @@ import org.apache.samza.task.TaskCallbackFactory
 import org.apache.samza.task.TaskInstanceCollector
 import org.apache.samza.task.WindowableTask
 import org.apache.samza.util.Logging
-import org.apache.samza.zk.RMI.MetricsServer
+import org.apache.samza.util.RMI.MetricsServer
 
 import scala.collection.JavaConverters._
 
